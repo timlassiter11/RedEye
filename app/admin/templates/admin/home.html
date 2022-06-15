@@ -1,7 +1,7 @@
 {% extends "admin/layout.html" %}
 
 {% block content %}
-<div id="map" style="height: 400px; width: 100%;"></div>
+<div id="map" style="height: 800px; width: 100%;"></div>
 {% endblock %}
 
 {% block scripts %}
@@ -11,16 +11,34 @@
     function initMap() {
         // The location of Uluru
         const uluru = { lat: -25.344, lng: 131.031 };
-        // The map, centered at Uluru
-        const map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 4,
-            center: uluru,
-        });
-        // The marker, positioned at Uluru
-        const marker = new google.maps.Marker({
-            position: uluru,
-            map: map,
-        });
+        
+        $.get("{{ url_for('api.flights', expand=True, per_page=500)|safe }}", function(data, textStatus, jqXHR) {
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 8,
+            });
+
+            let bounds = new google.maps.LatLngBounds();
+            for (const index in data.items) {
+                const flight = data.items[index]
+                let flightCoordinates = [
+                    { lat: flight.departure_airport.latitude, lng: flight.departure_airport.longitude },
+                    { lat: flight.arrival_airport.latitude, lng: flight.arrival_airport.longitude },
+                ]
+
+                const flightPath = new google.maps.Polyline({
+                    path: flightCoordinates,
+                    geodesic: true,
+                    strokeColor: "#FF0000",
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2,
+                })
+
+                flightPath.setMap(map)
+                bounds.extend(new google.maps.LatLng(flightCoordinates[0]))
+                bounds.extend(new google.maps.LatLng(flightCoordinates[1]))
+            }
+            map.fitBounds(bounds);
+        })
     }
 
     window.initMap = initMap;
