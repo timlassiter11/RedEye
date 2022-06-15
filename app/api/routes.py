@@ -72,7 +72,7 @@ class Airplanes(Resource):
 
         query = models.Airplane.query
         if search:
-            query = query.msearch(search)
+            query = query.msearch(f'*{search}*')
 
         data = models.Airplane.to_collection_dict(query, page, items_per_page, 'api.airplanes', search=search)
         return jsonify(data)
