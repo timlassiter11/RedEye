@@ -1,10 +1,11 @@
 from config import Config
-from flask import Flask
+from flask import Flask, render_template
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_msearch import Search
+from werkzeug.exceptions import HTTPException
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -33,11 +34,17 @@ def create_app(config_class=Config) -> "Flask":
     from app.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
-    from app.errors import bp as errors_bp
-    app.register_blueprint(errors_bp)
-
     from app.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/api')
+
+    @app.errorhandler(HTTPException)
+    def handle_error(error):
+        code = error.code
+        return render_template(
+            'error.html',
+            error_text=error.name,
+            error_code=code
+        ), code
 
     return app
 
