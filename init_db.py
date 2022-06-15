@@ -200,7 +200,7 @@ def create_flights(percentage: int = 90) -> None:
     # Grab a random list of planes to use based on the percentage given.
     # This allows us to have some spares that can be used as backups.
     total_flights = len(planes) * (percentage / 100)
-    planes = random.choices(planes, k=int(total_flights))
+    planes = random.sample(planes, k=int(total_flights))
     # A standard amount of time we want to set aside between
     # flights for deboarding, cleaning the plane, and boarding.
     boarding_buffer = timedelta(hours=1, minutes=30)
@@ -224,7 +224,7 @@ def create_flights(percentage: int = 90) -> None:
 
         retrys = 10
 
-        while True:
+        while retrys:
             flight_details = FlightDetails(home_airport, random.choice(airports))
             # If the airport is too close or the plane can't fly that far, start over and choose a new destination.
             if flight_details.distance < 500 or flight_details.distance > plane.range:
@@ -238,10 +238,8 @@ def create_flights(percentage: int = 90) -> None:
                 # Just because this flight was too long doesn't mean
                 # they all would be. Try again a few times and see
                 # if we can find a flight that will fit in this time slot.
-                if retrys:
-                    retrys -= 1
-                    continue
-                break
+                retrys -= 1
+                continue
 
             arrival_dt = departure_dt + flight_details.travel_time
 
