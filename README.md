@@ -17,7 +17,7 @@ Once all of the prerequisites have been met you will need to clone the repositor
 
 `git clone https://gitlab.com/cs4912/2203-red.git`
 
-This will clone the repository into that directory and you should now see a folder called ***teamred***.
+This will clone the repository into that directory and you should now see a folder called ***2203-red***.
 ### VS Code and Python
 If you chose to add right click items for VS Code during installation you can simply right click on the folder and select ***Open with Code***. You can also open VS Code and select ***Open Folder***.
 
