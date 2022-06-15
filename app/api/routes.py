@@ -1,3 +1,4 @@
+from distutils.util import strtobool
 from flask import jsonify, request
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
@@ -75,11 +76,15 @@ class Airplanes(Resource):
         items_per_page = request.args.get("per_page", 25, type=int)
         page = request.args.get("page", 1, type=int)
         search = request.args.get("search", "", type=str)
-        expand = request.args.get("expand", False, type=bool)
+        spares = request.args.get("spares", False, type=strtobool)
+        expand = request.args.get("expand", False, type=strtobool)
 
         query = models.Airplane.query
         if search:
             query = query.msearch(f"*{search}*")
+
+        if spares:
+            query = query.filter(~models.Airplane.flights.any())
 
         data = models.Airplane.to_collection_dict(
             query, page, items_per_page, "api.airplanes", expand=expand, search=search
@@ -109,7 +114,7 @@ class Airplanes(Resource):
 
 class Airplane(Resource):
     def get(self, id):
-        expand = request.args.get("expand", False, type=bool)
+        expand = request.args.get("expand", False, type=strtobool)
         airplane = get_or_404(models.Airplane, id)
         return jsonify(airplane.to_dict(expand=expand))
 
@@ -146,7 +151,7 @@ class Flights(Resource):
         items_per_page = request.args.get("per_page", 25, type=int)
         page = request.args.get("page", 1, type=int)
         search = request.args.get("search", "", type=str)
-        expand = request.args.get("expand", False, type=bool)
+        expand = request.args.get("expand", False, type=strtobool)
 
         query = models.Flight.query
         if search:
@@ -171,7 +176,7 @@ class Flights(Resource):
 
 class Flight(Resource):
     def get(self, id):
-        expand = request.args.get("expand", False, type=bool)
+        expand = request.args.get("expand", False, type=strtobool)
         flight = get_or_404(models.Flight, id)
         return jsonify(flight.to_dict(expand=expand))
 
