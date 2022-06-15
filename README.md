@@ -15,7 +15,7 @@ Git is required for source control and can be found [HERE](https://git-scm.com/d
 ### Cloning the Repository
 Once all of the prerequisites have been met you will need to clone the repository. To do this you will need to open file explorer and navigate to the folder where you'd like to store the source code. Once there click inside of the top address bar to the right of any text. This should highligh the text and allow you to type. Type ***powershell*** and press enter. This will open a PowerShell window in that directory. Now run the following command.
 
-`git clone https://github.com/timlassiter11/teamred.git`
+`git clone https://gitlab.com/cs4912/2203-red.git`
 
 This will clone the repository into that directory and you should now see a folder called ***teamred***.
 ### VS Code and Python
