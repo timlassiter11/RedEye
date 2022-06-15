@@ -1,0 +1,120 @@
+{% extends "admin/layout.html" %}
+{% from 'bootstrap/modals.html' import render_modal_form, render_confirmation_modal %}
+
+{% block content %}
+
+{{ render_modal_form('Edit User', user_form, modal_id='userEditModal', form_id='userEditForm') }}
+
+<div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">Delete User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            </div>
+            <div class="modal-footer">
+                <button onclick="$(this).trigger('rejected.bs.modal')" type="button" class="btn btn-secondary"
+                    data-bs-dismiss="modal">No</button>
+                <button onclick="$(this).trigger('accepted.bs.modal')" type="button" class="btn btn-danger"
+                    data-bs-dismiss="modal">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<table id="userTable" data-pagination="true" data-search="true" data-click-to-select="true">
+    <thead>
+        <tr>
+            <th>First</th>
+            <th>Last</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td id="firstName{{ user.id }}">{{ user.first_name }}</td>
+            <td id="lastName{{ user.id }}">{{ user.last_name }}</td>
+            <td id="email{{ user.id }}">{{ user.email }}</td>
+            <td id="role{{ user.id }}">{{ user.role }}</td>
+            <td>
+                <button class="btn edit-btn" type="button" data-user-id="{{ user.id }}"><i
+                        class="bi bi-pencil"></i></button>
+                {% if user.id != current_user.id %}
+                <button class="btn delete-btn" type="button" data-user-id="{{ user.id }}"><i
+                        class="bi bi-trash"></i></button>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function () {
+        const $userTable = $('#userTable')
+
+        const $userEditForm = $('#userEditForm')
+
+        const $userEditModal = $('#userEditModal')
+        const userEditModal = bootstrap.Modal.getOrCreateInstance($userEditModal[0])
+
+        const $confirmationModal = $('#confirmationModal')
+        const confirmationModal = bootstrap.Modal.getOrCreateInstance($confirmationModal[0])
+
+        $userTable.bootstrapTable('destroy').bootstrapTable({
+            locale: 'en-US'
+        })
+
+        $('.edit-btn').click(function () {
+            const userId = $(this).data('user-id')
+            const firstName = $(`#firstName${userId}`).text()
+            const lastName = $(`#lastName${userId}`).text()
+            const email = $(`#email${userId}`).text()
+            const role = $(`#role${userId}`).text()
+
+            $userEditForm.find('#first_name').val(firstName)
+            $userEditForm.find('#last_name').val(lastName)
+            $userEditForm.find('#email').val(email)
+            $userEditForm.find('#role').val(role)
+            $userEditForm.attr('action', `/admin/users/${userId}`)
+            $userEditForm.removeClass('was-validated')
+            userEditModal.show()
+        })
+
+        $('.delete-btn').click(function () {
+            const userId = $(this).data('user-id')
+            const firstName = $(`#firstName${userId}`).text()
+            const lastName = $(`#lastName${userId}`).text()
+            $confirmationModal.data('user-id', userId)
+            $confirmationModal.find('.modal-body').append(`<p>Are you sure you want to delete the user <b>${firstName}</b>?</p>`)
+            confirmationModal.show()
+        })
+
+        $confirmationModal.on('accepted.bs.modal', function (event) {
+            const userId = $confirmationModal.data('user-id')
+            $userEditForm.attr('action', `/admin/users/${userId}`)
+            $userEditForm.find('#method').val('DELETE')
+            $userEditForm.submit()
+        })
+
+        // Handle form validation as per Bootstrap docs
+        $('form.needs-validation').submit(function(event) {
+            const $form = $(this);
+            if (this.checkValidity() === false) {
+                event.preventDefault()
+                event.stopPropagation();
+            } 
+            $form.addClass('was-validated');
+        })
+    })
+</script>
+{% endblock %}

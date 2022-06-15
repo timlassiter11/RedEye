@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% set endpoint = '' -%}
+{% if request.endpoint -%}
+{% set endpoint = request.endpoint -%}
+{% endif -%}
+
+{% block body %}
+<body>
+    {% block navbar %}
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <img src="/static/images/logo.png" alt="" width="180" height="50">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link{% if endpoint == 'main.home' %} active {% endif %}" aria-current="page" href="#">Home</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    {% if current_user.is_anonymous %}
+                    <li class="nav-item"><a class="nav-link p-2" href="{{ url_for('auth.register') }}"><i
+                                class="bi bi-person-fill mx-2"></i><i>Sign Up</i></a></li>
+                    <li class="nav-item"><a class="nav-link p-2"
+                            href="{{ url_for('auth.login', next=url_for(endpoint)) }}"><i
+                                class="bi bi-box-arrow-in-right mx-2"></i></i>Login</i></a></li>
+                    {% else %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-item nav-link dropdown-toggle me-md-2" href="#" data-bs-toggle="dropdown"
+                            aria-haspopup="true" aria-expanded="false" id="user-menu">
+                            {{ current_user.first_name }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu">
+                            {% if current_user.role == 'admin' %}
+                            <li><a class="dropdown-item" href="{{ url_for('admin.home') }}">Admin</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i
+                                    class="bi bi-box-arrow-left"></i> Logout</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endblock %}
+    <div class="container body-content mt-2">
+        {% block messages %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        {% if category == 'message' %}{% set category = 'primary' %}{% endif %}
+        <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% endblock %}
+
+        {% block title_row -%}
+        <div class="row">
+            <div class="col">
+                {% block title_heading -%}
+                <h2>{{ title }}</h2>
+                {% endblock -%}
+            </div>
+            <div class="col-auto ms-auto">
+                <div class="d-flex flex-row justify-content-end">
+                    {% block title_button %}{% endblock %}
+                </div>
+            </div>
+        </div>
+        {% endblock -%}
+
+        {% block content %}{% endblock %}
+
+        {% block footer %}
+        <footer>
+            <p>{{ app_name }} &copy; 2022</p>
+        </footer>
+        {% endblock %}
+    </div>
+    {{ super() }}
+</body>
+{% endblock %}

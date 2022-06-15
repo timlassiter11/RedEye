@@ -1,0 +1,60 @@
+{% from 'bootstrap/forms.html' import render_field %}
+
+{% macro render_confirmation_modal(id, title='Confirm', text='Are you sure?', yes_button_text='Yes', no_button_text='No', yes_button_class='btn-danger', no_button_class='btn-secondary') -%}
+<div class="modal fade" id="{{ id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">{{ title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% for line in text.split('\n') -%}
+                {% if not line.isspace() -%}
+                <p class="m-0">{{ line }}</p>
+                {% else -%}
+                <br/>
+                {% endif -%}
+                {% endfor -%}
+            </div>
+            <div class="modal-footer">
+                <button onclick="$(this).trigger('rejected.bs.modal')" type="button" class="btn {{ no_button_class }}" data-bs-dismiss="modal">{{ no_button_text }}</button>
+                <button onclick="$(this).trigger('accepted.bs.modal')" type="button" class="btn {{ yes_button_class }}" data-bs-dismiss="modal">{{ yes_button_text }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro render_modal_form(title, form, modal_id='modalForm', form_id='form', form_method='post', form_action=None, left_button_id=none, left_button_text='', left_button_class='btn-primary') -%}
+<div class="modal fade" id="{{ modal_id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">{{ title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form class="needs-validation" method="{{ form_method }}" id="{{ form_id }}" {% if form_action is not none %}action="{{ form_action }}"{% endif %} novalidate>
+                <div class="modal-body">
+                    {% for field in form -%}
+                    {% if field.type != 'SubmitField' -%}
+                        {{ render_field(field) }}
+                    {% endif -%}
+                    {% endfor -%}
+                </div>
+                <div class="modal-footer">
+                    {% if left_button_id -%}
+                    <button type="button" id="{{ left_button_id }}" class="btn {{ left_button_class }} me-auto">{{ left_button_text }}</button>
+                    {% endif -%}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    {% if 'submit' in form -%}
+                    {{ render_field(form['submit']) }}
+                    {% else -%}
+                    <input type="submit" class="btn btn-primary" value="Save">
+                    {% endif -%}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{%- endmacro %}

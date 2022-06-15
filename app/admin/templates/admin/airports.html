@@ -1,0 +1,156 @@
+{% extends "admin/layout.html" %}
+{% from 'bootstrap/modals.html' import render_modal_form, render_confirmation_modal %}
+
+{% block title_button %}
+<button id="addButton" data-bs-toggle="modal" data-bs-target="#formModal" data-action="{{ url_for('api.airports') }}" data-method="POST" class="btn btn-primary" type="button">Add Airport</button>
+{% endblock %}
+
+{% block content %}
+
+{{ render_modal_form(table_name, form, modal_id='formModal', form_id='form', left_button_id='deleteButton', left_button_text='Delete', left_button_class='btn-danger') }}
+
+<div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">Delete Airport</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this airport?</p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="$(this).trigger('rejected.bs.modal')" type="button" class="btn btn-secondary"
+                    data-bs-dismiss="modal">No</button>
+                <button onclick="$(this).trigger('accepted.bs.modal')" type="button" class="btn btn-danger"
+                    data-bs-dismiss="modal">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<table 
+    id="table"
+    data-toggle="table"
+    data-height="550"
+    data-ajax="getItems"
+    data-data-field="items"
+    data-total-field="total"
+    data-side-pagination="server"
+    data-query-params="queryParams"
+    data-pagination="true"
+    data-search="true">
+    <thead>
+        <tr>
+            <th data-field="id">Id</th>
+            <th data-field="code">IATA Code</th>
+            <th data-field="name">Name</th>
+            <th data-field="timezone">Timezone</th>
+            <th data-field="latitude">Latitude</th>
+            <th data-field="longitude">Longitude</th>
+            <th data-formatter="actionFormatter">Actions</th>
+        </tr>
+    </thead>
+</table>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="/static/scripts/modalform.js"></script>
+<script>
+
+    // Creates the elements for the "Actions" column in the table
+    function actionFormatter(value, row, index, field) {
+        return `<button 
+                    class="btn" 
+                    type="button" 
+                    data-bs-toggle="modal" 
+                    data-bs-target="#formModal"
+                    data-action="{{ url_for('api.airports') }}/${row.id}"
+                    data-method="PATCH"
+                    data-id="${row.id}"
+                    data-code="${row.code}"
+                    data-name="${row.name}"
+                    data-timezone="${row.timezone}"
+                    data-latitude="${row.latitude}"
+                    data-longitude="${row.longitude}">
+                        <i class="bi bi-pencil"></i>
+                </button>`
+    }
+
+    // Gets the items from the API and formats the data for Bootstrap Table
+    // https://examples.bootstrap-table.com/#options/table-ajax.html#view-source
+    function getItems(params) {
+        var url = "{{ url_for('api.airports') }}"
+        $.get(url + '?' + $.param(params.data)).then(function (res) {
+            // Bootstrap Table expects a total number of items 
+            // so it can calculate how many pages and a list of items.
+            params.success({total: res._meta.total_items, items: res.items})
+        })
+    }
+
+    // Bootstrap Table uses limit and offset but our API uses pages and page size.
+    // Convert the limit and and offset to our pages and page size.
+    // https://examples.bootstrap-table.com/#options/query-params.html#view-source
+    function queryParams(params) {
+        page = params.offset / params.limit
+        return {
+            page: page + 1,
+            per_page: params.limit,
+            search: params.search
+        }
+    }
+
+    $(document).ready(function () {
+        const $form = $('#form')
+
+        const $formModal = $('#formModal')
+        const formModal = bootstrap.Modal.getOrCreateInstance($formModal[0])
+
+        const $confirmationModal = $('#confirmationModal')
+        const confirmationModal = bootstrap.Modal.getOrCreateInstance($confirmationModal[0])
+
+        const $table = $('#table')
+
+        // Automatically populate form info like method and action
+        // based on data attributes from the button that triggered
+        // the modal show event.
+        $('.modal').modalform({
+            onSuccess: function(response) {
+                $table.bootstrapTable('refresh')
+            }
+        });
+
+        $formModal.on('show.bs.modal', function(event) {
+            $form.removeClass('was-validated')
+            // Hide the delete button on the modal if the user is adding a new airport
+            if (event.relatedTarget === $('#addButton')[0]) {
+                $('#deleteButton').hide()
+            } else {
+                $('#deleteButton').show()
+            }
+        })
+
+        $('#deleteButton').click(function() {
+            formModal.hide()
+            confirmationModal.show()
+
+            $confirmationModal.one('accepted.bs.modal', function(event) {
+                $form.attr('method', 'DELETE')
+                $form.submit()
+            })
+
+            $confirmationModal.one('rejected.bs.modal', function(event) {
+                formModal.show();
+            })
+
+            $confirmationModal.on('hidden.bs.modal', function() {
+                $confirmationModal.off('accepted.bs.modal');
+                $confirmationModal.off('rejected.bs.modal');
+            })
+        })
+    })
+</script>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% set endpoint = 'home' -%}
+{% if request.endpoint -%}
+    {% set endpoint = request.endpoint -%}
+{% endif -%}
+
+{% block body %}
+<body>
+    {% block navbar %}
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <img src="/static/images/logo.png" alt="" width="180" height="50">
+            </a>
+        </div>
+    </nav>
+    {% endblock %}
+    <div class="container body-content mt-2">
+        <h1><b>{{ error_code }}</b> {{ error_text }}</h1>
+        {% block footer %}
+        <footer>
+            <p>{{ app_name }} &copy; 2022</p>
+        </footer>
+        {% endblock %}
+    </div>
+    {{ super() }}
+</body>
+{% endblock %}
