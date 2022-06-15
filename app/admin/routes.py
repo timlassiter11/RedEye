@@ -1,10 +1,9 @@
 from app import db
 from app.admin import bp
 from app.forms import AdminUserEditForm, AirplaneForm, AirportForm, FlightForm
-from app.models import Airplane, Airport, User
+from app.models import User
 from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
-from sqlalchemy.inspection import inspect
 from sqlalchemy.exc import IntegrityError
 
 

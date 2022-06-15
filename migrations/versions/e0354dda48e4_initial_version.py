@@ -1,8 +1,8 @@
 """initial version
 
-Revision ID: f1ca27040550
+Revision ID: e0354dda48e4
 Revises: 
-Create Date: 2022-06-14 15:59:26.257736
+Create Date: 2022-06-15 10:17:53.470096
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f1ca27040550'
+revision = 'e0354dda48e4'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -56,14 +56,14 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('number', sa.String(length=4), nullable=True),
     sa.Column('airplane_id', sa.Integer(), nullable=True),
-    sa.Column('departing_id', sa.Integer(), nullable=True),
-    sa.Column('arriving_id', sa.Integer(), nullable=True),
+    sa.Column('departure_id', sa.Integer(), nullable=True),
+    sa.Column('arrival_id', sa.Integer(), nullable=True),
     sa.Column('departure_time', sa.Time(), nullable=False),
     sa.Column('arrival_time', sa.Time(), nullable=False),
     sa.Column('cost', sa.Float(), nullable=False),
     sa.ForeignKeyConstraint(['airplane_id'], ['airplane.id'], ),
-    sa.ForeignKeyConstraint(['arriving_id'], ['airport.id'], ),
-    sa.ForeignKeyConstraint(['departing_id'], ['airport.id'], ),
+    sa.ForeignKeyConstraint(['arrival_id'], ['airport.id'], ),
+    sa.ForeignKeyConstraint(['departure_id'], ['airport.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_flight_number'), 'flight', ['number'], unique=False)

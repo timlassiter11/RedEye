@@ -48,14 +48,10 @@
     data-search="true">
     <thead>
         <tr>
-            <th data-field="id">Id</th>
             <th data-field="number">Flight Number</th>
-            <th data-field="airplane_id" data-visible="false">Airplane Id</th>
-            <th data-field="airplane_registration">Airplane Registration</th>
-            <th data-field="departing_id" data-visible="false">Departing Id</th>
-            <th data-field="departing_code">Departing Airport</th>
-            <th data-field="arriving_id" data-visible="false">Arriving Id</th>
-            <th data-field="arriving_code">Arriving Airport</th>
+            <th data-field="airplane.registration_number">Airplane Registration</th>
+            <th data-field="departure_airport.code">Departing Airport</th>
+            <th data-field="arrival_airport.code">Arriving Airport</th>
             <th data-field="departure_time">Departing Time</th>
             <th data-field="arrival_time">Arrival Time</th>
             <th data-field="cost">Cost</th>
@@ -79,16 +75,12 @@
                     type="button" 
                     data-bs-toggle="modal" 
                     data-bs-target="#formModal"
-                    data-action="{{ url_for('api.flights') }}/${row.id}"
+                    data-action="${row.self}"
                     data-method="PATCH"
-                    data-id="${row.id}"
                     data-number="${row.number}"
-                    data-airplane_id="${row.airplane_id}"
-                    data-airplane_registration="${row.airplane_registration}"
-                    data-departing_id="${row.departing_id}"
-                    data-departing_code="${row.departing_code}"
-                    data-arriving_id="${row.arriving_id}"
-                    data-arriving_code="${row.arriving_code}"
+                    data-airplane_registration="${row.airplane.registration_number}"
+                    data-departure_code="${row.departure_airport.code}"
+                    data-arrival_code="${row.arrival_airport.code}"
                     data-departure_time="${row.departure_time}"
                     data-arrival_time="${row.arrival_time}"
                     data-cost="${row.cost}">
@@ -99,7 +91,7 @@
     // Gets the items from the API and formats the data for Bootstrap Table
     // https://examples.bootstrap-table.com/#options/table-ajax.html#view-source
     function getItems(params) {
-        var url = "{{ url_for('api.flights') }}"
+        var url = "{{ url_for('api.flights', expand=True) }}"
         $.get(url + '?' + $.param(params.data)).then(function (res) {
             // Bootstrap Table expects a total number of items 
             // so it can calculate how many pages and a list of items.
@@ -134,8 +126,8 @@
         const $homeCodeLabel = $(`label[for="home_code"]`)
 
         setupAirplaneTypeahead('airplane_registration')
-        setupAirportTypeahead('departing_code')
-        setupAirportTypeahead('arriving_code')
+        setupAirportTypeahead('departure_code')
+        setupAirportTypeahead('arrival_code')
         
         // Automatically populate form info like method and action
         // based on data attributes from the button that triggered

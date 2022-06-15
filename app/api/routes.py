@@ -9,15 +9,17 @@ from app.forms import AirplaneForm, AirportForm, FlightForm
 
 class Airports(Resource):
     def get(self):
-        items_per_page = request.args.get('per_page', 25, type=int)
-        page = request.args.get('page', 1, type=int)
-        search = request.args.get('search', '', type=str)
+        items_per_page = request.args.get("per_page", 25, type=int)
+        page = request.args.get("page", 1, type=int)
+        search = request.args.get("search", "", type=str)
 
         query = models.Airport.query
         if search:
             query = query.msearch(search)
 
-        data = models.Airport.to_collection_dict(query, page, items_per_page, 'api.airports', search=search)
+        data = models.Airport.to_collection_dict(
+            query, page, items_per_page, "api.airports", search=search
+        )
         return jsonify(data)
 
     @admin_required
@@ -31,26 +33,28 @@ class Airports(Resource):
                 db.session.commit()
             except IntegrityError:
                 db.session.rollback()
-                json_abort(409, errors={'code': 'An airport with this code already exists'})
+                json_abort(
+                    409, errors={"code": "An airport with this code already exists"}
+                )
             return jsonify(airport.to_dict()), 201
         json_abort(400, errors=form.errors)
 
 
 class Airport(Resource):
-    def get(self, airport_id):
-        airport = get_or_404(models.Airport, airport_id)
+    def get(self, id):
+        airport = get_or_404(models.Airport, id)
         return jsonify(airport.to_dict())
 
     @admin_required
-    def delete(self, airport_id):
-        airport = get_or_404(models.Airport, airport_id)
+    def delete(self, id):
+        airport = get_or_404(models.Airport, id)
         db.session.delete(airport)
         db.session.commit()
-        return '', 204
+        return "", 204
 
     @admin_required
-    def patch(self, airport_id):
-        airport: models.Airport = get_or_404(models.Airport, airport_id)
+    def patch(self, id):
+        airport: models.Airport = get_or_404(models.Airport, id)
 
         form = AirportForm(data=request.json)
         if form.validate():
@@ -59,22 +63,27 @@ class Airport(Resource):
                 db.session.commit()
             except IntegrityError:
                 db.session.rollback()
-                json_abort(409, errors={'code': 'An airport with this code already exists'})
+                json_abort(
+                    409, errors={"code": "An airport with this code already exists"}
+                )
             return jsonify(airport.to_dict()), 201
         json_abort(400, errors=form.errors)
 
 
 class Airplanes(Resource):
     def get(self):
-        items_per_page = request.args.get('per_page', 25, type=int)
-        page = request.args.get('page', 1, type=int)
-        search = request.args.get('search', '', type=str)
+        items_per_page = request.args.get("per_page", 25, type=int)
+        page = request.args.get("page", 1, type=int)
+        search = request.args.get("search", "", type=str)
+        expand = request.args.get("expand", False, type=bool)
 
         query = models.Airplane.query
         if search:
-            query = query.msearch(f'*{search}*')
+            query = query.msearch(f"*{search}*")
 
-        data = models.Airplane.to_collection_dict(query, page, items_per_page, 'api.airplanes', search=search)
+        data = models.Airplane.to_collection_dict(
+            query, page, items_per_page, "api.airplanes", expand=expand, search=search
+        )
         return jsonify(data)
 
     @admin_required
@@ -88,25 +97,32 @@ class Airplanes(Resource):
                 db.session.commit()
             except IntegrityError:
                 db.session.rollback()
-                json_abort(409, errors={'registration_number': 'An airplane with this registration number already exists'})
+                json_abort(
+                    409,
+                    errors={
+                        "registration_number": "An airplane with this registration number already exists"
+                    },
+                )
             return jsonify(airplane.to_dict()), 201
         json_abort(400, errors=form.errors)
 
+
 class Airplane(Resource):
-    def get(self, airplane_id):
-        airplane = get_or_404(models.Airplane, airplane_id)
-        return jsonify(airplane.to_dict())
+    def get(self, id):
+        expand = request.args.get("expand", False, type=bool)
+        airplane = get_or_404(models.Airplane, id)
+        return jsonify(airplane.to_dict(expand=expand))
 
     @admin_required
-    def delete(self, airplane_id):
-        airplane = get_or_404(models.Airplane, airplane_id)
+    def delete(self, id):
+        airplane = get_or_404(models.Airplane, id)
         db.session.delete(airplane)
         db.session.commit()
-        return '', 204
+        return "", 204
 
     @admin_required
-    def patch(self, airplane_id):
-        airplane = get_or_404(models.Airplane, airplane_id)
+    def patch(self, id):
+        airplane = get_or_404(models.Airplane, id)
         form = AirplaneForm(data=request.json)
         if form.validate():
             form.populate_obj(airplane)
@@ -115,23 +131,30 @@ class Airplane(Resource):
                 db.session.commit()
             except IntegrityError:
                 db.session.rollback()
-                json_abort(409, errors={'registration_number': 'An airplane with this registration number already exists'})
+                json_abort(
+                    409,
+                    errors={
+                        "registration_number": "An airplane with this registration number already exists"
+                    },
+                )
             return jsonify(airplane.to_dict()), 201
         json_abort(400, errors=form.errors)
 
 
 class Flights(Resource):
     def get(self):
-        items_per_page = request.args.get('per_page', 25, type=int)
-        page = request.args.get('page', 1, type=int)
-        search = request.args.get('search', '', type=str)
+        items_per_page = request.args.get("per_page", 25, type=int)
+        page = request.args.get("page", 1, type=int)
+        search = request.args.get("search", "", type=str)
+        expand = request.args.get("expand", False, type=bool)
 
         query = models.Flight.query
         if search:
             query = query.msearch(search)
 
-
-        data = models.Flight.to_collection_dict(query, page, items_per_page, 'api.flights', search=search)
+        data = models.Flight.to_collection_dict(
+            query, page, items_per_page, "api.flights", expand=expand, search=search
+        )
         return jsonify(data)
 
     @admin_required
@@ -147,26 +170,24 @@ class Flights(Resource):
 
 
 class Flight(Resource):
-    def get(self, flight_id):
-        flight = get_or_404(models.Flight, flight_id)
-        return jsonify(flight.to_dict())
+    def get(self, id):
+        expand = request.args.get("expand", False, type=bool)
+        flight = get_or_404(models.Flight, id)
+        return jsonify(flight.to_dict(expand=expand))
 
     @admin_required
-    def delete(self, flight_id):
-        flight = get_or_404(models.Flight, flight_id)
+    def delete(self, id):
+        flight = get_or_404(models.Flight, id)
         db.session.delete(flight)
         db.session.commit()
-        return '', 204
+        return "", 204
 
     @admin_required
-    def patch(self, flight_id):
-        flight = get_or_404(models.Flight, flight_id)
+    def patch(self, id):
+        flight = get_or_404(models.Flight, id)
         form = FlightForm(data=request.json)
         if form.validate():
             form.populate_obj(flight)
-            flight.airplane_id = form.airplane_id
-            flight.departing_id = form.departing_id
-            flight.arriving_id = form.arriving_id
             db.session.commit()
             return jsonify(flight.to_dict()), 201
         json_abort(400, errors=form.errors)
