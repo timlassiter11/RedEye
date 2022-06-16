@@ -1,5 +1,5 @@
 from distutils.util import strtobool
-from flask import jsonify, request
+from flask import request
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 
@@ -21,7 +21,7 @@ class Airports(Resource):
         data = models.Airport.to_collection_dict(
             query, page, items_per_page, "api.airports", search=search
         )
-        return jsonify(data)
+        return data
 
     @admin_required
     def post(self):
@@ -32,19 +32,20 @@ class Airports(Resource):
             db.session.add(airport)
             try:
                 db.session.commit()
+                db.session.refresh(airport)
             except IntegrityError:
                 db.session.rollback()
                 json_abort(
                     409, errors={"code": "An airport with this code already exists"}
                 )
-            return jsonify(airport.to_dict()), 201
+            return airport.to_dict(), 201
         json_abort(400, errors=form.errors)
 
 
 class Airport(Resource):
     def get(self, id):
         airport = get_or_404(models.Airport, id)
-        return jsonify(airport.to_dict())
+        return airport.to_dict()
 
     @admin_required
     def delete(self, id):
@@ -67,7 +68,7 @@ class Airport(Resource):
                 json_abort(
                     409, errors={"code": "An airport with this code already exists"}
                 )
-            return jsonify(airport.to_dict()), 201
+            return airport.to_dict(), 201
         json_abort(400, errors=form.errors)
 
 
@@ -89,7 +90,7 @@ class Airplanes(Resource):
         data = models.Airplane.to_collection_dict(
             query, page, items_per_page, "api.airplanes", expand=expand, search=search
         )
-        return jsonify(data)
+        return data
 
     @admin_required
     def post(self):
@@ -100,6 +101,7 @@ class Airplanes(Resource):
             db.session.add(airplane)
             try:
                 db.session.commit()
+                db.session.refresh(airplane)
             except IntegrityError:
                 db.session.rollback()
                 json_abort(
@@ -108,7 +110,7 @@ class Airplanes(Resource):
                         "registration_number": "An airplane with this registration number already exists"
                     },
                 )
-            return jsonify(airplane.to_dict()), 201
+            return airplane.to_dict(), 201
         json_abort(400, errors=form.errors)
 
 
@@ -116,7 +118,7 @@ class Airplane(Resource):
     def get(self, id):
         expand = request.args.get("expand", False, type=strtobool)
         airplane = get_or_404(models.Airplane, id)
-        return jsonify(airplane.to_dict(expand=expand))
+        return airplane.to_dict(expand=expand)
 
     @admin_required
     def delete(self, id):
@@ -142,7 +144,7 @@ class Airplane(Resource):
                         "registration_number": "An airplane with this registration number already exists"
                     },
                 )
-            return jsonify(airplane.to_dict()), 201
+            return airplane.to_dict(), 201
         json_abort(400, errors=form.errors)
 
 
@@ -160,7 +162,7 @@ class Flights(Resource):
         data = models.Flight.to_collection_dict(
             query, page, items_per_page, "api.flights", expand=expand, search=search
         )
-        return jsonify(data)
+        return data
 
     @admin_required
     def post(self):
@@ -170,7 +172,8 @@ class Flights(Resource):
             form.populate_obj(flight)
             db.session.add(flight)
             db.session.commit()
-            return jsonify(flight.to_dict()), 201
+            db.session.refresh(flight)
+            return flight.to_dict(), 201
         json_abort(400, errors=form.errors)
 
 
@@ -178,7 +181,7 @@ class Flight(Resource):
     def get(self, id):
         expand = request.args.get("expand", False, type=strtobool)
         flight = get_or_404(models.Flight, id)
-        return jsonify(flight.to_dict(expand=expand))
+        return flight.to_dict(expand=expand)
 
     @admin_required
     def delete(self, id):
@@ -194,5 +197,5 @@ class Flight(Resource):
         if form.validate():
             form.populate_obj(flight)
             db.session.commit()
-            return jsonify(flight.to_dict()), 201
+            return flight.to_dict(), 201
         json_abort(400, errors=form.errors)
