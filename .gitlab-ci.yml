@@ -33,4 +33,10 @@ before_script:
 test:
   stage: test
   script:
-    - python -m unittest discover -s ./tests -p test_*.py
+    - python run_tests.py -o results.xml
+  artifacts:
+    when: always
+    paths:
+      - results.xml
+    reports:
+      juint: results.xml
