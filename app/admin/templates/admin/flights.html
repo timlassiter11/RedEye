@@ -12,7 +12,7 @@
 
 {% block content %}
 
-{{ render_modal_form(table_name, form, modal_id='formModal', form_id='form', left_button_id='deleteButton', left_button_text='Delete', left_button_class='btn-danger') }}
+{{ render_modal_form('Flight', form, modal_id='formModal', form_id='form', left_button_id='deleteButton', left_button_text='Delete', left_button_class='btn-danger') }}
 
 <div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel"
     aria-hidden="true">
@@ -55,6 +55,8 @@
             <th data-field="departure_time">Departing Time</th>
             <th data-field="arrival_time">Arrival Time</th>
             <th data-field="cost">Cost</th>
+            <th data-field="start">Start</th>
+            <th data-field="end">End</th>
             <th data-formatter="actionFormatter">Actions</th>
         </tr>
     </thead>
@@ -83,7 +85,9 @@
                     data-arrival_code="${row.arrival_airport.code}"
                     data-departure_time="${row.departure_time}"
                     data-arrival_time="${row.arrival_time}"
-                    data-cost="${row.cost}">
+                    data-cost="${row.cost}"
+                    data-start="${row.start}"
+                    data-end="${row.end}">
                         <i class="bi bi-pencil"></i>
                 </button>`
     }
@@ -92,7 +96,7 @@
     // https://examples.bootstrap-table.com/#options/table-ajax.html#view-source
     function getItems(params) {
         var url = "{{ url_for('api.flights', expand=True) }}"
-        $.get(url + '?' + $.param(params.data)).then(function (res) {
+        $.get(url + '&' + $.param(params.data)).then(function (res) {
             // Bootstrap Table expects a total number of items 
             // so it can calculate how many pages and a list of items.
             params.success({total: res._meta.total_items, items: res.items})

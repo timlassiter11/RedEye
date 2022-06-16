@@ -11,6 +11,7 @@ from wtforms import (
     StringField,
     SubmitField,
     TimeField,
+    DateField
 )
 from wtforms.validators import (
     EqualTo,
@@ -144,6 +145,8 @@ class FlightForm(FlaskForm):
         "Arriving Time", validators=[InputRequired()], format="%H:%M:%S"
     )
     cost = FloatField("Cost", validators=[InputRequired()])
+    start = DateField("Start", validators=[InputRequired()])
+    end = DateField("End", validators=[InputRequired()])
 
     def validate_airplane_registration(form, field):
         airplane = Airplane.query.filter_by(registration_number=field.data).first()

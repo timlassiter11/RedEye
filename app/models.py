@@ -18,6 +18,8 @@ class PaginatedAPIMixin:
         for key, value in data.items():
             if isinstance(value, datetime.time):
                 data[key] = str(value)
+            if isinstance(value, datetime.date):
+                data[key] = value.strftime('%Y-%m-%d')
 
         if "id" in data:
             data["self"] = url_for(self.__endpoint__, id=data["id"])
