@@ -43,7 +43,6 @@
     data-search="true">
     <thead>
         <tr>
-            <th data-field="id">Id</th>
             <th data-field="code">IATA Code</th>
             <th data-field="name">Name</th>
             <th data-field="timezone">Timezone</th>
@@ -68,9 +67,8 @@
                     type="button" 
                     data-bs-toggle="modal" 
                     data-bs-target="#formModal"
-                    data-action="{{ url_for('api.airports') }}/${row.id}"
+                    data-action="${row.self}"
                     data-method="PATCH"
-                    data-id="${row.id}"
                     data-code="${row.code}"
                     data-name="${row.name}"
                     data-timezone="${row.timezone}"
