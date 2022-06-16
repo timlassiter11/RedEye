@@ -21,4 +21,6 @@ class Config(object):
     MSEARCH_BACKEND = 'whoosh'
     # auto create or update index
     MSEARCH_ENABLE = True
+    SESSION_COOKIE_DOMAIN = False
+    REMEMBER_COOKIE_DOMAIN = None  
     
