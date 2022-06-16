@@ -39,4 +39,4 @@ test:
     paths:
       - results.xml
     reports:
-      juint: results.xml
+      junit: results.xml
