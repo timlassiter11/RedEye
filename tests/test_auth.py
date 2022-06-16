@@ -8,6 +8,7 @@ class TestConfig:
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
     TESTING = True
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 class TestAuth(unittest.TestCase):
     def setUp(self) -> None:
