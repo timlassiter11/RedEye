@@ -205,6 +205,10 @@ def create_flights(percentage: int = 90) -> None:
     # flights for deboarding, cleaning the plane, and boarding.
     boarding_buffer = timedelta(hours=1, minutes=30)
 
+    start_date = date.today()
+    # Make all of our flights last about 6 months.
+    end_date = (datetime.today() + timedelta(days=180)).date()
+
     flight_number = 1
     for plane in alive_it(planes):
         home_airport = Airport.query.get(plane.home_id)
@@ -253,6 +257,8 @@ def create_flights(percentage: int = 90) -> None:
                 ).time(),
                 arrival_time=arrival_dt.astimezone(flight_details.arrival_tz).time(),
                 cost=get_cost(flight_details.distance),
+                start=start_date,
+                end=end_date
             )
             db.session.add(flight)
 
@@ -272,6 +278,8 @@ def create_flights(percentage: int = 90) -> None:
                 ).time(),
                 arrival_time=arrival_dt.astimezone(flight_details.arrival_tz).time(),
                 cost=get_cost(flight_details.distance),
+                start=start_date,
+                end=end_date
             )
             db.session.add(flight)
             flight_number += 1

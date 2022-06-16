@@ -138,6 +138,8 @@ class Flight(PaginatedAPIMixin, db.Model):
     departure_time = db.Column(db.Time, nullable=False)
     arrival_time = db.Column(db.Time, nullable=False)
     cost = db.Column(db.Float, nullable=False)
+    start = db.Column(db.Date, nullable=False)
+    end = db.Column(db.Date, nullable=False)
 
     departure_airport = db.relationship(
         "Airport", foreign_keys=[departure_id], backref="departures"
