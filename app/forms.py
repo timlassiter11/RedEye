@@ -138,12 +138,8 @@ class FlightForm(FlaskForm):
         "Arriving To", validators=[InputRequired(), Length(min=3, max=3)]
     )
     arrival_id = HiddenField()
-    departure_time = TimeField(
-        "Departing Time", validators=[InputRequired()], format="%H:%M:%S"
-    )
-    arrival_time = TimeField(
-        "Arriving Time", validators=[InputRequired()], format="%H:%M:%S"
-    )
+    departure_time = TimeField("Departing Time", validators=[InputRequired()])
+    arrival_time = TimeField("Arriving Time", validators=[InputRequired()])
     cost = FloatField("Cost", validators=[InputRequired()])
     start = DateField("Start", validators=[InputRequired()])
     end = DateField("End", validators=[InputRequired()])
@@ -167,3 +163,7 @@ class FlightForm(FlaskForm):
     def validate_arrival_code(form, field):
         airport = form._validate_airport(field.data)
         form.arrival_id.data = airport.id
+
+    def validate_end(form, _):
+        if form.start.data >= form.end.data:
+            raise ValidationError("End date must come after start date")

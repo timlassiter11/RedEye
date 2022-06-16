@@ -17,7 +17,7 @@ class PaginatedAPIMixin:
         data.pop("_sa_instance_state", None)
         for key, value in data.items():
             if isinstance(value, datetime.time):
-                data[key] = str(value)
+                data[key] = value.strftime('%H:%M')
             if isinstance(value, datetime.date):
                 data[key] = value.strftime('%Y-%m-%d')
 
