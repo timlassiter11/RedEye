@@ -1,30 +1,18 @@
-import unittest
-
 from flask import url_for
-from flask_login import FlaskLoginClient
 from werkzeug.test import TestResponse
 
-from app import create_app, db
-from app.models import Airport
-from helpers import create_users, TestConfig
+from app import db
+from app.models import Airplane, Airport
+from helpers import create_users, create_airports, FlaskTestCase
 
 
-class ApiTestCase(unittest.TestCase):
+class ApiTestCase(FlaskTestCase):
     def setUp(self) -> None:
-        self.app = create_app(TestConfig)
-        self.app.test_client_class = FlaskLoginClient
-        self.ctx = self.app.test_request_context()
-        self.ctx.push()
-        db.create_all()
+        super().setUp()
         users = create_users(db)
         self.admin_user = users["admin"]
         self.agent_user = users["agent"]
         self.normal_user = users["normal"]
-
-    def tearDown(self) -> None:
-        db.session.remove()
-        db.drop_all()
-        self.ctx.pop()
 
     def assertApiResponse(self, response: "TestResponse", expected_status: int = 200):
         self.assertEqual(
@@ -237,3 +225,172 @@ class TestAirports(ApiTestCase):
             response = client.delete(url_for("api.airport", id=airport.id))
         self.assertApiResponse(response, 204)
         self.assertIsNone(Airport.query.get(airport.id))
+
+class TestAirplanes(ApiTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.airports = create_airports(db)
+        
+    def test_get_airplanes(self):
+        airplane = Airplane(
+            registration_number="N1234RE",
+            model_name="Boeing 737",
+            model_code="B737-800",
+            capacity=189,
+            range=1995,
+            home_id=self.airports[0].id
+        )
+        
+        # Test to make sure everything works with no airplanes
+        with self.app.test_client() as client:
+            response = client.get(url_for("api.airplanes"))
+        self.assertPaginatedResponse(response, expected_page=1, expected_total_pages=0, expected_total_items=0)
+
+        db.session.add(airplane)
+        db.session.commit()
+        # Test to make sure everything works with a single airplane
+        with self.app.test_client() as client:
+            response = client.get(url_for("api.airplanes"))
+
+        self.assertPaginatedResponse(response, expected_page=1, expected_total_pages=1, expected_total_items=1)
+        airplane_data = response.json["items"][0]
+        self.assertDictEqual(
+            airplane.to_dict(), airplane_data, "Api response doesn't match airplane data"
+        )
+
+    def test_search_airplanes(self):
+        airplane1 = Airplane(
+            registration_number="N123RE",
+            model_name="Boeing 737",
+            model_code="B737-800",
+            capacity=189,
+            range=3300,
+            home_id=self.airports[0].id
+        )
+        airplane2 = Airplane(
+            registration_number="N456RE",
+            model_name="Airbus A320",
+            model_code="A320",
+            capacity=150,
+            range=3300,
+            home_id=self.airports[1].id
+        )
+        db.session.add(airplane1)
+        db.session.add(airplane2)
+        db.session.commit()
+        
+
+        # Search for something that should return no results
+        with self.app.test_client() as client:
+            response = client.get(url_for("api.airplanes", search="N789RE"))
+        self.assertPaginatedResponse(response, expected_page=1, expected_total_pages=0, expected_total_items=0)
+        
+        # Search for the first airplane
+        with self.app.test_client() as client:
+            response = client.get(url_for("api.airplanes", search=airplane1.registration_number))
+        self.assertPaginatedResponse(response, expected_total_items=1)
+        airplane_data = response.json["items"][0]
+        self.assertDictEqual(airplane1.to_dict(), airplane_data, "Api response doesn't match airplane data")
+
+        # Search for the second airplane
+        with self.app.test_client() as client:
+            response = client.get(url_for("api.airplanes", search="air"))
+        self.assertPaginatedResponse(response, expected_total_items=1)
+        airplane_data = response.json["items"][0]
+        self.assertDictEqual(airplane2.to_dict(), airplane_data, "Api response doesn't match airplane data")
+
+        # Search for something they have in common
+        with self.app.test_client() as client:
+            response = client.get(url_for("api.airplanes", search="N"))
+        self.assertPaginatedResponse(response, expected_total_items=2)
+
+    def test_create_airplane(self):
+        airplane_data = {
+            "registration_number": "N456RE",
+            "model_name": "Airbus A320",
+            "model_code": "A320",
+            "capacity": 150,
+            "range": 3300,
+            "home_code": self.airports[1].code
+        }
+        # Make sure anonymous users can't create an airplane
+        with self.app.test_client() as client:
+            response = client.post(url_for("api.airplanes"), json=airplane_data)
+        self.assertApiResponse(response, 401)
+        self.assertIn("message", response.json, "Api response missing message for 401 not authorized")
+
+        # Login a non admin user and make sure they also can't create an airplane
+        with self.app.test_client(user=self.normal_user) as client:
+            response = client.post(url_for("api.airplanes"), json=airplane_data)
+        self.assertApiResponse(response, 403)
+        self.assertIn("message", response.json, "Api response missing message for 403 forbidden")
+
+        # Login admin user and make sure they can create an airplane
+        with self.app.test_client(user=self.admin_user) as client:
+            response = client.post(url_for("api.airplanes"), json=airplane_data)
+        self.assertApiResponse(response, 201)
+        airplane = Airplane.query.first()
+        self.assertIsNotNone(airplane, "Airplane not in database")
+        self.assertDictEqual(airplane.to_dict(), response.json, "Api response does not match airplane data")
+
+        # Make sure we get an error if we try to create an airplane with the same registration_number
+        with self.app.test_client(user=self.admin_user) as client:
+            response = client.post(url_for("api.airplanes"), json=airplane_data)
+        self.assertApiResponse(response, 409)
+        self.assertIn("errors", response.json, "Api response missing errors")
+        # Make sure the response has the "code" field in it
+        self.assertIn("registration_number", response.json["errors"], "Api response missing errors.registration_number")
+
+    def test_get_airplane(self):
+        airplane = Airplane(
+            registration_number="N123RE",
+            model_name="Boeing 737",
+            model_code="B737-800",
+            capacity=189,
+            range=3300,
+            home_id=self.airports[0].id
+        )
+        db.session.add(airplane)
+        db.session.commit()
+
+        # Test for valid airplane id
+        with self.app.test_client() as client:
+            response = client.get(url_for("api.airplane", id=airplane.id))
+        self.assertApiResponse(response)
+        self.assertDictEqual(airplane.to_dict(), response.json, "Api response does not match airplane data")
+        
+        # Test for invalid airplane id
+        with self.app.test_client() as client:
+            response = client.get(url_for("api.airplane", id=airplane.id + 1))
+        self.assertApiResponse(response, 404)
+        self.assertIn("message", response.json, "Api response missing message for 404 not found")
+
+    def test_delete_airplane(self):
+        airplane = Airplane(
+            registration_number="N123RE",
+            model_name="Boeing 737",
+            model_code="B737-800",
+            capacity=189,
+            range=3300,
+            home_id=self.airports[0].id
+        )
+        db.session.add(airplane)
+        db.session.commit()
+
+        # Make sure anonymous users can't delete an airplane
+        with self.app.test_client() as client:
+            response = client.delete(url_for("api.airplane", id=airplane.id))
+        self.assertApiResponse(response, 401)
+        self.assertIn("message", response.json, "Api response missing message for 401 not authorized")
+
+        # Login a non admin user and make sure they also can't delete an airplane
+        with self.app.test_client(user=self.normal_user) as client:
+            response = client.delete(url_for("api.airplane", id=airplane.id))
+        self.assertApiResponse(response, 403)
+        self.assertIn("message", response.json, "Api response missing message for 403 forbidden")
+
+        # Login admin user and make sure they can delete an airplane
+        with self.app.test_client(user=self.admin_user) as client:
+            response = client.delete(url_for("api.airplane", id=airplane.id))
+        self.assertApiResponse(response, 204)
+        self.assertIsNone(Airplane.query.get(airplane.id))

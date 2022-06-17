@@ -1,6 +1,12 @@
-from typing import Dict
+import json
+import random
+from typing import Dict, List
+import unittest
 
-from app.models import User
+from flask_login import FlaskLoginClient
+from app import create_app, db
+
+from app.models import Airport, User
 
 DEFAULT_PASSWORD = "abc123"
 
@@ -12,7 +18,22 @@ class TestConfig:
     TESTING = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     MSEARCH_ENABLE = True
+    MSEARCH_BACKEND = 'whoosh'
     MSEARCH_INDEX_NAME = "msearch_test"
+
+
+class FlaskTestCase(unittest.TestCase):
+    def setUp(self) -> None:
+        self.app = create_app(TestConfig)
+        self.app.test_client_class = FlaskLoginClient
+        self.ctx = self.app.test_request_context()
+        self.ctx.push()
+        db.create_all()
+
+    def tearDown(self) -> None:
+        db.session.remove()
+        db.drop_all()
+        self.ctx.pop()
 
 
 def create_users(db) -> Dict[str, User]:
@@ -36,3 +57,36 @@ def create_users(db) -> Dict[str, User]:
     db.session.refresh(agent_user)
     db.session.refresh(normal_user)
     return {"admin": admin_user, "agent": agent_user, "normal": normal_user}
+
+
+def create_airports(db, count=5) -> List[Airport]:
+    with open("data/airports.json") as f:
+        data = f.read()
+        json_data = json.loads(data)
+
+    airports = []
+    airport_codes = []
+    while count:
+        airport = random.choice(json_data)
+        if airport["code"] in airport_codes or not airport["tz"] or not airport["name"]:
+            continue
+
+        airport = Airport(
+            code=airport["code"],
+            name=airport["name"],
+            timezone=airport["tz"],
+            latitude=airport["lat"],
+            longitude=airport["lon"],
+            city=airport["city"],
+            state=airport["state"],
+        )
+
+        db.session.add(airport)
+        airports.append(airport)
+        count -= 1
+
+    db.session.commit()
+    for airport in airports:
+        db.session.refresh(airport)
+
+    return airports

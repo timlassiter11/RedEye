@@ -2,30 +2,13 @@ import unittest
 
 from flask import url_for
 
-from app import create_app, db
+from app import db
 from app.models import User
-from flask_login import FlaskLoginClient
 
-from helpers import TestConfig, create_users, DEFAULT_PASSWORD
+from helpers import FlaskTestCase, DEFAULT_PASSWORD, create_users
 
 
-class TestAuth(unittest.TestCase):
-    def setUp(self) -> None:
-        self.app = create_app(TestConfig)
-        self.app.test_client_class = FlaskLoginClient
-        self.ctx = self.app.test_request_context()
-        self.ctx.push()
-        db.create_all()
-        users = create_users(db)
-        self.admin_user = users["admin"]
-        self.agent_user = users["agent"]
-        self.normal_user = users["normal"]
-
-    def tearDown(self) -> None:
-        db.session.remove()
-        db.drop_all()
-        self.ctx.pop()
-
+class TestAuth(FlaskTestCase):
     def test_register(self):
         user_data = {
             'first_name': 'test',
@@ -55,6 +38,8 @@ class TestAuth(unittest.TestCase):
         self.assertTrue(user.check_password(user_data["password"]), "Check password failed")
 
     def test_login(self):
+        users = create_users(db)
+        user = users['normal']
         # Make sure the GET method works
         with self.app.test_client() as client:
             response = client.get(url_for("auth.login"))
@@ -65,7 +50,7 @@ class TestAuth(unittest.TestCase):
             response = client.post(
                 url_for("auth.login"),
                 data={
-                    "email": self.normal_user.email,
+                    "email": user.email,
                     "password": DEFAULT_PASSWORD,
                 },
             )
@@ -73,12 +58,14 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(url_for("main.home"), response.location, "Login redirected to incorrect location")
 
     def test_login_next(self):
+        users = create_users(db)
+        user = users['admin']
         # Make sure the POST method works and redirects to '/' on successful login
         with self.app.test_client() as client:
             response = client.post(
                 url_for("auth.login", next=url_for("admin.home")),
                 data={
-                    "email": self.admin_user.email,
+                    "email": user.email,
                     "password": DEFAULT_PASSWORD,
                 },
             )
@@ -90,7 +77,7 @@ class TestAuth(unittest.TestCase):
             response = client.post(
                 url_for("auth.login", next="https://www.google.com"),
                 data={
-                    "email": self.admin_user.email,
+                    "email": user.email,
                     "password": DEFAULT_PASSWORD,
                 },
             )

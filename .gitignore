@@ -151,7 +151,7 @@ cython_debug/
 *.db
 
 # msearch indexes
-msearch/
+msearch*/
 
 # test results
 results.xml
