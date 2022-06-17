@@ -123,6 +123,10 @@ class AirplaneForm(FlaskForm):
         airport = form._validate_airport(field.data)
         form.home_id.data = airport.id
 
+    def populate_obj(self, obj) -> None:
+        super().populate_obj(obj)
+        del obj.home_code
+
 
 class FlightForm(FlaskForm):
     number = StringField(
@@ -167,3 +171,13 @@ class FlightForm(FlaskForm):
     def validate_end(form, _):
         if form.start.data >= form.end.data:
             raise ValidationError("End date must come after start date")
+
+    def populate_obj(self, obj) -> None:
+        super().populate_obj(obj)
+        # Our form contains unique fields that are "user friendly".
+        # During validation these fields are checked against the db
+        # and then the associated db models id is used to populate the id field.
+        # When we populate the object we don't want these to go with it.
+        del obj.departure_code
+        del obj.arrival_code
+        del obj.airplane_registration
