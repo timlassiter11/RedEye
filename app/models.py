@@ -28,7 +28,8 @@ class PaginatedAPIMixin:
         return data
 
     @staticmethod
-    def to_collection_dict(query, page, per_page, endpoint, expand=False, **kwargs):
+    def to_collection_dict(query, page, per_page, endpoint, **kwargs):
+        expand = kwargs.get("expand", False)
         resources = query.paginate(page, per_page, False)
         data = {
             "items": [item.to_dict(expand=expand) for item in resources.items],
