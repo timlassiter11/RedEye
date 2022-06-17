@@ -16,7 +16,7 @@ class Airports(Resource):
 
         query = models.Airport.query
         if search:
-            query = query.msearch(search)
+            query = query.msearch(f"{search}*")
 
         data = models.Airport.to_collection_dict(
             query, page, items_per_page, "api.airports", search=search
@@ -82,7 +82,7 @@ class Airplanes(Resource):
 
         query = models.Airplane.query
         if search:
-            query = query.msearch(f"*{search}*")
+            query = query.msearch(f"{search}*")
 
         if spares:
             query = query.filter(~models.Airplane.flights.any())
@@ -157,7 +157,7 @@ class Flights(Resource):
 
         query = models.Flight.query
         if search:
-            query = query.msearch(search)
+            query = query.msearch(f"{search}*")
 
         data = models.Flight.to_collection_dict(
             query, page, items_per_page, "api.flights", expand=expand, search=search
