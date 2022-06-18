@@ -91,7 +91,7 @@
     // https://examples.bootstrap-table.com/#options/table-ajax.html#view-source
     function getItems(params) {
         var url = "{{ url_for('api.airplanes', expand=True) }}"
-        $.get(url + '?' + $.param(params.data)).then(function (res) {
+        $.get(url + $.param(params.data)).then(function (res) {
             // Bootstrap Table expects a total number of items 
             // so it can calculate how many pages and a list of items.
             params.success({total: res._meta.total_items, items: res.items})
