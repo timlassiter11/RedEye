@@ -21,83 +21,84 @@
     {% endblock %}
     <title>{{ title }}</title>
 </head>
-{% block body %}
-{% block scripts %}
-<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj" crossorigin="anonymous"></script>
-<script>
-    var airport_bloodhound = null;
-    var airplane_bloodhound = null;
-    function setupAirplaneTypeahead(id) {
-        if (airplane_bloodhound == null) {
-            airplane_bloodhound = new Bloodhound({
-                datumTokenizer: Bloodhound.tokenizers.whitespace,
-                queryTokenizer: Bloodhound.tokenizers.whitespace,
-                remote: {
-                    url: "{{ url_for('api.airplanes', search='_QUERY') }}",
-                    wildcard: '_QUERY',
-                    transform: function(res) {
-                        return res.items;
+<body>
+    {% block body %}{% endblock %}
+    {% block scripts %}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj" crossorigin="anonymous"></script>
+    <script>
+        var airport_bloodhound = null;
+        var airplane_bloodhound = null;
+        function setupAirplaneTypeahead(id) {
+            if (airplane_bloodhound == null) {
+                airplane_bloodhound = new Bloodhound({
+                    datumTokenizer: Bloodhound.tokenizers.whitespace,
+                    queryTokenizer: Bloodhound.tokenizers.whitespace,
+                    remote: {
+                        url: "{{ url_for('api.airplanes', search='_QUERY') }}",
+                        wildcard: '_QUERY',
+                        transform: function(res) {
+                            return res.items;
+                        }
+                    },
+                    identify: function (obj) { return obj.id; }
+                })
+            }
+
+            const $input = $(`#${id}`)
+            const $label = $(`label[for="${id}"]`)
+            const $feedback = $(`#${id}-feedback`)
+
+            $input.typeahead(null, {
+                name: 'airplanes',
+                display: 'registration_number',
+                source: airplane_bloodhound,
+                templates: {
+                    suggestion: function(data) {
+                        return `<div class="tt-suggestion">${data.registration_number}</div>`
                     }
-                },
-                identify: function (obj) { return obj.id; }
+                }
             })
+
+            $input.after($label)
+            $label.after($feedback)
         }
 
-        const $input = $(`#${id}`)
-        const $label = $(`label[for="${id}"]`)
-        const $feedback = $(`#${id}-feedback`)
-
-        $input.typeahead(null, {
-            name: 'airplanes',
-            display: 'registration_number',
-            source: airplane_bloodhound,
-            templates: {
-                suggestion: function(data) {
-                    return `<div class="tt-suggestion">${data.registration_number}</div>`
-                }
+        function setupAirportTypeahead(id) {
+            if (airport_bloodhound == null) {
+                airport_bloodhound = new Bloodhound({
+                    datumTokenizer: Bloodhound.tokenizers.whitespace,
+                    queryTokenizer: Bloodhound.tokenizers.whitespace,
+                    remote: {
+                        url: "{{ url_for('api.airports', search='_QUERY') }}",
+                        wildcard: '_QUERY',
+                        transform: function(res) {
+                            return res.items;
+                        }
+                    },
+                    identify: function (obj) { return obj.id; }
+                })
             }
-        })
 
-        $input.after($label)
-        $label.after($feedback)
-    }
+            const $input = $(`#${id}`)
+            const $label = $(`label[for="${id}"]`)
+            const $feedback = $(`#${id}-feedback`)
 
-    function setupAirportTypeahead(id) {
-        if (airport_bloodhound == null) {
-            airport_bloodhound = new Bloodhound({
-                datumTokenizer: Bloodhound.tokenizers.whitespace,
-                queryTokenizer: Bloodhound.tokenizers.whitespace,
-                remote: {
-                    url: "{{ url_for('api.airports', search='_QUERY') }}",
-                    wildcard: '_QUERY',
-                    transform: function(res) {
-                        return res.items;
+            $input.typeahead(null, {
+                name: 'airports',
+                display: 'code',
+                source: airport_bloodhound,
+                templates: {
+                    suggestion: function(data) {
+                        return `<div class="tt-suggestion">${data.code}\t${data.name}</div>`
                     }
-                },
-                identify: function (obj) { return obj.id; }
-            })
-        }
-
-        const $input = $(`#${id}`)
-        const $label = $(`label[for="${id}"]`)
-        const $feedback = $(`#${id}-feedback`)
-
-        $input.typeahead(null, {
-            name: 'airports',
-            display: 'code',
-            source: airport_bloodhound,
-            templates: {
-                suggestion: function(data) {
-                    return `<div class="tt-suggestion">${data.code}\t${data.name}</div>`
                 }
-            }
-        })
+            })
 
-        $input.after($label)
-        $label.after($feedback)
-    }
-</script>
-{% endblock %}
-{% endblock %}
+            $input.after($label)
+            $label.after($feedback)
+        }
+    </script>
+    {% endblock %}
+</body>
 </html>

@@ -1,1 +1,22 @@
 {% extends "main/layout.html" %}
+
+{% block title_row %}{% endblock %}
+
+{% block content %}
+<div class="overlay-parent content flex-grow-1">
+    <img src="/static/images/logo.png" class="overlay-background">
+    <div class="overlay">
+        <div class="overlay-content text-center">
+            <h1>Book Now</h1>
+            <p class="text-wrap text-uppercase">Book a flight quick and easy with 24/7 customer support and free cancellations</p>
+            <div>
+                <button type="button" class="btn btn-outline-light mx-auto">Search All</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="my-3 text-center">
+    <h3 class="mb-3">Book a flight with our new user friendly app!</h3>
+    <p class="text-wrap">Red Eye is a website for booking flights with free cancellation and email notifications. Book your flight today!</p>
+</div>
+{% endblock %}
