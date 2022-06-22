@@ -1,7 +1,7 @@
 {% from 'bootstrap/forms.html' import render_field %}
 
 {% macro render_confirmation_modal(id, title='Confirm', text='Are you sure?', yes_button_text='Yes', no_button_text='No', yes_button_class='btn-danger', no_button_class='btn-secondary') -%}
-<div class="modal fade" id="{{ id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+<div class="modal fade" id="{{ id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -27,7 +27,7 @@
 {% endmacro %}
 
 {% macro render_modal_form(title, form, modal_id='modalForm', form_id='form', form_method='post', form_action=None, left_button_id=none, left_button_text='', left_button_class='btn-primary') -%}
-<div class="modal fade" id="{{ modal_id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+<div class="modal fade" id="{{ modal_id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
