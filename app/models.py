@@ -1,5 +1,5 @@
 import time
-import datetime
+import datetime as dt
 from typing import Any, Dict, List
 
 import jwt
@@ -16,9 +16,9 @@ class PaginatedAPIMixin:
         # SQLAlchemy models contain an extra field that we don't want to expose.
         data.pop("_sa_instance_state", None)
         for key, value in data.items():
-            if isinstance(value, datetime.time):
+            if isinstance(value, dt.time):
                 data[key] = value.strftime("%H:%M")
-            if isinstance(value, datetime.date):
+            if isinstance(value, dt.date):
                 data[key] = value.strftime("%Y-%m-%d")
 
         if "id" in data:
@@ -179,9 +179,10 @@ class Flight(PaginatedAPIMixin, db.Model):
     def search(
         departing_airport: int,
         final_airport: int,
-        departure_date: datetime.date,
+        departure_date: dt.date,
         num_of_passengers: int = 1,
         max_layovers: int = 3,
+        min_layover_time: dt.timedelta = dt.timedelta(minutes=45),
         previous_flight: "Flight" = None,
         current_path: List["Flight"] = None,
         all_paths: List[List["Flight"]] = None,
@@ -218,13 +219,13 @@ class Flight(PaginatedAPIMixin, db.Model):
             # Use the arrival time from our previous flight
             # to find flights we can still make.
             departure_time = previous_flight.arrival_time
-            departure_time = datetime.datetime.combine(departure_date, departure_time)
+            departure_time = dt.datetime.combine(departure_date, departure_time)
             # Add some buffer for layover.
-            departure_time += datetime.timedelta(minutes=45)
+            departure_time += min_layover_time
             departure_time = departure_time.time()
         else:
             # If this is the first flight start looking for flights after 3am.
-            departure_time = datetime.time(3, 0)
+            departure_time = dt.time(3, 0)
 
         # Find flights departing from our current airport.
         query = Flight.query.filter_by(departure_id=departing_airport)
