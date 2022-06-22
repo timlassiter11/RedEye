@@ -43,11 +43,14 @@
                 const data = $element.data();
                 for (const [key, value] of Object.entries(data)) {
                     const $items = $form.find(`[name$=${key}`).not('[type=radio], [type=checkbox]');
-                    if (typeof value === 'number' || typeof value === 'string') {
-                        if ($items.hasClass('tt-input')) {
-                            $items.typeahead('val', value);
-                        } else {
-                            $items.val(value);
+                    if ($items.length > 0) {
+                        const type = $items[0].getAttribute('type')
+                        if (typeof value === 'number' || typeof value === 'string') {
+                            if ($items.hasClass('tt-input')) {
+                                $items.typeahead('val', value);
+                            } else {
+                                $items.val(value);
+                            }
                         }
                     }
                 }
@@ -90,19 +93,21 @@
                                 options.onError(response)
                             }
 
-                            if ('errors' in response) {
-                                const errors = response.errors
-                                for (const property in errors) {
-                                    const $field = $form.find(`#${property}`)
-                                    const $feedback = $(`#${property}-feedback`)
-                                    $field.one('change', function(event) {
-                                        $field[0].setCustomValidity("")
-                                        $field.removeClass('is-invalid')
-                                        $feedback.text('')
-                                    })
-                                    $field.addClass('is-invalid')
-                                    $field[0].setCustomValidity(errors[property])
-                                    $feedback.text(errors[property])
+                            if ('message' in response) {
+                                const message = response.message
+                                if (typeof message === 'object') {
+                                    for (const property in message) {
+                                        const $field = $form.find(`#${property}`)
+                                        const $feedback = $(`#${property}-feedback`)
+                                        $field.one('change', function(event) {
+                                            $field[0].setCustomValidity("")
+                                            $field.removeClass('is-invalid')
+                                            $feedback.text('')
+                                        })
+                                        $field.addClass('is-invalid')
+                                        $field[0].setCustomValidity(message[property])
+                                        $feedback.text(message[property])
+                                    }
                                 }
                             }
                         },

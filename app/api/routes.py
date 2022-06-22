@@ -1,18 +1,31 @@
+from dateutil.parser import parse
 from distutils.util import strtobool
 from flask import request
-from flask_restful import Resource
+from flask_restful import Resource, reqparse
 from sqlalchemy.exc import IntegrityError
 
 from app import db, models
-from app.api.helpers import get_or_404, json_abort, admin_required
+from app.api.helpers import (
+    code_to_airport,
+    get_or_404,
+    json_abort,
+    admin_required,
+    str_to_date,
+)
 from app.forms import AirplaneForm, AirportForm, FlightForm
 
 
 class Airports(Resource):
     def get(self):
-        items_per_page = request.args.get("per_page", 25, type=int)
-        page = request.args.get("page", 1, type=int)
-        search = request.args.get("search", "", type=str)
+        parser = reqparse.RequestParser()
+        parser.add_argument("per_page", type=int, default=25, location="args")
+        parser.add_argument("page", type=int, default=1, location="args")
+        parser.add_argument("search", location="args")
+
+        args = parser.parse_args()
+        items_per_page = args["per_page"]
+        page = args["page"]
+        search = args["search"]
 
         query = models.Airport.query
         if search:
@@ -36,10 +49,10 @@ class Airports(Resource):
             except IntegrityError:
                 db.session.rollback()
                 json_abort(
-                    409, errors={"code": "An airport with this code already exists"}
+                    409, message={"code": "An airport with this code already exists"}
                 )
             return airport.to_dict(), 201
-        json_abort(400, errors=form.errors)
+        json_abort(400, message=form.errors)
 
 
 class Airport(Resource):
@@ -66,19 +79,27 @@ class Airport(Resource):
             except IntegrityError:
                 db.session.rollback()
                 json_abort(
-                    409, errors={"code": "An airport with this code already exists"}
+                    409, message={"code": "An airport with this code already exists"}
                 )
             return airport.to_dict(), 201
-        json_abort(400, errors=form.errors)
+        json_abort(400, message=form.errors)
 
 
 class Airplanes(Resource):
     def get(self):
-        items_per_page = request.args.get("per_page", 25, type=int)
-        page = request.args.get("page", 1, type=int)
-        search = request.args.get("search", "", type=str)
-        spares = request.args.get("spares", False, type=strtobool)
-        expand = request.args.get("expand", False, type=strtobool)
+        parser = reqparse.RequestParser()
+        parser.add_argument("per_page", type=int, default=25, location="args")
+        parser.add_argument("page", type=int, default=1, location="args")
+        parser.add_argument("search", location="args")
+        parser.add_argument("expand", type=strtobool, default=False, location="args")
+        parser.add_argument("spares_only", type=strtobool, default=False, location="args")
+
+        args = parser.parse_args()
+        items_per_page = args["per_page"]
+        page = args["page"]
+        search = args["search"]
+        expand = args["expand"]
+        spares = args["spares_only"]
 
         query = models.Airplane.query
         if search:
@@ -106,12 +127,12 @@ class Airplanes(Resource):
                 db.session.rollback()
                 json_abort(
                     409,
-                    errors={
+                    message={
                         "registration_number": "An airplane with this registration number already exists"
                     },
                 )
             return airplane.to_dict(), 201
-        json_abort(400, errors=form.errors)
+        json_abort(400, message=form.errors)
 
 
 class Airplane(Resource):
@@ -140,24 +161,48 @@ class Airplane(Resource):
                 db.session.rollback()
                 json_abort(
                     409,
-                    errors={
+                    message={
                         "registration_number": "An airplane with this registration number already exists"
                     },
                 )
             return airplane.to_dict(), 201
-        json_abort(400, errors=form.errors)
+        json_abort(400, message=form.errors)
 
 
 class Flights(Resource):
     def get(self):
-        items_per_page = request.args.get("per_page", 25, type=int)
-        page = request.args.get("page", 1, type=int)
-        search = request.args.get("search", "", type=str)
-        expand = request.args.get("expand", False, type=strtobool)
+        parser = reqparse.RequestParser()
+        parser.add_argument("per_page", type=int, default=25, location="args")
+        parser.add_argument("page", type=int, default=1, location="args")
+        parser.add_argument("search", location="args")
+        parser.add_argument("expand", type=strtobool, default=False, location="args")
+        parser.add_argument("departure_code", type=code_to_airport, location="args")
+        parser.add_argument("arrival_code", type=code_to_airport, location="args")
+        parser.add_argument("date", type=str_to_date, location="args")
+
+        args = parser.parse_args()
+        items_per_page = args["per_page"]
+        page = args["page"]
+        search = args["search"]
+        expand = args["expand"]
+        departure = args["departure_code"]
+        arrival = args["arrival_code"]
+        date = args["date"]
 
         query = models.Flight.query
         if search:
             query = query.msearch(f"{search}*")
+
+        if departure:
+            query = query.filter_by(departure_id=departure.id)
+
+        if arrival:
+            query = query.filter_by(arrival_id=arrival.id)
+
+        if date:
+            query = query.filter(models.Flight.start <= date).filter(
+                date <= models.Flight.end
+            )
 
         data = models.Flight.to_collection_dict(
             query, page, items_per_page, "api.flights", expand=expand, search=search
@@ -168,18 +213,34 @@ class Flights(Resource):
     def post(self):
         form = FlightForm(data=request.json)
         if form.validate():
+            airplane = models.Airplane.query.filter_by(
+                registration_number=form.airplane_registration.data
+            ).first()
+            if not airplane.check_availability(form.start.data, form.end.data):
+                json_abort(
+                    400,
+                    message={
+                        "airplane_registration": "Plane not available on that day."
+                    },
+                )
+
             flight = models.Flight()
             form.populate_obj(flight)
             db.session.add(flight)
             db.session.commit()
             db.session.refresh(flight)
             return flight.to_dict(), 201
-        json_abort(400, errors=form.errors)
+        json_abort(400, message=form.errors)
 
 
 class Flight(Resource):
     def get(self, id):
-        expand = request.args.get("expand", False, type=strtobool)
+        parser = reqparse.RequestParser()
+        parser.add_argument("expand", type=strtobool, default=False, location="args")
+
+        args = parser.parse_args()
+        expand = args["expand"]
+        
         flight = get_or_404(models.Flight, id)
         return flight.to_dict(expand=expand)
 
@@ -198,4 +259,6 @@ class Flight(Resource):
             form.populate_obj(flight)
             db.session.commit()
             return flight.to_dict(), 201
-        json_abort(400, errors=form.errors)
+        json_abort(400, message=form.errors)
+
+
