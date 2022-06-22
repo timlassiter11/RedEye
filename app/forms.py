@@ -135,11 +135,11 @@ class FlightForm(FlaskForm):
     airplane_registration = TypeaheadField("Plane", validators=[InputRequired()])
     airplane_id = HiddenField()
     departure_code = TypeaheadField(
-        "Departing From", validators=[InputRequired(), Length(min=3, max=3)]
+        "Departing From", validators=[InputRequired()]
     )
     departure_id = HiddenField()
     arrival_code = TypeaheadField(
-        "Arriving To", validators=[InputRequired(), Length(min=3, max=3)]
+        "Arriving To", validators=[InputRequired()]
     )
     arrival_id = HiddenField()
     departure_time = TimeField("Departing Time", validators=[InputRequired()])
