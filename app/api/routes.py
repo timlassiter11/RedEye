@@ -240,7 +240,7 @@ class Flight(Resource):
 
         args = parser.parse_args()
         expand = args["expand"]
-        
+
         flight = get_or_404(models.Flight, id)
         return flight.to_dict(expand=expand)
 
@@ -262,3 +262,41 @@ class Flight(Resource):
         json_abort(400, message=form.errors)
 
 
+class FlightSearch(Resource):
+    def get(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument(
+            "departure_code", type=code_to_airport, required=True, location="args"
+        )
+        parser.add_argument(
+            "arrival_code", type=code_to_airport, required=True, location="args"
+        )
+        parser.add_argument(
+            "departure_date", type=str_to_date, required=True, location="args"
+        )
+        parser.add_argument("num_of_passengers", type=int, default=1, location="args")
+        parser.add_argument("max_layovers", type=int, default=3, location="args")
+        parser.add_argument("min_layover_time", type=int, default=45, location="args")
+        parser.add_argument("expand", type=strtobool, default=False, location="args")
+        args = parser.parse_args()
+
+        expand = args["expand"]
+        departure = args["departure_code"]
+        arrival = args["arrival_code"]
+        departure_date = args["departure_date"]
+        num_of_passengers = args["num_of_passengers"]
+        max_layovers = args["max_layovers"]
+        min_layover_time = args["min_layover_time"]
+
+        paths = models.Flight.search(
+            departing_airport=departure.id,
+            final_airport=arrival.id,
+            departure_date=departure_date,
+            num_of_passengers=num_of_passengers,
+            max_layovers=max_layovers,
+            min_layover_time=min_layover_time,
+        )
+        # Sort the paths by the len. Shortest paths first.
+        paths.sort(key=len)
+        # Convert the inner list of flights to a list of dicts that can be JSONified.
+        return [[flight.to_dict(expand=expand) for flight in path] for path in paths]
