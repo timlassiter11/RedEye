@@ -191,12 +191,6 @@ class Flight(PaginatedAPIMixin, db.Model):
         if all_paths is None:
             all_paths = []
 
-        # Limit paths to a maximum number of layovers.
-        # Add one to the layoevers since one layover
-        # means two flights. 
-        if len(current_path) > max_layovers + 1:
-            return
-
         if previous_flight:
             # If a previous flight was given, add it to the current path.
             current_path.append(previous_flight)
@@ -223,6 +217,10 @@ class Flight(PaginatedAPIMixin, db.Model):
         # Make sure flights fall within the departure date.
         query = query.filter(Flight.start <= departure_date)
         query = query.filter(departure_date <= Flight.end)
+        # If we are at our max layovers, only get flights 
+        # that go straight to our destination
+        if len(current_path) == max_layovers:
+            query = query.filter_by(arrival_id=final_airport)
         # TODO: Need to make sure all flights have enough seats for the number of passengers
         potential_flights = query.filter(Flight.departure_time >= departure_time).all()
         for flight in potential_flights:
