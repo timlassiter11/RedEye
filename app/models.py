@@ -102,9 +102,8 @@ class Airport(PaginatedAPIMixin, db.Model):
     timezone = db.Column(db.String(120), nullable=False)
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
-    latitude = db.Column(db.Integer, nullable=False)
-    longitude = db.Column(db.Integer, nullable=False)
-    airplanes = db.relationship("Airplane", backref="home")
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
 
 
 class Airplane(PaginatedAPIMixin, db.Model):
@@ -117,16 +116,8 @@ class Airplane(PaginatedAPIMixin, db.Model):
     model_code = db.Column(db.String(120), nullable=False)
     capacity = db.Column(db.Integer, nullable=False)
     range = db.Column(db.Integer, nullable=False)
-    home_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
     flights = db.relationship("Flight", backref="airplane")
 
-    def to_dict(self, expand=False) -> Dict[str, Any]:
-        data = super().to_dict()
-        if expand:
-            data["home"] = self.home.to_dict()
-        else:
-            data["home"] = url_for(self.home.__endpoint__, id=self.home.id)
-        return data
 
 
 class Flight(PaginatedAPIMixin, db.Model):
@@ -187,9 +178,9 @@ class Flight(PaginatedAPIMixin, db.Model):
         current_path: List["Flight"] = None,
         all_paths: List[List["Flight"]] = None,
     ) -> List[List["Flight"]]:
-        '''Recursive function to create flight paths from departing_airport to final_airport
+        '''Recursive function to create flight paths from departing_airport to final_airport.
         Final return value is a list of list of flights. Each internal list of flights is a path
-        from starting from departing_airport and ending at final_airport.
+        starting from departing_airport and ending at final_airport.
         '''
 
         # If this is the first call to this function

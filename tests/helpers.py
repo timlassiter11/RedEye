@@ -6,7 +6,7 @@ import unittest
 from flask_login import FlaskLoginClient
 from app import create_app, db
 
-from app.models import Airport, User
+from app.models import Airplane, Airport, User
 
 DEFAULT_PASSWORD = "abc123"
 
@@ -36,7 +36,7 @@ class FlaskTestCase(unittest.TestCase):
         self.ctx.pop()
 
 
-def create_users(db) -> Dict[str, User]:
+def create_users() -> Dict[str, User]:
     """Create users for each role. Returns a dict containing the created users."""
     admin_user = User(
         first_name="admin", last_name="user", email="adminuser@redeye.app", role="admin"
@@ -59,20 +59,25 @@ def create_users(db) -> Dict[str, User]:
     return {"admin": admin_user, "agent": agent_user, "normal": normal_user}
 
 
-def create_airports(db, count=5) -> List[Airport]:
+def create_airports(count=5) -> Dict[str, Airport]:
     with open("data/airports.json") as f:
         data = f.read()
         json_data = json.loads(data)
 
-    airports = []
-    airport_codes = []
-    while count:
-        airport = random.choice(json_data)
-        if airport["code"] in airport_codes or not airport["tz"] or not airport["name"]:
+    if count <= 0:
+        count = len(json_data)
+
+    index = 0
+    airports = {}
+    while index < count:
+        airport = json_data[index]
+        index += 1
+        code = airport["code"]
+        if code in airports or not airport["tz"] or not airport["name"]:
             continue
 
         airport = Airport(
-            code=airport["code"],
+            code=code,
             name=airport["name"],
             timezone=airport["tz"],
             latitude=airport["lat"],
@@ -82,11 +87,10 @@ def create_airports(db, count=5) -> List[Airport]:
         )
 
         db.session.add(airport)
-        airports.append(airport)
-        count -= 1
+        airports[code] = airport
 
     db.session.commit()
-    for airport in airports:
+    for airport in airports.values():
         db.session.refresh(airport)
 
     return airports

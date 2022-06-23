@@ -3,13 +3,13 @@ from werkzeug.test import TestResponse
 
 from app import db
 from app.models import Airplane, Airport
-from helpers import create_users, create_airports, FlaskTestCase
+from helpers import create_users, FlaskTestCase
 
 
 class ApiTestCase(FlaskTestCase):
     def setUp(self) -> None:
         super().setUp()
-        users = create_users(db)
+        users = create_users()
         self.admin_user = users["admin"]
         self.agent_user = users["agent"]
         self.normal_user = users["normal"]
@@ -166,9 +166,9 @@ class TestAirports(ApiTestCase):
         with self.app.test_client(user=self.admin_user) as client:
             response = client.post(url_for("api.airports"), json=airport_data)
         self.assertApiResponse(response, 409)
-        self.assertIn("errors", response.json, "Api response missing errors")
+        self.assertIn("message", response.json, "Api response missing message")
         # Make sure the response has the "code" field in it
-        self.assertIn("code", response.json["errors"], "Api response missing errors.code")
+        self.assertIn("code", response.json["message"], "Api response missing message.code")
 
     def test_get_airport(self):
         airport = Airport(
@@ -226,11 +226,7 @@ class TestAirports(ApiTestCase):
         self.assertApiResponse(response, 204)
         self.assertIsNone(Airport.query.get(airport.id))
 
-class TestAirplanes(ApiTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.airports = create_airports(db)
-        
+class TestAirplanes(ApiTestCase):       
     def test_get_airplanes(self):
         airplane = Airplane(
             registration_number="N1234RE",
@@ -238,7 +234,6 @@ class TestAirplanes(ApiTestCase):
             model_code="B737-800",
             capacity=189,
             range=1995,
-            home_id=self.airports[0].id
         )
         
         # Test to make sure everything works with no airplanes
@@ -265,7 +260,6 @@ class TestAirplanes(ApiTestCase):
             model_code="B737-800",
             capacity=189,
             range=3300,
-            home_id=self.airports[0].id
         )
         airplane2 = Airplane(
             registration_number="N456RE",
@@ -273,7 +267,6 @@ class TestAirplanes(ApiTestCase):
             model_code="A320",
             capacity=150,
             range=3300,
-            home_id=self.airports[1].id
         )
         db.session.add(airplane1)
         db.session.add(airplane2)
@@ -311,7 +304,6 @@ class TestAirplanes(ApiTestCase):
             "model_code": "A320",
             "capacity": 150,
             "range": 3300,
-            "home_code": self.airports[1].code
         }
         # Make sure anonymous users can't create an airplane
         with self.app.test_client() as client:
@@ -337,9 +329,9 @@ class TestAirplanes(ApiTestCase):
         with self.app.test_client(user=self.admin_user) as client:
             response = client.post(url_for("api.airplanes"), json=airplane_data)
         self.assertApiResponse(response, 409)
-        self.assertIn("errors", response.json, "Api response missing errors")
+        self.assertIn("message", response.json, "Api response missing message")
         # Make sure the response has the "code" field in it
-        self.assertIn("registration_number", response.json["errors"], "Api response missing errors.registration_number")
+        self.assertIn("registration_number", response.json["message"], "Api response missing message.registration_number")
 
     def test_get_airplane(self):
         airplane = Airplane(
@@ -348,7 +340,6 @@ class TestAirplanes(ApiTestCase):
             model_code="B737-800",
             capacity=189,
             range=3300,
-            home_id=self.airports[0].id
         )
         db.session.add(airplane)
         db.session.commit()
@@ -372,7 +363,6 @@ class TestAirplanes(ApiTestCase):
             model_code="B737-800",
             capacity=189,
             range=3300,
-            home_id=self.airports[0].id
         )
         db.session.add(airplane)
         db.session.commit()

@@ -1,5 +1,3 @@
-import unittest
-
 from flask import url_for
 
 from app import db
@@ -38,7 +36,7 @@ class TestAuth(FlaskTestCase):
         self.assertTrue(user.check_password(user_data["password"]), "Check password failed")
 
     def test_login(self):
-        users = create_users(db)
+        users = create_users()
         user = users['normal']
         # Make sure the GET method works
         with self.app.test_client() as client:
@@ -58,7 +56,7 @@ class TestAuth(FlaskTestCase):
         self.assertEqual(url_for("main.home"), response.location, "Login redirected to incorrect location")
 
     def test_login_next(self):
-        users = create_users(db)
+        users = create_users()
         user = users['admin']
         # Make sure the POST method works and redirects to '/' on successful login
         with self.app.test_client() as client:

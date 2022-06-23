@@ -63,7 +63,7 @@ def populate_airports() -> None:
 
     Airport.query.delete()
     search.delete_index(Airport)
-
+    
     count = 0
     total_airports = len(json_data)
     for airport in alive_it(json_data):
@@ -114,15 +114,6 @@ def create_airplanes(count: int = 500) -> None:
         ),
     ]
 
-    # Create a list of Red Eyes home airports. These will be the main
-    # hubs for Red Eye and all planes will return here by the end of the day.
-    home_airports = []
-    home_airport_codes = ["DTW", "JFK", "SFO", "ORD", "IAD"]
-    for code in home_airport_codes:
-        airport = Airport.query.filter_by(code=code).first()
-        if airport:
-            home_airports.append(airport)
-
     # Since the flights rely on the planes
     # the flights have to be deleted.
     Flight.query.delete()
@@ -155,7 +146,6 @@ def create_airplanes(count: int = 500) -> None:
             range=model.range,
             capacity=capacity,
             registration_number=registration_number,
-            home_id=random.choice(home_airports).id,
         )
         db.session.add(airplane)
     print(f"Successfully created {count} airplanes.")
@@ -213,9 +203,19 @@ def create_flights(percentage: int = 90) -> None:
     # Make all of our flights last about 6 months.
     end_date = (datetime.today() + timedelta(days=180)).date()
 
+    # Create a list of Red Eyes home airports. These will be the main
+    # hubs for Red Eye and all planes will return here by the end of the day.
+    home_airports = []
+    home_airport_codes = ["DTW", "JFK", "SFO", "ORD", "IAD"]
+    for code in home_airport_codes:
+        airport = Airport.query.filter_by(code=code).first()
+        if airport:
+            home_airports.append(airport)
+
     flight_number = 1
     for plane in alive_it(planes):
-        home_airport = Airport.query.get(plane.home_id)
+        # Select a random home airport as our starting point
+        home_airport = random.choice(home_airports)
 
         # Our earliest flights will always be between 5 and 7 am.
         hour = random.randint(5, 7)

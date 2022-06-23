@@ -110,22 +110,6 @@ class AirplaneForm(FlaskForm):
         "Capacity", validators=[InputRequired(), NumberRange(min=0)]
     )
     range = IntegerField("Range", validators=[InputRequired(), NumberRange(min=0)])
-    home_code = TypeaheadField("Home Airport", validators=[InputRequired()])
-    home_id = HiddenField()
-
-    def _validate_airport(self, code):
-        airport = Airport.query.filter_by(code=code).first()
-        if not airport:
-            raise ValidationError("No airport with that code exists")
-        return airport
-
-    def validate_home_code(form, field):
-        airport = form._validate_airport(field.data)
-        form.home_id.data = airport.id
-
-    def populate_obj(self, obj) -> None:
-        super().populate_obj(obj)
-        del obj.home_code
 
 
 class FlightForm(FlaskForm):
