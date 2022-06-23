@@ -1,4 +1,4 @@
-from dateutil.parser import parse
+from operator import attrgetter
 from distutils.util import strtobool
 from flask import request
 from flask_restful import Resource, reqparse
@@ -288,7 +288,7 @@ class FlightSearch(Resource):
         max_layovers = args["max_layovers"]
         min_layover_time = args["min_layover_time"]
 
-        paths = models.Flight.search(
+        itineraries = models.TripItinerary.search(
             departing_airport=departure.id,
             final_airport=arrival.id,
             departure_date=departure_date,
@@ -296,7 +296,12 @@ class FlightSearch(Resource):
             max_layovers=max_layovers,
             min_layover_time=min_layover_time,
         )
-        # Sort the paths by the len. Shortest paths first.
-        paths.sort(key=len)
-        # Convert the inner list of flights to a list of dicts that can be JSONified.
-        return [[flight.to_dict(expand=expand) for flight in path] for path in paths]
+        # Sort the itineraries by the number of layovers, departure time, and total time.
+        itineraries.sort(key=attrgetter('layovers', 'departure_time', 'total_time'))
+        
+        return {
+            "items": [itinerary.to_dict(expand=expand) for itinerary in itineraries],
+            "_meta": {
+                "total_items": len(itineraries),
+            }
+        }

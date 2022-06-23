@@ -1,11 +1,14 @@
+import math
 import time
 import datetime as dt
 from typing import Any, Dict, List
+from zoneinfo import ZoneInfo
 
 import jwt
 from flask import current_app, url_for
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
+import geopy.distance
 
 from app import db, login
 
@@ -118,7 +121,7 @@ class Airplane(PaginatedAPIMixin, db.Model):
     range = db.Column(db.Integer, nullable=False)
     flights = db.relationship("Flight", backref="airplane")
 
-
+    
 
 class Flight(PaginatedAPIMixin, db.Model):
     __endpoint__ = "api.flight"
@@ -149,8 +152,44 @@ class Flight(PaginatedAPIMixin, db.Model):
         "Airport", foreign_keys=[arrival_id], backref="arrivals"
     )
 
+    @property
+    def distance(self) -> float:
+        # Calculate the distance between the two airports.
+        departure_coords = (self.departure_airport.latitude, self.departure_airport.longitude)
+        arrival_coords = (self.arrival_airport.latitude, self.arrival_airport.longitude)
+        return geopy.distance.geodesic(departure_coords, arrival_coords).miles
+
+    @property
+    def flight_time(self) -> dt.timedelta:
+        # Assume an average ground speed of 500nmph.
+        travel_time = self.distance / 500
+        hours = math.floor(travel_time)
+        minutes = int((travel_time - hours) * 60)
+        return dt.timedelta(hours=hours, minutes=minutes)
+    '''
+    @property
+    def arrival_time(self) -> dt.time:
+        departure_dt = dt.datetime.combine(dt.date.today(), self.departure_time)
+        arrival_dt = departure_dt + self.flight_time
+        arrival_tz = ZoneInfo(self.arrival_airport.timezone)
+        return arrival_dt.astimezone(arrival_tz).time()
+    '''
+
     def to_dict(self, expand=False) -> Dict[str, Any]:
         data = super().to_dict()
+
+        # Start and end are internal info and
+        # shouldn't be exposed through the API.
+        del data["start"]
+        del data["end"]
+        # We will replace these values with links to the resources
+        # or the resource itself if expand is true.
+        del data["airplane_id"]
+        del data["departure_id"]
+        del data["arrival_id"]
+
+        data["flight_time"] = str(self.flight_time)
+
         if expand:
             data["airplane"] = self.airplane.to_dict()
             data["departure_airport"] = self.departure_airport.to_dict()
@@ -166,6 +205,56 @@ class Flight(PaginatedAPIMixin, db.Model):
 
         return data
 
+
+class TripItinerary:
+    def __init__(self, flights: List[Flight], date: dt.date, cost: float) -> None:
+        if not flights:
+            raise ValueError("Must contain at least one flight")
+
+        self.flights = flights
+        self.date = date
+        self.cost = cost
+
+    @property
+    def layovers(self) -> int:
+        return len(self.flights) - 1
+
+    @property
+    def total_time(self) -> dt.timedelta:
+        delta = dt.timedelta()
+        last_arrival: dt.datetime = None
+        for flight in self.flights:
+            delta += flight.flight_time
+            # If last_arrival is not None it means this isn't
+            # the first flight and we need to add time for the layover.
+            if last_arrival:
+                # TODO: Handle corner case where the layover rolls over past midnight.
+                departure_tz = ZoneInfo(flight.departure_airport.timezone)
+                departure_dt = dt.datetime.combine(self.date, flight.departure_time, departure_tz)
+                # Add the layover to the total time
+                delta += departure_dt - last_arrival
+
+            arrival_tz = ZoneInfo(flight.arrival_airport.timezone)
+            last_arrival = dt.datetime.combine(self.date, flight.arrival_time, arrival_tz)
+
+        return delta
+
+    @property
+    def departure_time(self) -> dt.time:
+        return self.flights[0].departure_time
+
+    @property
+    def arrival_time(self) -> dt.time:
+        return self.flights[-1].arrival_time
+
+    def to_dict(self, expand: bool = False):
+        return {
+            'cost': self.cost,
+            'total_time': str(self.total_time),
+            'layovers': self.layovers,
+            'flights': [flight.to_dict(expand=expand) for flight in self.flights]
+        }
+
     @staticmethod
     def search(
         departing_airport: int,
@@ -174,22 +263,21 @@ class Flight(PaginatedAPIMixin, db.Model):
         num_of_passengers: int = 1,
         max_layovers: int = 3,
         min_layover_time: dt.timedelta = dt.timedelta(minutes=45),
+        max_layover_time: dt.timedelta = dt.timedelta(hours=5),
         previous_flight: "Flight" = None,
         current_path: List["Flight"] = None,
-        all_paths: List[List["Flight"]] = None,
-    ) -> List[List["Flight"]]:
-        '''Recursive function to create flight paths from departing_airport to final_airport.
-        Final return value is a list of list of flights. Each internal list of flights is a path
-        starting from departing_airport and ending at final_airport.
+        trip_itinerarys: List[List["Flight"]] = None,
+    ) -> List[List["TripItinerary"]]:
+        '''Recursive function to create TripItineraries from departing_airport to final_airport.
+        Final return value is a list of TripItineraries.
         '''
-
         # If this is the first call to this function
         # we need to initialize the lists.
         if current_path is None:
             current_path = []
 
-        if all_paths is None:
-            all_paths = []
+        if trip_itinerarys is None:
+            trip_itinerarys = []
 
         if previous_flight:
             # If a previous flight was given, add it to the current path.
@@ -197,7 +285,7 @@ class Flight(PaginatedAPIMixin, db.Model):
             # If the previous flight ended at our destination
             # that's the end of this path. Add it to the paths.
             if previous_flight.arrival_id == final_airport:
-                all_paths.append(current_path.copy())
+                trip_itinerarys.append(TripItinerary(current_path.copy(), departure_date, 0))
                 current_path.pop()
                 return
 
@@ -234,7 +322,17 @@ class Flight(PaginatedAPIMixin, db.Model):
             if visited:
                 continue
 
-            Flight.search(
+            # Enforce a maximum layover length
+            if previous_flight:
+                start = dt.datetime.combine(departure_date, previous_flight.arrival_time)
+                end = dt.datetime.combine(departure_date, flight.departure_time)
+                if end < start:
+                    end += dt.timedelta(days=1)
+                delta = end - start
+                if delta > max_layover_time:
+                    continue
+
+            TripItinerary.search(
                 departing_airport=flight.arrival_id, 
                 final_airport=final_airport, 
                 departure_date=departure_date, 
@@ -242,7 +340,7 @@ class Flight(PaginatedAPIMixin, db.Model):
                 max_layovers=max_layovers,
                 previous_flight=flight, 
                 current_path=current_path,
-                all_paths=all_paths
+                trip_itinerarys=trip_itinerarys
             )
 
         # When we exit this context it means we are done with this
@@ -253,7 +351,8 @@ class Flight(PaginatedAPIMixin, db.Model):
         # If we are at depth of 0 and done we should pass
         # all the paths back to the calling function.
         if len(current_path) == 0:
-            return all_paths
+            return trip_itinerarys
+
 
 
 """
