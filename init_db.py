@@ -53,14 +53,16 @@ def populate_airports() -> None:
         data = f.read()
         json_data = json.loads(data)
 
-    Airport.query.delete()
-    search.delete_index(Airport)
     # Since both airplanes and flights rely
     # on airports we have to delete them.
-    Airplane.query.delete()
-    search.delete_index(Airplane)
     Flight.query.delete()
     search.delete_index(Flight)
+
+    Airplane.query.delete()
+    search.delete_index(Airplane)
+
+    Airport.query.delete()
+    search.delete_index(Airport)
 
     count = 0
     total_airports = len(json_data)
@@ -121,12 +123,14 @@ def create_airplanes(count: int = 500) -> None:
         if airport:
             home_airports.append(airport)
 
-    Airplane.query.delete()
-    search.delete_index(Airplane)
     # Since the flights rely on the planes
-    # the flights have to be deleted too.
+    # the flights have to be deleted.
     Flight.query.delete()
     search.delete_index(Flight)
+
+    Airplane.query.delete()
+    search.delete_index(Airplane)
+
     registration_numbers = []
     for _ in alive_it(range(count)):
         # Start with a random base model
