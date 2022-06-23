@@ -351,7 +351,7 @@ if __name__ == "__main__":
             try:
                 create_user()
                 db.session.commit()
-            except Exception as e:
+            except (KeyboardInterrupt, Exception) as e:
                 db.session.rollback()
                 if isinstance(e, KeyboardInterrupt):
                     print("User creation cancelled.")
@@ -362,7 +362,7 @@ if __name__ == "__main__":
             try:
                 populate_airports()
                 db.session.commit()
-            except Exception as e:
+            except (KeyboardInterrupt, Exception) as e:
                 db.session.rollback()
                 if isinstance(e, KeyboardInterrupt):
                     print("Creating airports cancelled.")
@@ -373,7 +373,7 @@ if __name__ == "__main__":
             try:
                 create_airplanes(count=args.total_planes)
                 db.session.commit()
-            except Exception as e:
+            except (KeyboardInterrupt, Exception) as e:
                 db.session.rollback()
                 if isinstance(e, KeyboardInterrupt):
                     print("Creating airplanes cancelled")
@@ -385,7 +385,7 @@ if __name__ == "__main__":
             try:
                 create_flights(percentage=percentage)
                 db.session.commit()
-            except Exception as e:
+            except (KeyboardInterrupt, Exception) as e:
                 db.session.rollback()
                 if isinstance(e, KeyboardInterrupt):
                     print("Creating flights cancelled")
