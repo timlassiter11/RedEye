@@ -22,7 +22,7 @@ from wtforms.validators import (
 )
 
 from app.fields import TypeaheadField
-from app.models import Airplane, Airport
+from app.validators import AirplaneValidator, AirportValidator
 
 
 class LoginForm(FlaskForm):
@@ -116,48 +116,15 @@ class FlightForm(FlaskForm):
     number = StringField(
         "Flight Number", validators=[InputRequired(), Length(min=1, max=4)]
     )
-    airplane_registration = TypeaheadField("Plane", validators=[InputRequired()])
-    airplane_id = HiddenField()
-    departure_code = TypeaheadField("Departing From", validators=[InputRequired()])
-    departure_id = HiddenField()
-    arrival_code = TypeaheadField("Arriving To", validators=[InputRequired()])
-    arrival_id = HiddenField()
+    airplane = TypeaheadField("Plane", validators=[InputRequired(), AirplaneValidator()])
+    departure_airport = TypeaheadField("Departing From", validators=[InputRequired(), AirportValidator()])
+    arrival_airport = TypeaheadField("Arriving To", validators=[InputRequired(), AirportValidator()])
     departure_time = TimeField("Departing Time", validators=[InputRequired()])
     arrival_time = TimeField("Arriving Time", validators=[InputRequired()])
     cost = FloatField("Cost", validators=[InputRequired()])
     start = DateField("Start", validators=[InputRequired()])
     end = DateField("End", validators=[InputRequired()])
 
-    def validate_airplane_registration(form, field):
-        airplane = Airplane.query.filter_by(registration_number=field.data).first()
-        if not airplane:
-            raise ValidationError("No plane with that registration number exists")
-        form.airplane_id.data = airplane.id
-
-    def _validate_airport(self, code):
-        airport = Airport.query.filter_by(code=code).first()
-        if not airport:
-            raise ValidationError("No airport with that code exists")
-        return airport
-
-    def validate_departure_code(form, field):
-        airport = form._validate_airport(field.data)
-        form.departure_id.data = airport.id
-
-    def validate_arrival_code(form, field):
-        airport = form._validate_airport(field.data)
-        form.arrival_id.data = airport.id
-
     def validate_end(form, _):
         if form.start.data >= form.end.data:
             raise ValidationError("End date must come after start date")
-
-    def populate_obj(self, obj) -> None:
-        super().populate_obj(obj)
-        # Our form contains unique fields that are "user friendly".
-        # During validation these fields are checked against the db
-        # and then the associated db models id is used to populate the id field.
-        # When we populate the object we don't want these to go with it.
-        del obj.departure_code
-        del obj.arrival_code
-        del obj.airplane_registration

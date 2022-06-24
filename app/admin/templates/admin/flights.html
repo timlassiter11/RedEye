@@ -80,9 +80,9 @@
                     data-action="${row.self}"
                     data-method="PATCH"
                     data-number="${row.number}"
-                    data-airplane_registration="${row.airplane.registration_number}"
-                    data-departure_code="${row.departure_airport.code}"
-                    data-arrival_code="${row.arrival_airport.code}"
+                    data-airplane="${row.airplane.registration_number}"
+                    data-departure_airport="${row.departure_airport.code}"
+                    data-arrival_airport="${row.arrival_airport.code}"
                     data-departure_time="${row.departure_time}"
                     data-arrival_time="${row.arrival_time}"
                     data-cost="${row.cost}"
@@ -126,12 +126,9 @@
 
         const $table = $('#table')
 
-        const $homeCodeInput = $form.find('#home_code')
-        const $homeCodeLabel = $(`label[for="home_code"]`)
-
-        setupAirplaneTypeahead('airplane_registration')
-        setupAirportTypeahead('departure_code')
-        setupAirportTypeahead('arrival_code')
+        setupAirplaneTypeahead('airplane')
+        setupAirportTypeahead('departure_airport')
+        setupAirportTypeahead('arrival_airport')
         
         // Automatically populate form info like method and action
         // based on data attributes from the button that triggered

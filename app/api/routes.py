@@ -92,7 +92,9 @@ class Airplanes(Resource):
         parser.add_argument("page", type=int, default=1, location="args")
         parser.add_argument("search", location="args")
         parser.add_argument("expand", type=strtobool, default=False, location="args")
-        parser.add_argument("spares_only", type=strtobool, default=False, location="args")
+        parser.add_argument(
+            "spares_only", type=strtobool, default=False, location="args"
+        )
 
         args = parser.parse_args()
         items_per_page = args["per_page"]
@@ -213,17 +215,6 @@ class Flights(Resource):
     def post(self):
         form = FlightForm(data=request.json)
         if form.validate():
-            airplane = models.Airplane.query.filter_by(
-                registration_number=form.airplane_registration.data
-            ).first()
-            if not airplane.check_availability(form.start.data, form.end.data):
-                json_abort(
-                    400,
-                    message={
-                        "airplane_registration": "Plane not available on that day."
-                    },
-                )
-
             flight = models.Flight()
             form.populate_obj(flight)
             db.session.add(flight)
@@ -297,11 +288,11 @@ class FlightSearch(Resource):
             min_layover_time=min_layover_time,
         )
         # Sort the itineraries by the number of layovers, departure time, and total time.
-        itineraries.sort(key=attrgetter('layovers', 'departure_time', 'total_time'))
-        
+        itineraries.sort(key=attrgetter("layovers", "departure_time", "total_time"))
+
         return {
             "items": [itinerary.to_dict(expand=expand) for itinerary in itineraries],
             "_meta": {
                 "total_items": len(itineraries),
-            }
+            },
         }
