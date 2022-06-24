@@ -206,6 +206,14 @@ class Flight(PaginatedAPIMixin, db.Model):
         return data
 
 
+class FlightCancellation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    flight_id = db.Column(db.Integer, db.ForeignKey("flight.id"))
+    cancelled_by = db.Column(db.Integer, db.ForeignKey("user.id"))
+    date = db.Column(db.Date, nullable=False)
+    flight = db.relationship("Flight", backref="cancellations")
+
+
 class TripItinerary:
     def __init__(self, flights: List[Flight], date: dt.date, cost: float) -> None:
         if not flights:
@@ -305,6 +313,8 @@ class TripItinerary:
         # Make sure flights fall within the departure date.
         query = query.filter(Flight.start <= departure_date)
         query = query.filter(departure_date <= Flight.end)
+        # Make sure we avoid any cancelled flights.
+        query = query.filter(~Flight.cancellations.any(FlightCancellation.date == departure_date))
         # If we are at our max layovers, only get flights 
         # that go straight to our destination
         if len(current_path) == max_layovers:
