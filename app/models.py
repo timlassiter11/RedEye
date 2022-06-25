@@ -279,17 +279,17 @@ class TripItinerary:
             # If last_arrival is not None it means this isn't
             # the first flight and we need to add time for the layover.
             if last_arrival:
-                # TODO: Handle corner case where the layover rolls over past midnight.
-                # departure_tz = ZoneInfo(flight.departure_airport.timezone)
-                # departure_dt = dt.datetime.combine(self.date, flight.departure_time, departure_tz)
                 departure_dt = dt.datetime.combine(
                     self.date, flight.departure_time, pytz.utc
                 )
+
                 # Add the layover to the total time
                 delta += departure_dt - last_arrival
 
-            # arrival_tz = ZoneInfo(flight.arrival_airport.timezone)
-            # last_arrival = dt.datetime.combine(self.date, flight.arrival_time, arrival_tz)
+                # Handle corner case where the layover rolls over past midnight.
+                if departure_dt.time() < last_arrival.time():
+                    delta += dt.timedelta(days=1)
+
             last_arrival = dt.datetime.combine(self.date, flight.arrival_time, pytz.utc)
 
         return delta
