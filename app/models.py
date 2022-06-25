@@ -2,7 +2,6 @@ import math
 import time
 import datetime as dt
 from typing import Any, Dict, List
-from zoneinfo import ZoneInfo
 
 import jwt
 from flask import current_app, url_for
@@ -334,6 +333,8 @@ class TripItinerary:
         if trip_itinerarys is None:
             trip_itinerarys = []
 
+        query = Flight.query
+
         if previous_flight:
             # If a previous flight was given, add it to the current path.
             current_path.append(previous_flight)
@@ -353,12 +354,11 @@ class TripItinerary:
             # Add some buffer for layover.
             departure_time += min_layover_time
             departure_time = departure_time.time()
-        else:
-            # If this is the first flight start looking for flights after 3am.
-            departure_time = dt.time(3, 0)
+            # Filter out flights that depart before our departure_time
+            query = query.filter(Flight.departure_time >= departure_time)
 
         # Find flights departing from our current airport.
-        query = Flight.query.filter_by(departure_id=departing_airport)
+        query = query.filter_by(departure_id=departing_airport)
         # Make sure flights fall within the departure date.
         query = query.filter(Flight.start <= departure_date)
         query = query.filter(departure_date <= Flight.end)
@@ -370,22 +370,14 @@ class TripItinerary:
         # that go straight to our destination
         if len(current_path) == max_layovers:
             query = query.filter_by(arrival_id=final_airport)
+
+        # Make sure this flight doesn't backtrack to an airport we've already been to.
+        prev_ids = [flight.departure_id for flight in current_path]
+        query = query.filter(~Flight.arrival_id.in_(prev_ids))
+        
         # TODO: Need to make sure all flights have enough seats for the number of passengers
-        potential_flights = query.filter(Flight.departure_time >= departure_time).all()
+        potential_flights = query.all()
         for flight in potential_flights:
-            # Make sure this flight doesn't backtrack to an airport we've already been to.
-            visited = False
-            for prev in current_path:
-                if (
-                    flight.arrival_id == prev.arrival_id
-                    or flight.arrival_id == prev.departure_id
-                ):
-                    visited = True
-                    break
-
-            if visited:
-                continue
-
             # Enforce a maximum layover length
             if previous_flight:
                 start = dt.datetime.combine(
@@ -414,10 +406,7 @@ class TripItinerary:
         if len(current_path):
             current_path.pop()
 
-        # If we are at depth of 0 and done we should pass
-        # all the paths back to the calling function.
-        if len(current_path) == 0:
-            return trip_itinerarys
+        return trip_itinerarys
 
 
 """
