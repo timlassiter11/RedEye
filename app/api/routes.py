@@ -269,6 +269,7 @@ class FlightSearch(Resource):
         parser.add_argument("max_layovers", type=int, default=3, location="args")
         parser.add_argument("min_layover_time", type=int, default=45, location="args")
         parser.add_argument("expand", type=strtobool, default=False, location="args")
+        parser.add_argument("limit", type=int, default=10, location="args")
         args = parser.parse_args()
 
         expand = args["expand"]
@@ -278,6 +279,7 @@ class FlightSearch(Resource):
         num_of_passengers = args["num_of_passengers"]
         max_layovers = args["max_layovers"]
         min_layover_time = args["min_layover_time"]
+        limit = args["limit"]
 
         itineraries = models.TripItinerary.search(
             departing_airport=departure.id,
@@ -289,6 +291,9 @@ class FlightSearch(Resource):
         )
         # Sort the itineraries by the number of layovers, departure time, and total time.
         itineraries.sort(key=attrgetter("layovers", "departure_time", "total_time"))
+        # Slice the list to limit the results.
+        # Always do this after sorting so we get the best results.
+        itineraries = itineraries[:limit]
 
         return {
             "items": [itinerary.to_dict(expand=expand) for itinerary in itineraries],

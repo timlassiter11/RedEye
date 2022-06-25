@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 import jwt
 from flask import current_app, url_for
 from flask_login import UserMixin
+import pytz
 from werkzeug.security import check_password_hash, generate_password_hash
 import geopy.distance
 
@@ -61,7 +62,13 @@ class User(UserMixin, db.Model):
     first_name = db.Column(db.String(120))
     last_name = db.Column(db.String(120))
     password_hash = db.Column(db.String(128))
-    role = db.Column(db.String(10), default="user")
+    role = db.Column(db.String(10))
+
+    __mapper_args__ = {
+        "polymorphic_identity": "user",
+        "polymorphic_on": role,
+        "with_polymorphic": "*",
+    }
 
     def __repr__(self):
         return f"<User {self.first_name} {self.last_name}>"
@@ -90,6 +97,27 @@ class User(UserMixin, db.Model):
         return User.query.get(id)
 
 
+class Customer(User):
+    __tablename__ = None
+    __mapper_args__ = {
+        "polymorphic_identity": "customer",
+    }
+
+
+class Agent(User):
+    __tablename__ = None
+    __mapper_args__ = {
+        "polymorphic_identity": "agent",
+    }
+
+
+class Admin(User):
+    __tablename__ = None
+    __mapper_args__ = {
+        "polymorphic_identity": "admin",
+    }
+
+
 @login.user_loader
 def load_user(id):
     return User.query.get(int(id))
@@ -108,6 +136,19 @@ class Airport(PaginatedAPIMixin, db.Model):
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
 
+    def distance_to(self, other: "Airport") -> float:
+        start_coords = (self.latitude, self.longitude)
+        end_coords = (other.latitude, other.longitude)
+        distance = geopy.distance.geodesic(start_coords, end_coords)
+        return distance.miles
+
+    def time_to(self, other: "Airport") -> dt.timedelta:
+        # Assume an average ground speed of 500nmph.
+        travel_time = self.distance_to(other) / 500
+        hours = math.floor(travel_time)
+        minutes = int((travel_time - hours) * 60)
+        return dt.timedelta(hours=hours, minutes=minutes)
+
 
 class Airplane(PaginatedAPIMixin, db.Model):
     __endpoint__ = "api.airplane"
@@ -121,7 +162,6 @@ class Airplane(PaginatedAPIMixin, db.Model):
     range = db.Column(db.Integer, nullable=False)
     flights = db.relationship("Flight", backref="airplane")
 
-    
 
 class Flight(PaginatedAPIMixin, db.Model):
     __endpoint__ = "api.flight"
@@ -154,34 +194,37 @@ class Flight(PaginatedAPIMixin, db.Model):
 
     @property
     def distance(self) -> float:
-        # Calculate the distance between the two airports.
-        departure_coords = (self.departure_airport.latitude, self.departure_airport.longitude)
-        arrival_coords = (self.arrival_airport.latitude, self.arrival_airport.longitude)
-        return geopy.distance.geodesic(departure_coords, arrival_coords).miles
+        if self.departure_airport is None or self.arrival_airport is None:
+            return None
+
+        return self.departure_airport.distance_to(self.arrival_airport)
 
     @property
     def flight_time(self) -> dt.timedelta:
-        # Assume an average ground speed of 500nmph.
-        travel_time = self.distance / 500
-        hours = math.floor(travel_time)
-        minutes = int((travel_time - hours) * 60)
-        return dt.timedelta(hours=hours, minutes=minutes)
-    '''
+        if self.departure_airport is None or self.arrival_airport is None:
+            return None
+
+        return self.departure_airport.time_to(self.arrival_airport)
+
+    def cancel(self, date: dt.date, user_id: int) -> "FlightCancellation":
+        cancellation = FlightCancellation(date=date, user_id=user_id, flight_id=self.id)
+        db.session.add(cancellation)
+        db.session.commit()
+        db.session.refresh(cancellation)
+        return cancellation
+
+    """
     @property
     def arrival_time(self) -> dt.time:
         departure_dt = dt.datetime.combine(dt.date.today(), self.departure_time)
         arrival_dt = departure_dt + self.flight_time
         arrival_tz = ZoneInfo(self.arrival_airport.timezone)
         return arrival_dt.astimezone(arrival_tz).time()
-    '''
+    """
 
     def to_dict(self, expand=False) -> Dict[str, Any]:
         data = super().to_dict()
 
-        # Start and end are internal info and
-        # shouldn't be exposed through the API.
-        del data["start"]
-        del data["end"]
         # We will replace these values with links to the resources
         # or the resource itself if expand is true.
         del data["airplane_id"]
@@ -237,13 +280,17 @@ class TripItinerary:
             # the first flight and we need to add time for the layover.
             if last_arrival:
                 # TODO: Handle corner case where the layover rolls over past midnight.
-                departure_tz = ZoneInfo(flight.departure_airport.timezone)
-                departure_dt = dt.datetime.combine(self.date, flight.departure_time, departure_tz)
+                # departure_tz = ZoneInfo(flight.departure_airport.timezone)
+                # departure_dt = dt.datetime.combine(self.date, flight.departure_time, departure_tz)
+                departure_dt = dt.datetime.combine(
+                    self.date, flight.departure_time, pytz.utc
+                )
                 # Add the layover to the total time
                 delta += departure_dt - last_arrival
 
-            arrival_tz = ZoneInfo(flight.arrival_airport.timezone)
-            last_arrival = dt.datetime.combine(self.date, flight.arrival_time, arrival_tz)
+            # arrival_tz = ZoneInfo(flight.arrival_airport.timezone)
+            # last_arrival = dt.datetime.combine(self.date, flight.arrival_time, arrival_tz)
+            last_arrival = dt.datetime.combine(self.date, flight.arrival_time, pytz.utc)
 
         return delta
 
@@ -257,10 +304,10 @@ class TripItinerary:
 
     def to_dict(self, expand: bool = False):
         return {
-            'cost': self.cost,
-            'total_time': str(self.total_time),
-            'layovers': self.layovers,
-            'flights': [flight.to_dict(expand=expand) for flight in self.flights]
+            "cost": self.cost,
+            "total_time": str(self.total_time),
+            "layovers": self.layovers,
+            "flights": [flight.to_dict(expand=expand) for flight in self.flights],
         }
 
     @staticmethod
@@ -276,9 +323,9 @@ class TripItinerary:
         current_path: List["Flight"] = None,
         trip_itinerarys: List[List["Flight"]] = None,
     ) -> List[List["TripItinerary"]]:
-        '''Recursive function to create TripItineraries from departing_airport to final_airport.
+        """Recursive function to create TripItineraries from departing_airport to final_airport.
         Final return value is a list of TripItineraries.
-        '''
+        """
         # If this is the first call to this function
         # we need to initialize the lists.
         if current_path is None:
@@ -293,7 +340,9 @@ class TripItinerary:
             # If the previous flight ended at our destination
             # that's the end of this path. Add it to the paths.
             if previous_flight.arrival_id == final_airport:
-                trip_itinerarys.append(TripItinerary(current_path.copy(), departure_date, 0))
+                trip_itinerarys.append(
+                    TripItinerary(current_path.copy(), departure_date, 0)
+                )
                 current_path.pop()
                 return
 
@@ -314,8 +363,10 @@ class TripItinerary:
         query = query.filter(Flight.start <= departure_date)
         query = query.filter(departure_date <= Flight.end)
         # Make sure we avoid any cancelled flights.
-        query = query.filter(~Flight.cancellations.any(FlightCancellation.date == departure_date))
-        # If we are at our max layovers, only get flights 
+        query = query.filter(
+            ~Flight.cancellations.any(FlightCancellation.date == departure_date)
+        )
+        # If we are at our max layovers, only get flights
         # that go straight to our destination
         if len(current_path) == max_layovers:
             query = query.filter_by(arrival_id=final_airport)
@@ -325,7 +376,10 @@ class TripItinerary:
             # Make sure this flight doesn't backtrack to an airport we've already been to.
             visited = False
             for prev in current_path:
-                if flight.arrival_id == prev.arrival_id or flight.arrival_id == prev.departure_id:
+                if (
+                    flight.arrival_id == prev.arrival_id
+                    or flight.arrival_id == prev.departure_id
+                ):
                     visited = True
                     break
 
@@ -334,7 +388,9 @@ class TripItinerary:
 
             # Enforce a maximum layover length
             if previous_flight:
-                start = dt.datetime.combine(departure_date, previous_flight.arrival_time)
+                start = dt.datetime.combine(
+                    departure_date, previous_flight.arrival_time
+                )
                 end = dt.datetime.combine(departure_date, flight.departure_time)
                 if end < start:
                     end += dt.timedelta(days=1)
@@ -343,14 +399,14 @@ class TripItinerary:
                     continue
 
             TripItinerary.search(
-                departing_airport=flight.arrival_id, 
-                final_airport=final_airport, 
-                departure_date=departure_date, 
+                departing_airport=flight.arrival_id,
+                final_airport=final_airport,
+                departure_date=departure_date,
                 num_of_passengers=num_of_passengers,
                 max_layovers=max_layovers,
-                previous_flight=flight, 
+                previous_flight=flight,
                 current_path=current_path,
-                trip_itinerarys=trip_itinerarys
+                trip_itinerarys=trip_itinerarys,
             )
 
         # When we exit this context it means we are done with this
@@ -364,12 +420,13 @@ class TripItinerary:
             return trip_itinerarys
 
 
-
 """
 class PurchasedFlight(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    flight = db.Column(db.Integer, db.ForeignKey('flight.id'))
+    flight_id = db.Column(db.Integer, db.ForeignKey('flight.id'))
     purchased_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    purchase_date = db.Column(db.Date, nullable=False)
+    purchase_price = db.Column(db.Float, nullable=False)
     assisted_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     departure_date = db.Column(db.Date, nullable=False)
 """

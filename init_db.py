@@ -1,5 +1,5 @@
+from itertools import combinations
 import json
-import math
 import random
 from argparse import ArgumentParser
 from datetime import date, datetime, time, timedelta, timezone
@@ -9,11 +9,11 @@ from typing import List
 from zoneinfo import ZoneInfo
 
 import flask_migrate
-import geopy.distance
 from alive_progress import alive_it
+from sqlalchemy.exc import IntegrityError
 
 from app import create_app, db, search
-from app.models import Airplane, Airport, Flight, User
+from app.models import Admin, Airplane, Airport, Flight
 from config import Config
 
 
@@ -23,27 +23,23 @@ def create_db() -> None:
 
 
 def create_user() -> None:
-    print("Creating admin user.")
-    email = input("Email: ")
-    user: User = User.query.filter_by(email=email).first()
-    # If the user doesn't exist create it
-    if user is None:
+    print("Creating admin user. Press CTRL+c to cancel.")
+    while True:
+        email = input("Email: ")
         password = getpass()
         first_name = input("First Name: ")
         last_name = input("Last Name: ")
-        user = User(
-            first_name=first_name, last_name=last_name, email=email, role="admin"
+        user = Admin(
+            first_name=first_name, last_name=last_name, email=email
         )
         user.set_password(password)
         db.session.add(user)
-        db.session.commit()
-        print("Successfully created admin user.")
-    # Else just update the existing user
-    else:
-        print(f"User already exists... changing role from {user.role} to admin.")
-        user.role = "admin"
-        db.session.commit()
-        print("Successfully updated user.")
+        try:
+            db.session.commit()
+            print("Successfully created admin user.")
+            break
+        except IntegrityError:
+            print(f"User with that email already exists... Try again.")
 
 
 def populate_airports() -> None:
@@ -56,18 +52,13 @@ def populate_airports() -> None:
     # Since both airplanes and flights rely
     # on airports we have to delete them.
     Flight.query.delete()
-    search.delete_index(Flight)
-
     Airplane.query.delete()
-    search.delete_index(Airplane)
-
     Airport.query.delete()
-    search.delete_index(Airport)
     
     count = 0
     total_airports = len(json_data)
     for airport in alive_it(json_data):
-        # Some airports are missing timezones.
+        # Some airports are missing timezones and names.
         # This info is required so just ignore them.
         if not airport["tz"] or not airport["name"]:
             continue
@@ -117,10 +108,7 @@ def create_airplanes(count: int = 500) -> None:
     # Since the flights rely on the planes
     # the flights have to be deleted.
     Flight.query.delete()
-    search.delete_index(Flight)
-
     Airplane.query.delete()
-    search.delete_index(Airplane)
 
     registration_numbers = []
     for _ in alive_it(range(count)):
@@ -156,39 +144,12 @@ def create_flights(percentage: int = 90) -> None:
         f"Populating database with randomly generated flights using {percentage}% of the planes"
     )
 
-    class FlightDetails:
-        def __init__(self, departure: Airport, arrival: Airport) -> None:
-            self.departure = departure
-            self.arrival = arrival
-
-            # Calculate the distance between the two airports.
-            departure_coords = (departure.latitude, departure.longitude)
-            arrival_coords = (arrival.latitude, arrival.longitude)
-            self.distance = geopy.distance.geodesic(
-                departure_coords, arrival_coords
-            ).miles
-            # If the plane can fly that far, use it. If not, start over.
-            # Assume an average ground speed of 500nmph.
-            travel_time = self.distance / 500
-            hours = math.floor(travel_time)
-            minutes = int((travel_time - hours) * 60)
-            self.travel_time = timedelta(hours=hours, minutes=minutes)
-            # Add a 30 minute buffer for takeoff and touchdown
-            self.travel_time += timedelta(minutes=30)
-
-            self.departure_tz = ZoneInfo(departure.timezone)
-            self.arrival_tz = ZoneInfo(arrival.timezone)
-
-        def reversed(self) -> "FlightDetails":
-            return FlightDetails(self.arrival, self.departure)
-
     def get_cost(distance: float) -> float:
         # TODO: Figure out how to base cost on flight distance
         # Maybe also take plane capacity into account?
         return distance
 
     Flight.query.delete()
-    search.delete_index(Flight)
     airports = Airport.query.all()
     planes = Airplane.query.all()
     # Grab a random list of planes to use based on the percentage given.
@@ -212,10 +173,25 @@ def create_flights(percentage: int = 90) -> None:
         if airport:
             home_airports.append(airport)
 
+    # Creates a list of pairs of airports covering all possible combinations.
+    # This will allow us to create flights from every hub to every other hub
+    # which will help with creating more available connecting flights.
+    home_flights = list(combinations(home_airports, 2))
+
     flight_number = 1
     for plane in alive_it(planes):
-        # Select a random home airport as our starting point
-        home_airport = random.choice(home_airports)
+        use_random = True
+        if home_flights:
+            home_airport, visiting_airport = home_flights.pop()
+            miles = home_airport.distance_to(visiting_airport)
+            if miles < plane.range:
+                use_random = False
+            else:
+                home_flights.append((home_airport, visiting_airport))
+                
+        else:
+            # Select a random home airport as our starting point
+            home_airport = random.choice(home_airports)
 
         # Our earliest flights will always be between 5 and 7 am.
         hour = random.randint(5, 7)
@@ -231,16 +207,20 @@ def create_flights(percentage: int = 90) -> None:
         home_dt = departure_dt + timedelta(days=1)
 
         retrys = 10
-
         while retrys:
-            flight_details = FlightDetails(home_airport, random.choice(airports))
-            # If the airport is too close or the plane can't fly that far, start over and choose a new destination.
-            if flight_details.distance < 500 or flight_details.distance > plane.range:
+            # If we are out of home flights start randomly grabbing airports
+            if use_random:
+                visiting_airport = random.choice(airports)
+            
+            distance = home_airport.distance_to(visiting_airport)
+            # If the plane can't fly that far, start over and choose a new destination.
+            if distance > plane.range:
                 continue
 
+            flight_time = home_airport.time_to(visiting_airport)
             # Make sure we have enough time to complete this flight and the return flight
             # before this planes usual morning flight the next day.
-            total_flight_time = (flight_details.travel_time * 2) + (boarding_buffer * 2)
+            total_flight_time = (flight_time * 2) + (boarding_buffer * 2)
             remaining_time = home_dt - (departure_dt + total_flight_time)
             if remaining_time.total_seconds() < 0:
                 # Just because this flight was too long doesn't mean
@@ -249,44 +229,38 @@ def create_flights(percentage: int = 90) -> None:
                 retrys -= 1
                 continue
 
-            arrival_dt = departure_dt + flight_details.travel_time
 
+            arrival_dt = departure_dt + flight_time
             flight = Flight(
                 number=f"{flight_number}",
                 airplane_id=plane.id,
-                departure_id=flight_details.departure.id,
-                arrival_id=flight_details.arrival.id,
-                departure_time=departure_dt.astimezone(
-                    flight_details.departure_tz
-                ).time(),
-                arrival_time=arrival_dt.astimezone(flight_details.arrival_tz).time(),
-                cost=get_cost(flight_details.distance),
+                departure_id=home_airport.id,
+                arrival_id=visiting_airport.id,
+                departure_time=departure_dt.time(),
+                arrival_time=arrival_dt.time(),
+                cost=get_cost(distance),
                 start=start_date,
                 end=end_date
             )
             db.session.add(flight)
-
             flight_number += 1
-            flight_details = flight_details.reversed()
-            # Add some buffer for the boarding process
+
             departure_dt = arrival_dt + boarding_buffer
-            arrival_dt = departure_dt + flight_details.travel_time
-
+            arrival_dt = departure_dt + flight_time
             flight = Flight(
                 number=f"{flight_number}",
                 airplane_id=plane.id,
-                departure_id=flight_details.departure.id,
-                arrival_id=flight_details.arrival.id,
-                departure_time=departure_dt.astimezone(
-                    flight_details.departure_tz
-                ).time(),
-                arrival_time=arrival_dt.astimezone(flight_details.arrival_tz).time(),
-                cost=get_cost(flight_details.distance),
+                departure_id=visiting_airport.id,
+                arrival_id=home_airport.id,
+                departure_time=departure_dt.time(),
+                arrival_time=arrival_dt.time(),
+                cost=get_cost(distance),
                 start=start_date,
                 end=end_date
             )
             db.session.add(flight)
             flight_number += 1
+            # Set the departure time for the next loop.
             departure_dt = arrival_dt + boarding_buffer
 
 

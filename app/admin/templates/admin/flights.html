@@ -52,8 +52,8 @@
             <th data-field="airplane.registration_number">Airplane Registration</th>
             <th data-field="departure_airport.code">Departing Airport</th>
             <th data-field="arrival_airport.code">Arriving Airport</th>
-            <th data-field="departure_time">Departing Time</th>
-            <th data-field="arrival_time">Arrival Time</th>
+            <th data-field="departure_time" data-formatter="timeFormatter">Departing Time</th>
+            <th data-field="arrival_time" data-formatter="timeFormatter">Arrival Time</th>
             <th data-field="cost">Cost</th>
             <th data-field="start">Start</th>
             <th data-field="end">End</th>
@@ -68,7 +68,20 @@
 {{ super() }}
 <script src="/static/scripts/typeahead.bundle.min.js"></script>
 <script src="/static/scripts/modalform.js"></script>
-<script>
+<script src="/static/scripts/luxon.min.js"></script>
+<script>    
+    // Formats arrival and departure times into their respective airports timezones.
+    function timeFormatter(value, row, index, field) {
+        // Create the initial DateTime in utc
+        let dt = luxon.DateTime.fromISO(value, { zone: "utc" })
+        // Convert to the timezone of the airport.
+        if (field === 'departure_time') {
+            dt = dt.setZone(row.departure_airport.timezone)
+        } else if (field === 'arrival_time') {
+            dt = dt.setZone(row.arrival_airport.timezone)
+        }
+        return dt.toFormat('HH:mm')
+    }
 
     // Creates the elements for the "Actions" column in the table
     function actionFormatter(value, row, index, field) {
