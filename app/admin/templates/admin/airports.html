@@ -45,6 +45,8 @@
         <tr>
             <th data-field="code">IATA Code</th>
             <th data-field="name">Name</th>
+            <th data-field="city">City</th>
+            <th data-field="state">State</th>
             <th data-field="timezone">Timezone</th>
             <th data-field="latitude">Latitude</th>
             <th data-field="longitude">Longitude</th>
@@ -71,6 +73,8 @@
                     data-method="PATCH"
                     data-code="${row.code}"
                     data-name="${row.name}"
+                    data-city="${row.city}"
+                    data-state="${row.state}"
                     data-timezone="${row.timezone}"
                     data-latitude="${row.latitude}"
                     data-longitude="${row.longitude}">

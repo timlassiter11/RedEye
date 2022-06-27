@@ -98,6 +98,8 @@ class AirportForm(FlaskForm):
     )
     latitude = FloatField("Latitude", validators=[InputRequired()])
     longitude = FloatField("Longitude", validators=[InputRequired()])
+    city = StringField("City")
+    state = StringField("State")
 
 
 class AirplaneForm(FlaskForm):
