@@ -120,8 +120,6 @@ class FlightForm(FlaskForm):
     departure_airport = TypeaheadField("Departing From", validators=[InputRequired(), AirportValidator()])
     arrival_airport = TypeaheadField("Arriving To", validators=[InputRequired(), AirportValidator()])
     departure_time = TimeField("Departing Time", validators=[InputRequired()])
-    arrival_time = TimeField("Arriving Time", validators=[InputRequired()])
-    cost = FloatField("Cost", validators=[InputRequired()])
     start = DateField("Start", validators=[InputRequired()])
     end = DateField("End", validators=[InputRequired()])
 

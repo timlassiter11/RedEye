@@ -172,15 +172,6 @@ class Flight(PaginatedAPIMixin, db.Model):
     departure_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
     arrival_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
     departure_time = db.Column(db.Time, nullable=False)
-    # TODO: Do we need this? Shouldn't the arrival time be
-    # calculated based on the departure and arrival airports?
-    arrival_time = db.Column(db.Time, nullable=False)
-    # TODO: Maybe this shouldn't be part of a flight
-    # Generally flights with layovers cost the same as
-    # ones without layovers so mabye the cost should be
-    # calculated based on the departing and arriving
-    # airport of the entire trip. Not per flight.
-    cost = db.Column(db.Float, nullable=False)
     start = db.Column(db.Date, nullable=False)
     end = db.Column(db.Date, nullable=False)
 
@@ -212,14 +203,11 @@ class Flight(PaginatedAPIMixin, db.Model):
         db.session.refresh(cancellation)
         return cancellation
 
-    """
     @property
     def arrival_time(self) -> dt.time:
         departure_dt = dt.datetime.combine(dt.date.today(), self.departure_time)
         arrival_dt = departure_dt + self.flight_time
-        arrival_tz = ZoneInfo(self.arrival_airport.timezone)
-        return arrival_dt.astimezone(arrival_tz).time()
-    """
+        return arrival_dt.time()
 
     def to_dict(self, expand=False) -> Dict[str, Any]:
         data = super().to_dict()
@@ -231,6 +219,7 @@ class Flight(PaginatedAPIMixin, db.Model):
         del data["arrival_id"]
 
         data["flight_time"] = str(self.flight_time)
+        data["arrival_time"] = self.arrival_time.strftime("%H:%M")
 
         if expand:
             data["airplane"] = self.airplane.to_dict()
@@ -257,13 +246,12 @@ class FlightCancellation(db.Model):
 
 
 class TripItinerary:
-    def __init__(self, flights: List[Flight], date: dt.date, cost: float) -> None:
+    def __init__(self, flights: List[Flight], date: dt.date) -> None:
         if not flights:
             raise ValueError("Must contain at least one flight")
 
         self.flights = flights
         self.date = date
-        self.cost = cost
 
     @property
     def layovers(self) -> int:
@@ -300,6 +288,27 @@ class TripItinerary:
     @property
     def arrival_time(self) -> dt.time:
         return self.flights[-1].arrival_time
+
+    @property
+    def distance(self) -> float:
+        start = self.flights[0]
+        end = self.flights[-1]
+        return start.departure_airport.distance_to(end.arrival_airport)
+
+    @property
+    def cost(self) -> float:
+        '''Calculates cost based on distance. Includes taxes.'''
+        # https://taxfoundation.org/understanding-the-price-of-your-plane-ticket/#:~:text=The%20U.S.%20government%20charges%20an,(and%20almost%20all%20do).
+        cost = self.distance
+        # Excise tax
+        cost += (cost * 0.075)
+        # Flight segment tax of $4.5 per segment
+        cost += (4.5 * len(self.flights))
+        # September 11th tax
+        cost += 5.6
+        # Passenger facility charge (PFC)
+        cost += (4.5 * len(self.flights) + 1)
+        return round(cost, 2)
 
     def to_dict(self, expand: bool = False):
         return {
@@ -342,7 +351,7 @@ class TripItinerary:
             # that's the end of this path. Add it to the paths.
             if previous_flight.arrival_id == final_airport:
                 trip_itinerarys.append(
-                    TripItinerary(current_path.copy(), departure_date, 0)
+                    TripItinerary(current_path.copy(), departure_date)
                 )
                 current_path.pop()
                 return

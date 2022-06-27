@@ -144,11 +144,6 @@ def create_flights(percentage: int = 90) -> None:
         f"Populating database with randomly generated flights using {percentage}% of the planes"
     )
 
-    def get_cost(distance: float) -> float:
-        # TODO: Figure out how to base cost on flight distance
-        # Maybe also take plane capacity into account?
-        return distance
-
     Flight.query.delete()
     airports = Airport.query.all()
     planes = Airplane.query.all()
@@ -237,8 +232,6 @@ def create_flights(percentage: int = 90) -> None:
                 departure_id=home_airport.id,
                 arrival_id=visiting_airport.id,
                 departure_time=departure_dt.time(),
-                arrival_time=arrival_dt.time(),
-                cost=get_cost(distance),
                 start=start_date,
                 end=end_date
             )
@@ -253,8 +246,6 @@ def create_flights(percentage: int = 90) -> None:
                 departure_id=visiting_airport.id,
                 arrival_id=home_airport.id,
                 departure_time=departure_dt.time(),
-                arrival_time=arrival_dt.time(),
-                cost=get_cost(distance),
                 start=start_date,
                 end=end_date
             )
