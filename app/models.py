@@ -250,44 +250,50 @@ class TripItinerary:
         if not flights:
             raise ValueError("Must contain at least one flight")
 
-        self.flights = flights
-        self.date = date
+        self._flights = flights
+        self._date = date
 
-    @property
-    def layovers(self) -> int:
-        return len(self.flights) - 1
-
-    @property
-    def total_time(self) -> dt.timedelta:
-        delta = dt.timedelta()
+        self._total_time = dt.timedelta()
         last_arrival: dt.datetime = None
-        for flight in self.flights:
-            delta += flight.flight_time
+        for flight in flights:
+            self._total_time += flight.flight_time
             # If last_arrival is not None it means this isn't
             # the first flight and we need to add time for the layover.
             if last_arrival:
                 departure_dt = dt.datetime.combine(
-                    self.date, flight.departure_time, pytz.utc
+                    self._date, flight.departure_time, pytz.utc
                 )
-
-                # Add the layover to the total time
-                delta += departure_dt - last_arrival
 
                 # Handle corner case where the layover rolls over past midnight.
                 if departure_dt.time() < last_arrival.time():
-                    delta += dt.timedelta(days=1)
+                    departure_dt += dt.timedelta(days=1)
 
-            last_arrival = dt.datetime.combine(self.date, flight.arrival_time, pytz.utc)
+                # Add the layover to the total time
+                self._total_time += departure_dt - last_arrival
 
-        return delta
+            last_arrival = dt.datetime.combine(self._date, flight.arrival_time, pytz.utc)
 
-    @property
-    def departure_time(self) -> dt.time:
-        return self.flights[0].departure_time
 
     @property
-    def arrival_time(self) -> dt.time:
-        return self.flights[-1].arrival_time
+    def flights(self) -> List[Flight]:
+        return self._flights.copy()
+
+    @property
+    def layovers(self) -> int:
+        return len(self._flights) - 1
+
+    @property
+    def total_time(self) -> dt.timedelta:
+        return self._total_time
+
+    @property
+    def departure_datetime(self) -> dt.datetime:
+        departure_dt = dt.datetime.combine(self._date, self.flights[0].departure_time)
+        return departure_dt
+
+    @property
+    def arrival_datetime(self) -> dt.datetime:
+        return self.departure_datetime + self.total_time
 
     @property
     def distance(self) -> float:
@@ -313,6 +319,8 @@ class TripItinerary:
     def to_dict(self, expand: bool = False):
         return {
             "cost": self.cost,
+            "departure_datetime": self.departure_datetime.isoformat(),
+            "arrival_datetime": self.arrival_datetime.isoformat(),
             "total_time": str(self.total_time),
             "layovers": self.layovers,
             "flights": [flight.to_dict(expand=expand) for flight in self.flights],
@@ -324,7 +332,7 @@ class TripItinerary:
         final_airport: int,
         departure_date: dt.date,
         num_of_passengers: int = 1,
-        max_layovers: int = 3,
+        max_layovers: int = 2,
         min_layover_time: dt.timedelta = dt.timedelta(minutes=45),
         max_layover_time: dt.timedelta = dt.timedelta(hours=5),
         previous_flight: "Flight" = None,
@@ -399,6 +407,8 @@ class TripItinerary:
                 if delta > max_layover_time:
                     continue
 
+            # TODO: Departure date needs to update if we roll over to the next day.
+            # If not we could select flights that are cancelled.
             TripItinerary.search(
                 departing_airport=flight.arrival_id,
                 final_airport=final_airport,

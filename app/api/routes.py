@@ -266,7 +266,7 @@ class FlightSearch(Resource):
             "departure_date", type=str_to_date, required=True, location="args"
         )
         parser.add_argument("num_of_passengers", type=int, default=1, location="args")
-        parser.add_argument("max_layovers", type=int, default=3, location="args")
+        parser.add_argument("max_layovers", type=int, default=2, location="args")
         parser.add_argument("min_layover_time", type=int, default=45, location="args")
         parser.add_argument("expand", type=strtobool, default=False, location="args")
         parser.add_argument("limit", type=int, default=10, location="args")
@@ -290,7 +290,7 @@ class FlightSearch(Resource):
             min_layover_time=min_layover_time,
         )
         # Sort the itineraries by the number of layovers, departure time, and total time.
-        itineraries.sort(key=attrgetter("layovers", "departure_time", "total_time"))
+        itineraries.sort(key=attrgetter("layovers", "departure_datetime", "arrival_datetime"))
         # Slice the list to limit the results.
         # Always do this after sorting so we get the best results.
         itineraries = itineraries[:limit]
