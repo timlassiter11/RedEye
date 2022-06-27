@@ -275,6 +275,9 @@ class FlightSearch(Resource):
         expand = args["expand"]
         departure = args["departure_code"]
         arrival = args["arrival_code"]
+        # TODO: Departure date should always be after current date.
+        # We can't check this on the server side though since the server might
+        # be in a different timezone that is ahead of the client.
         departure_date = args["departure_date"]
         num_of_passengers = args["num_of_passengers"]
         max_layovers = args["max_layovers"]
