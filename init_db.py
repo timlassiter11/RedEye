@@ -212,6 +212,11 @@ def create_flights(percentage: int = 90) -> None:
             if distance > plane.range:
                 continue
 
+            # Covers cases where the home and visiting airport are the same
+            # and where airports would be less than a 30 minute flight away.
+            if use_random and distance < 250:
+                continue
+
             flight_time = home_airport.time_to(visiting_airport)
             # Make sure we have enough time to complete this flight and the return flight
             # before this planes usual morning flight the next day.
