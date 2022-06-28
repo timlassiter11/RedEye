@@ -22,5 +22,7 @@ class Config(object):
     # auto create or update index
     MSEARCH_ENABLE = True
     SESSION_COOKIE_DOMAIN = False
-    REMEMBER_COOKIE_DOMAIN = None  
+    REMEMBER_COOKIE_DOMAIN = None
+    # Fix for MySQL connection timeout  
+    SQLALCHEMY_POOL_RECYCLE = 280
     
