@@ -7,6 +7,7 @@ load_dotenv(os.path.join(basedir, '.env'))
 
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or '1069aa45fee63a513706f9abf3ac95dba04b4ee4971474cd'
+    WTF_CSRF_ENABLED = bool(strtobool(os.environ.get('CSRF_ENABLED', 'True')))
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         'sqlite:///' + os.path.join(basedir, 'app.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = True

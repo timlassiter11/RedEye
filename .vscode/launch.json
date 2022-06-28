@@ -21,7 +21,8 @@
             "env": {
                 "FLASK_APP": "app.py",
                 "FLASK_ENV": "development",
-                "FLASK_DEBUG": "0"
+                "FLASK_DEBUG": "0",
+                "CSRF_ENABLED": "false"
             },
             "args": [
                 "run",
