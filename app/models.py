@@ -1,14 +1,14 @@
+import datetime as dt
 import math
 import time
-import datetime as dt
 from typing import Any, Dict, List
 
+import geopy.distance
 import jwt
+import pytz
 from flask import current_app, url_for
 from flask_login import UserMixin
-import pytz
 from werkzeug.security import check_password_hash, generate_password_hash
-import geopy.distance
 
 from app import db, login
 
@@ -209,6 +209,15 @@ class Flight(PaginatedAPIMixin, db.Model):
         arrival_dt = departure_dt + self.flight_time
         return arrival_dt.time()
 
+    def available_seats(self, date: dt.date):
+        capacity = self.airplane.capacity
+        used = (
+            PurchasedFlight.query.filter_by(flight_id=self.id)
+            .filter_by(departure_date=date)
+            .count()
+        )
+        return capacity - used
+
     def to_dict(self, expand=False) -> Dict[str, Any]:
         data = super().to_dict()
 
@@ -245,6 +254,17 @@ class FlightCancellation(db.Model):
     flight = db.relationship("Flight", backref="cancellations")
 
 
+class PurchasedFlight(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    flight_id = db.Column(db.Integer, db.ForeignKey("flight.id"))
+    purchased_by = db.Column(db.Integer, db.ForeignKey("user.id"))
+    purchase_timestamp = db.Column(db.DateTime, nullable=False)
+    purchase_price = db.Column(db.Float, nullable=False)
+    assisted_by = db.Column(db.Integer, db.ForeignKey("user.id"))
+    departure_date = db.Column(db.Date, nullable=False)
+    flight = db.relationship("Flight", backref="purchases")
+
+
 class TripItinerary:
     def __init__(self, date: dt.date, flights: List[Flight] = None) -> None:
         self._total_time = dt.timedelta()
@@ -276,7 +296,9 @@ class TripItinerary:
     def departure_datetime(self) -> dt.datetime:
         if not self._flights:
             return None
-        departure_dt = dt.datetime.combine(self._date, self.flights[0].departure_time, pytz.utc)
+        departure_dt = dt.datetime.combine(
+            self._date, self.flights[0].departure_time, pytz.utc
+        )
         return departure_dt
 
     @property
@@ -295,17 +317,17 @@ class TripItinerary:
 
     @property
     def cost(self) -> float:
-        '''Calculates cost based on distance. Includes taxes.'''
+        """Calculates cost based on distance. Includes taxes."""
         # https://taxfoundation.org/understanding-the-price-of-your-plane-ticket/#:~:text=The%20U.S.%20government%20charges%20an,(and%20almost%20all%20do).
         cost = self.distance
         # Excise tax
-        cost += (cost * 0.075)
+        cost += cost * 0.075
         # Flight segment tax of $4.5 per segment
-        cost += (4.5 * len(self.flights))
+        cost += 4.5 * len(self.flights)
         # September 11th tax
         cost += 5.6
         # Passenger facility charge (PFC)
-        cost += (4.5 * len(self.flights) + 1)
+        cost += 4.5 * len(self.flights) + 1
         return round(cost, 2)
 
     def add_flight(self, flight: Flight) -> None:
@@ -319,7 +341,7 @@ class TripItinerary:
                 last_arrival.date(), flight.departure_time, pytz.utc
             )
 
-            # Handle cases where the layover spans 
+            # Handle cases where the layover spans
             # past midnight and into the next day.
             # TODO: Maybe add a test case for this issue?
             if departure_dt < last_arrival:
@@ -345,11 +367,13 @@ class TripItinerary:
             last_arrival -= flight.flight_time
             # This will be the new last flight.
             last_flight = self._flights[-1]
-            new_arrival = dt.datetime.combine(last_arrival.date(), last_flight.arrival_time, pytz.utc)
+            new_arrival = dt.datetime.combine(
+                last_arrival.date(), last_flight.arrival_time, pytz.utc
+            )
             # Handle layover spanning past midnight
             if last_arrival < new_arrival:
                 new_arrival -= dt.timedelta(days=1)
-            
+
             self._total_time = new_arrival - self.departure_datetime
         else:
             # No flights means no flight time
@@ -405,9 +429,7 @@ class TripItinerary:
             # If the previous flight ended at our destination
             # that's the end of this path. Add it to the paths.
             if previous_flight.arrival_id == final_airport:
-                trip_itinerarys.append(
-                    current_itinerary.copy()
-                )
+                trip_itinerarys.append(current_itinerary.copy())
                 current_itinerary.pop_flight()
                 return
 
@@ -435,8 +457,7 @@ class TripItinerary:
         # Make sure this flight doesn't backtrack to an airport we've already been to.
         prev_ids = [flight.departure_id for flight in current_itinerary.flights]
         query = query.filter(~Flight.arrival_id.in_(prev_ids))
-        
-        # TODO: Need to make sure all flights have enough seats for the number of passengers
+
         potential_flights = query.all()
         for flight in potential_flights:
             # Enforce a maximum layover length
@@ -450,6 +471,11 @@ class TripItinerary:
                 delta = end - start
                 if delta > max_layover_time:
                     continue
+
+            # Filter out flights that don't have enough seats.
+            # TODO: Figure out how to make this an SQL query to improve performance.
+            if flight.available_seats(departure_date) < num_of_passengers:
+                continue
 
             TripItinerary.search(
                 departing_airport=flight.arrival_id,
@@ -468,15 +494,3 @@ class TripItinerary:
             current_itinerary.pop_flight()
 
         return trip_itinerarys
-
-
-"""
-class PurchasedFlight(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    flight_id = db.Column(db.Integer, db.ForeignKey('flight.id'))
-    purchased_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    purchase_date = db.Column(db.Date, nullable=False)
-    purchase_price = db.Column(db.Float, nullable=False)
-    assisted_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    departure_date = db.Column(db.Date, nullable=False)
-"""
