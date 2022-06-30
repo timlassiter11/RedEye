@@ -55,17 +55,6 @@ def owner_or_role_required(roles: Union[str, List[str]]):
     return decorator
 
 
-def admin_required(func):
-    @login_required
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if current_user.role != "admin":
-            json_abort(403, message="Forbidden")
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
 def get_or_404(model, id):
     item = model.query.get(int(id))
     if item is None:

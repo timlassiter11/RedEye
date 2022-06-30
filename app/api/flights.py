@@ -3,10 +3,10 @@ from distutils.util import strtobool
 from app import db, models
 from app.api import api
 from app.api.helpers import (
-    admin_required,
     code_to_airport,
     get_or_404,
     json_abort,
+    role_required,
     str_to_date,
 )
 from app.forms import FlightForm
@@ -54,7 +54,7 @@ class Flights(Resource):
         )
         return data
 
-    @admin_required
+    @role_required('admin')
     def post(self):
         form = FlightForm(data=request.json)
         if form.validate():
@@ -79,14 +79,14 @@ class Flight(Resource):
         flight = get_or_404(models.Flight, id)
         return flight.to_dict(expand=expand)
 
-    @admin_required
+    @role_required('admin')
     def delete(self, id):
         flight = get_or_404(models.Flight, id)
         db.session.delete(flight)
         db.session.commit()
         return "", 204
 
-    @admin_required
+    @role_required('admin')
     def patch(self, id):
         flight = get_or_404(models.Flight, id)
         form = FlightForm(data=request.json)

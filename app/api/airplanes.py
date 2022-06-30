@@ -2,7 +2,7 @@ from distutils.util import strtobool
 
 from app import db, models
 from app.api import api
-from app.api.helpers import admin_required, get_or_404, json_abort
+from app.api.helpers import get_or_404, json_abort, role_required
 from app.forms import AirplaneForm
 from flask_restful import Resource, reqparse, request
 from sqlalchemy.exc import IntegrityError
@@ -39,7 +39,7 @@ class Airplanes(Resource):
         )
         return data
 
-    @admin_required
+    @role_required('admin')
     def post(self):
         form = AirplaneForm(data=request.json)
         if form.validate():
@@ -68,14 +68,14 @@ class Airplane(Resource):
         airplane = get_or_404(models.Airplane, id)
         return airplane.to_dict(expand=expand)
 
-    @admin_required
+    @role_required('admin')
     def delete(self, id):
         airplane = get_or_404(models.Airplane, id)
         db.session.delete(airplane)
         db.session.commit()
         return "", 204
 
-    @admin_required
+    @role_required('admin')
     def patch(self, id):
         airplane = get_or_404(models.Airplane, id)
         form = AirplaneForm(data=request.json)

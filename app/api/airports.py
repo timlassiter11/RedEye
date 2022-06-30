@@ -1,6 +1,6 @@
 from app import db, models
 from app.api import api
-from app.api.helpers import admin_required, get_or_404, json_abort
+from app.api.helpers import get_or_404, json_abort, role_required
 from app.forms import AirportForm
 from flask_restful import Resource, reqparse, request
 from sqlalchemy.exc import IntegrityError
@@ -28,7 +28,7 @@ class Airports(Resource):
         )
         return data
 
-    @admin_required
+    @role_required('admin')
     def post(self):
         form = AirportForm(data=request.json)
         if form.validate():
@@ -53,14 +53,14 @@ class Airport(Resource):
         airport = get_or_404(models.Airport, id)
         return airport.to_dict()
 
-    @admin_required
+    @role_required('admin')
     def delete(self, id):
         airport = get_or_404(models.Airport, id)
         db.session.delete(airport)
         db.session.commit()
         return "", 204
 
-    @admin_required
+    @role_required('admin')
     def patch(self, id):
         airport: models.Airport = get_or_404(models.Airport, id)
 
