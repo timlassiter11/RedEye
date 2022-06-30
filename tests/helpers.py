@@ -6,7 +6,7 @@ import unittest
 from flask_login import FlaskLoginClient
 from app import create_app, db
 
-from app.models import Airplane, Airport, User
+from app.models import Admin, Agent, Airplane, Airport, Customer, User
 
 DEFAULT_PASSWORD = "abc123"
 
@@ -18,7 +18,7 @@ class TestConfig:
     TESTING = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     MSEARCH_ENABLE = True
-    MSEARCH_BACKEND = 'whoosh'
+    MSEARCH_BACKEND = "whoosh"
     MSEARCH_INDEX_NAME = "msearch_test"
 
 
@@ -38,25 +38,27 @@ class FlaskTestCase(unittest.TestCase):
 
 def create_users() -> Dict[str, User]:
     """Create users for each role. Returns a dict containing the created users."""
-    admin_user = User(
-        first_name="admin", last_name="user", email="adminuser@redeye.app", role="admin"
+    admin = Admin(
+        first_name="admin", last_name="user", email="adminuser@redeye.app"
     )
-    admin_user.set_password(DEFAULT_PASSWORD)
-    agent_user = User(
+    admin.set_password(DEFAULT_PASSWORD)
+    agent = Agent(
         first_name="agent", last_name="user", email="agentuser@redeye.app"
     )
-    agent_user.set_password(DEFAULT_PASSWORD)
-    normal_user = User(first_name="test", last_name="user", email="testuser@redeye.app")
-    normal_user.set_password(DEFAULT_PASSWORD)
+    agent.set_password(DEFAULT_PASSWORD)
+    customer = Customer(
+        first_name="test", last_name="user", email="testuser@redeye.app"
+    )
+    customer.set_password(DEFAULT_PASSWORD)
 
-    db.session.add(admin_user)
-    db.session.add(agent_user)
-    db.session.add(normal_user)
+    db.session.add(admin)
+    db.session.add(agent)
+    db.session.add(customer)
     db.session.commit()
-    db.session.refresh(admin_user)
-    db.session.refresh(agent_user)
-    db.session.refresh(normal_user)
-    return {"admin": admin_user, "agent": agent_user, "normal": normal_user}
+    db.session.refresh(admin)
+    db.session.refresh(agent)
+    db.session.refresh(customer)
+    return {"admin": admin, "agent": agent, "customer": customer}
 
 
 def create_airports(count=5) -> Dict[str, Airport]:

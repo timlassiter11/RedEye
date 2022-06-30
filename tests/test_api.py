@@ -1,9 +1,12 @@
 from flask import url_for
+from flask_login import login_user
 from werkzeug.test import TestResponse
+from werkzeug.exceptions import HTTPException
 
 from app import db
-from app.models import Airplane, Airport
-from helpers import create_users, FlaskTestCase
+from app.api.helpers import code_to_airport, get_or_404, json_abort, login_required, role_required
+from app.models import Airplane, Airport, User
+from helpers import create_users, create_airports, FlaskTestCase
 
 
 class ApiTestCase(FlaskTestCase):
@@ -12,7 +15,7 @@ class ApiTestCase(FlaskTestCase):
         users = create_users()
         self.admin_user = users["admin"]
         self.agent_user = users["agent"]
-        self.normal_user = users["normal"]
+        self.customer_user = users["customer"]
 
     def assertApiResponse(self, response: "TestResponse", expected_status: int = 200):
         self.assertEqual(
@@ -58,6 +61,128 @@ class ApiTestCase(FlaskTestCase):
             self.assertEqual(expected_total_items, meta["total_items"], "Incorrect value for _meta.total_items in api response")
             self.assertEqual(expected_total_items, len(items), "Incorrect number of items in api response")
 
+
+class TestHelpers(ApiTestCase):
+    def test_json_abort(self):
+        data = {"message": "test"}
+        with self.assertRaises(HTTPException) as cm:
+            json_abort(400, **data)
+
+        ex = cm.exception
+        self.assertApiResponse(ex.response, 400)
+        self.assertDictEqual(data, ex.response.json)
+
+    def test_login_required(self):
+        f = login_required(lambda: True)
+        with self.app.test_client():
+            with self.assertRaises(HTTPException) as cm:
+                f()
+
+            ex = cm.exception
+            self.assertApiResponse(ex.response, 401)
+            self.assertIn("message", ex.response.json)
+
+        # Login each user type and make sure we don't get an exception
+        with self.app.test_request_context():
+            login_user(self.customer_user)
+            self.customer_user.authenticated = True
+            self.assertTrue(f())
+
+        with self.app.test_request_context():
+            login_user(self.agent_user)
+            self.agent_user.authenticated = True
+            self.assertTrue(f())
+
+        with self.app.test_request_context():
+            login_user(self.admin_user)
+            self.admin_user.authenticated = True
+            self.assertTrue(f())
+
+    def test_single_role_required(self):
+        f = role_required('admin')(lambda: True)
+        # Make sure we get a 401 with no user
+        with self.app.test_client():
+            with self.assertRaises(HTTPException) as cm:
+                f()
+
+            ex = cm.exception
+            self.assertApiResponse(ex.response, 401)
+            self.assertIn("message", ex.response.json)
+
+        # Make sure we got a 403 with both customer and agent
+        with self.app.test_request_context():
+            login_user(self.customer_user)
+            self.customer_user.authenticated = True
+            with self.assertRaises(HTTPException) as cm:
+                f()
+            ex = cm.exception
+            self.assertApiResponse(ex.response, 403)
+
+        with self.app.test_request_context():
+            login_user(self.agent_user)
+            self.agent_user.authenticated = True
+            with self.assertRaises(HTTPException) as cm:
+                f()
+            ex = cm.exception
+            self.assertApiResponse(ex.response, 403)
+
+        # Make sure we don't get an exception with admin
+        with self.app.test_request_context():
+            login_user(self.admin_user)
+            self.admin_user.authenticated = True
+            self.assertTrue(f())
+
+    def test_multiple_role_required(self):
+        f = role_required(['admin', 'customer'])(lambda: True)
+        # Make sure we get a 401 with no user
+        with self.app.test_client():
+            with self.assertRaises(HTTPException) as cm:
+                f()
+
+            ex = cm.exception
+            self.assertApiResponse(ex.response, 401)
+            self.assertIn("message", ex.response.json)
+
+        # Make sure we got a 403 with agent
+        with self.app.test_request_context():
+            login_user(self.agent_user)
+            self.agent_user.authenticated = True
+            with self.assertRaises(HTTPException) as cm:
+                f()
+            ex = cm.exception
+            self.assertApiResponse(ex.response, 403)
+
+        # Make sure we don't get any excpetions with both admin and customer
+        with self.app.test_request_context():
+            login_user(self.customer_user)
+            self.customer_user.authenticated = True
+            self.assertTrue(f())
+
+        with self.app.test_request_context():
+            login_user(self.admin_user)
+            self.admin_user.authenticated = True
+            self.assertTrue(f())
+
+    def test_get_or_404(self):
+        with self.assertRaises(HTTPException) as cm:
+            get_or_404(User, 5)
+
+        ex = cm.exception
+        self.assertApiResponse(ex.response, 404)
+        self.assertIn("message", ex.response.json)
+
+        u = get_or_404(User, self.admin_user.id)
+        self.assertEquals(self.admin_user.email, u.email)
+
+    def test_code_to_airport(self):
+        with self.assertRaises(ValueError):
+            code_to_airport("ABC")
+
+        airports = create_airports(count=1)
+        airport1 = list(airports.values())[0]
+        airport2 = code_to_airport(airport1.code)
+
+        self.assertEquals(airport1.id, airport2.id)
 
 class TestAirports(ApiTestCase):
     def test_get_airports(self):
@@ -149,7 +274,7 @@ class TestAirports(ApiTestCase):
         self.assertIn("message", response.json, "Api response missing message for 401 not authorized")
 
         # Login a non admin user and make sure they also can't create an airport
-        with self.app.test_client(user=self.normal_user) as client:
+        with self.app.test_client(user=self.customer_user) as client:
             response = client.post(url_for("api.airports"), json=airport_data)
         self.assertApiResponse(response, 403)
         self.assertIn("message", response.json, "Api response missing message for 403 forbidden")
@@ -215,7 +340,7 @@ class TestAirports(ApiTestCase):
         self.assertIn("message", response.json, "Api response missing message for 401 not authorized")
 
         # Login a non admin user and make sure they also can't delete an airport
-        with self.app.test_client(user=self.normal_user) as client:
+        with self.app.test_client(user=self.customer_user) as client:
             response = client.delete(url_for("api.airport", id=airport.id))
         self.assertApiResponse(response, 403)
         self.assertIn("message", response.json, "Api response missing message for 403 forbidden")
@@ -312,7 +437,7 @@ class TestAirplanes(ApiTestCase):
         self.assertIn("message", response.json, "Api response missing message for 401 not authorized")
 
         # Login a non admin user and make sure they also can't create an airplane
-        with self.app.test_client(user=self.normal_user) as client:
+        with self.app.test_client(user=self.customer_user) as client:
             response = client.post(url_for("api.airplanes"), json=airplane_data)
         self.assertApiResponse(response, 403)
         self.assertIn("message", response.json, "Api response missing message for 403 forbidden")
@@ -374,7 +499,7 @@ class TestAirplanes(ApiTestCase):
         self.assertIn("message", response.json, "Api response missing message for 401 not authorized")
 
         # Login a non admin user and make sure they also can't delete an airplane
-        with self.app.test_client(user=self.normal_user) as client:
+        with self.app.test_client(user=self.customer_user) as client:
             response = client.delete(url_for("api.airplane", id=airplane.id))
         self.assertApiResponse(response, 403)
         self.assertIn("message", response.json, "Api response missing message for 403 forbidden")
