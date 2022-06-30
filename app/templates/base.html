@@ -98,6 +98,12 @@
             $input.after($label)
             $label.after($feedback)
         }
+
+        function logout() {
+            $.post("{{ url_for('api.logout') }}", function(data) {
+                window.location = "{{ url_for('main.home') }}"
+            })
+        }
     </script>
     {% endblock %}
 </body>

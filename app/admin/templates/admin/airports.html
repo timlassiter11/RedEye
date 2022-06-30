@@ -7,7 +7,7 @@
 
 {% block content %}
 
-{{ render_modal_form('Airport', form, modal_id='formModal', form_id='form', left_button_id='deleteButton', left_button_text='Delete', left_button_class='btn-danger') }}
+{{ render_modal_form('Airport', form, modal_id='formModal', form_id='airportForm', left_button_id='deleteButton', left_button_text='Delete', left_button_class='btn-danger') }}
 
 <div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel"
     aria-hidden="true">
@@ -59,6 +59,7 @@
 
 {% block scripts %}
 {{ super() }}
+<script src="/static/scripts/apiform.js"></script>
 <script src="/static/scripts/modalform.js"></script>
 <script>
 
@@ -119,11 +120,14 @@
         // Automatically populate form info like method and action
         // based on data attributes from the button that triggered
         // the modal show event.
-        $('.modal').modalform({
+        //$('.modal').modalform();
+
+        $('#airportForm').apiform({
             onSuccess: function(response) {
+                formModal.hide()
                 $table.bootstrapTable('refresh')
             }
-        });
+        })
 
         $formModal.on('show.bs.modal', function(event) {
             $form.removeClass('was-validated')

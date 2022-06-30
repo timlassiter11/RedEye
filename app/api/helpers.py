@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Callable, List, Union
 from dateutil.parser import parse
 from functools import wraps
 
@@ -25,6 +26,35 @@ def login_required(func):
     return wrapper
 
 
+def role_required(roles: Union[str, List[str]]):
+    def decorator(func):
+        @login_required
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if not current_user.role in roles:
+                json_abort(403, message="Forbidden")
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def owner_or_role_required(roles: Union[str, List[str]]):
+    def decorator(func):
+        @login_required
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            id = kwargs.get("id")
+            if current_user.id == int(id):
+                return func(*args, **kwargs)
+            return role_required(roles)(func)(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 def admin_required(func):
     @login_required
     @wraps(func)
@@ -42,11 +72,13 @@ def get_or_404(model, id):
         json_abort(404, message="Resource not found")
     return item
 
+
 def code_to_airport(code: str) -> Airport:
     airport = Airport.query.filter_by(code=code).first()
     if not airport:
         raise ValueError("Invalid airport code.")
     return airport
+
 
 def str_to_date(value: str) -> date:
     return parse(value).date()

@@ -42,7 +42,7 @@ def login():
     return render_template('auth/login.html', title='Sign In', form=form)
 
 
-@bp.route('/logout')
+@bp.route('/logout', methods=['POST'])
 def logout():
     logout_user()
     return redirect(url_for('main.home'))

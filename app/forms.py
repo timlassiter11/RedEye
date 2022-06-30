@@ -4,12 +4,10 @@ from wtforms import (
     BooleanField,
     EmailField,
     FloatField,
-    HiddenField,
     IntegerField,
     PasswordField,
     SelectField,
     StringField,
-    SubmitField,
     TimeField,
     DateField,
 )
@@ -22,18 +20,17 @@ from wtforms.validators import (
 )
 
 from app.fields import TypeaheadField
-from app.validators import AirplaneValidator, AirportValidator
+from app.validators import AirplaneValidator, AirportValidator, UniqueEmailValidator, UserValidator
 
 
 class LoginForm(FlaskForm):
-    email = EmailField("Email", validators=[InputRequired()])
+    email = EmailField("Email", validators=[InputRequired(), UserValidator()])
     password = PasswordField("Password", validators=[InputRequired()])
     remember_me = BooleanField("Remember Me")
-    submit = SubmitField("Sign In")
 
 
 class RegistrationForm(FlaskForm):
-    email = EmailField("Email", validators=[InputRequired()])
+    email = EmailField("Email", validators=[InputRequired(), UniqueEmailValidator()])
     first_name = StringField("First Name", validators=[InputRequired()])
     last_name = StringField("Last Name", validators=[InputRequired()])
     password = PasswordField("Password", validators=[InputRequired()])
@@ -44,12 +41,10 @@ class RegistrationForm(FlaskForm):
             EqualTo("password", message="Passwords do not match"),
         ],
     )
-    submit = SubmitField("Register")
 
 
 class ResetPasswordRequestForm(FlaskForm):
-    email = EmailField("Email", validators=[InputRequired()])
-    submit = SubmitField("Request")
+    email = EmailField("Email", validators=[InputRequired(), UserValidator()])
 
 
 class ResetPasswordForm(FlaskForm):
@@ -61,33 +56,12 @@ class ResetPasswordForm(FlaskForm):
             EqualTo("password", message="Passwords do not match"),
         ],
     )
-    submit = SubmitField("Reset Password")
 
 
-class MethodForm(FlaskForm):
-    """Form with a hidden field containing the form method.
-    Used for handling method types not supported by standard
-    browsers such as DELETE and PUT.
-    """
-
-    method = HiddenField(default="POST")
-
-    def validate(self, extra_validators=None):
-        if self.method.data == "DELETE":
-            return self.csrf_token.validate(self)
-        return super().validate(extra_validators=extra_validators)
-
-
-class UserEditForm(MethodForm):
-    email = EmailField("Email", validators=[InputRequired()])
+class UserEditForm(FlaskForm):
+    email = EmailField("Email", validators=[InputRequired(), UniqueEmailValidator()])
     first_name = StringField("First Name", validators=[InputRequired()])
     last_name = StringField("Last Name", validators=[InputRequired()])
-
-
-class AdminUserEditForm(UserEditForm):
-    role = SelectField(
-        "Role", choices=[("user", "User"), ("agent", "Agent"), ("admin", "Admin")]
-    )
 
 
 class AirportForm(FlaskForm):

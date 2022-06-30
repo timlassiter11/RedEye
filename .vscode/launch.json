@@ -35,8 +35,8 @@
             "serverReadyAction": {
                 "pattern": ".*https?:\\/\\/\\S+:([0-9]+)\\/?.*",
                 "uriFormat": "http://localhost:%s",
-                "action": "openExternally"
-            }
+                "action": "debugWithChrome"
+            },
         }
     ]
 }

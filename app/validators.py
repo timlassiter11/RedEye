@@ -1,6 +1,28 @@
 from wtforms.validators import ValidationError
 
-from app.models import Airplane, Airport
+from app.models import Airplane, Airport, User
+
+
+class UniqueEmailValidator:
+    def __init__(self, message=None):
+        self.message = message
+
+    def __call__(self, form, field):
+        if User.query.filter_by(email=field.data).count() > 0:
+            message = self.message or "An account with that email already exists"
+            raise ValidationError(message)
+
+
+class UserValidator:
+    def __init__(self, message=None):
+        self.message = message
+
+    def __call__(self, form, field):
+        user = User.query.filter_by(email=field.data).first()
+        if not user:
+            message = self.message or "An account with that email doesn't exists."
+            raise ValidationError(message)
+        field.data = user
 
 
 class AirplaneValidator:

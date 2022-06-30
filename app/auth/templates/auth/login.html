@@ -2,7 +2,7 @@
 {% from "bootstrap/forms.html" import render_field %}
 
 {% block content %}
-<form method="POST">
+<form class="needs-validation api-form" method="POST" action="/api/login" novalidate>
     {{ form.hidden_tag() }}
     <div class="text-dark">
         {{ render_field(form.email) }}
@@ -12,7 +12,7 @@
     </div>
     {{ render_field(form.remember_me) }}
     <div class="d-grid gap-2">
-        {{ form.submit(value='Sign In', class='btn btn-primary btn-block') }}
+        <input type="submit" class="btn btn-primary btn-block" value="Sign In">
     </div>
 </form>
 <div class="d-flex justify-content-center mt-2">
@@ -21,4 +21,23 @@
 <div class="d-flex justify-content-center">
     <a href="{{ url_for('auth.reset_password_request') }}">Forgot your password?</a>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="/static/scripts/apiform.js"></script>
+<script>
+$(document).ready(function () {
+    const urlParams = new URLSearchParams(window.location.search)
+    $('.api-form').apiform({
+        onSuccess: function(response) {
+            if (urlParams.has('next')) {
+                window.location = urlParams.get('next')
+            } else {
+                window.location = "{{ url_for('main.home') }}"
+            }
+        }
+    })
+})
+</script>
 {% endblock %}

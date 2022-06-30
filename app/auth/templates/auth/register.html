@@ -2,7 +2,7 @@
 {% from "bootstrap/forms.html" import render_field %}
 
 {% block content %}
-<form method="POST">
+<form class="needs-validation api-form" method="POST" action="/api/register" novalidate>
     {{ form.hidden_tag() }}
     <div class="text-dark row">
         <div class="col">
@@ -22,10 +22,24 @@
         {{ render_field(form.password2) }}
     </div>
     <div class="d-grid">
-        {{ form.submit(value='Sign Up', class='btn btn-primary') }}
+        <input type="submit" class="btn btn-primary" value="Sign Up">
     </div>
 </form>
 <div class="d-flex justify-content-center mt-2">
     <p class="me-1">Already have an account?</p><a href="{{ url_for('auth.login') }}"> Sign In</a>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="/static/scripts/apiform.js"></script>
+<script>
+$(document).ready(function () {
+    $('.api-form').apiform({
+        onSuccess: function(response) {
+            window.location = "{{ url_for('main.home') }}"
+        }
+    })
+})
+</script>
 {% endblock %}

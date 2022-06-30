@@ -55,7 +55,9 @@ class PaginatedAPIMixin:
         return data
 
 
-class User(UserMixin, db.Model):
+class User(UserMixin, PaginatedAPIMixin, db.Model):
+    __endpoint__ = "api.user"
+
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), index=True, unique=True)
     first_name = db.Column(db.String(120))
@@ -95,8 +97,14 @@ class User(UserMixin, db.Model):
             return
         return User.query.get(id)
 
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
+        del data["password_hash"]
+        return data
+
 
 class Customer(User):
+    __endpoint__ = "api.customer"
     __tablename__ = None
     __mapper_args__ = {
         "polymorphic_identity": "customer",
@@ -104,6 +112,7 @@ class Customer(User):
 
 
 class Agent(User):
+    __endpoint__ = "api.agent"
     __tablename__ = None
     __mapper_args__ = {
         "polymorphic_identity": "agent",
@@ -111,6 +120,7 @@ class Agent(User):
 
 
 class Admin(User):
+    __endpoint__ = "api.admin"
     __tablename__ = None
     __mapper_args__ = {
         "polymorphic_identity": "admin",
