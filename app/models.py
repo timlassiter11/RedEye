@@ -206,20 +206,35 @@ class Flight(PaginatedAPIMixin, db.Model):
 
         return self.departure_airport.time_to(self.arrival_airport)
 
-    def cancel(self, date: dt.date, user_id: int) -> "FlightCancellation":
-        cancellation = FlightCancellation(date=date, user_id=user_id, flight_id=self.id)
-        db.session.add(cancellation)
-        db.session.commit()
-        db.session.refresh(cancellation)
-        return cancellation
-
     @property
     def arrival_time(self) -> dt.time:
         departure_dt = dt.datetime.combine(dt.date.today(), self.departure_time)
         arrival_dt = departure_dt + self.flight_time
         return arrival_dt.time()
 
+    def is_cancelled(self, date: dt.date) -> bool:
+        query = Flight.query.filter(
+            Flight.cancellations.any(FlightCancellation.date == date)
+        )
+        return query.count() > 0
+
+    def cancel(self, date: dt.date, user_id: int) -> "FlightCancellation":
+        if date < self.start or date > self.end:
+            raise ValueError("date must be between start and end")
+
+        cancellation = FlightCancellation(date=date, cancelled_by=user_id, flight_id=self.id)
+        db.session.add(cancellation)
+        db.session.commit()
+        db.session.refresh(cancellation)
+        return cancellation
+
     def available_seats(self, date: dt.date):
+        if date < self.start or date > self.end:
+            raise ValueError("date must be between start and end")
+
+        if self.is_cancelled(date):
+            return 0
+
         capacity = self.airplane.capacity
         used = (
             PurchasedFlight.query.filter_by(flight_id=self.id)
@@ -319,6 +334,8 @@ class TripItinerary:
 
     @property
     def distance(self) -> float:
+        # TODO: Should this be distance from start to end or
+        # total distance of all flights? It's ambiguous right now.
         if not self._flights:
             return None
         start = self.flights[0]
@@ -341,6 +358,11 @@ class TripItinerary:
         return round(cost, 2)
 
     def add_flight(self, flight: Flight) -> None:
+        # TODO: Should we check to make sure we can add this flight?
+        # As in check to make sure the departing airport is the same
+        # as the last arrival airport and that the departure time is
+        # after the last arrival time?
+
         # This will be none if no flights have been added.
         last_arrival = self.arrival_datetime
         # If last_arrival is not None it means this isn't
@@ -353,7 +375,6 @@ class TripItinerary:
 
             # Handle cases where the layover spans
             # past midnight and into the next day.
-            # TODO: Maybe add a test case for this issue?
             if departure_dt < last_arrival:
                 departure_dt += dt.timedelta(days=1)
 
