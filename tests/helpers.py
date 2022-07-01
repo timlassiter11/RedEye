@@ -1,6 +1,6 @@
 import json
 import random
-from typing import Dict, List
+from typing import Dict, List, Union
 import unittest
 
 from flask_login import FlaskLoginClient
@@ -36,6 +36,19 @@ class FlaskTestCase(unittest.TestCase):
         self.ctx.pop()
 
 
+def add_to_db(items):
+    if isinstance(items, db.Model):
+        items = [items]
+
+    for item in items:
+        db.session.add(item)
+
+    db.session.commit()
+
+    for item in items:
+        db.session.refresh(item)
+
+
 def create_users() -> Dict[str, User]:
     """Create users for each role. Returns a dict containing the created users."""
     admin = Admin(
@@ -51,13 +64,7 @@ def create_users() -> Dict[str, User]:
     )
     customer.set_password(DEFAULT_PASSWORD)
 
-    db.session.add(admin)
-    db.session.add(agent)
-    db.session.add(customer)
-    db.session.commit()
-    db.session.refresh(admin)
-    db.session.refresh(agent)
-    db.session.refresh(customer)
+    add_to_db([admin, agent, customer])
     return {"admin": admin, "agent": agent, "customer": customer}
 
 
@@ -88,11 +95,27 @@ def create_airports(count=5) -> Dict[str, Airport]:
             state=airport["state"],
         )
 
-        db.session.add(airport)
         airports[code] = airport
 
-    db.session.commit()
-    for airport in airports.values():
-        db.session.refresh(airport)
+    add_to_db(airports.values())
 
     return airports
+
+def create_airplanes(count=5) -> List[Airplane]:
+    airplanes = []
+    for i in range(count):
+        airplane = Airplane(
+            registration_number=f"{i+1}",
+            model_name="name",
+            model_code="code",
+            capacity=150,
+            range=2000
+        )
+        db.session.add(airplane)
+        airplanes.append(airplane)
+
+    db.session.commit()
+    for plane in airplanes:
+        db.session.refresh(plane)
+
+    return airplanes

@@ -6,7 +6,7 @@ from werkzeug.exceptions import HTTPException
 from app import db
 from app.api.helpers import code_to_airport, get_or_404, json_abort, login_required, role_required
 from app.models import Airplane, Airport, User
-from helpers import create_users, create_airports, FlaskTestCase
+from helpers import create_users, create_airports, add_to_db, FlaskTestCase
 
 
 class ApiTestCase(FlaskTestCase):
@@ -200,8 +200,8 @@ class TestAirports(ApiTestCase):
             response = client.get(url_for("api.airports"))
 
         self.assertPaginatedResponse(response, expected_page=1, expected_total_pages=0, expected_total_items=0)
-        db.session.add(airport)
-        db.session.commit()
+
+        add_to_db(airport)
         # Test to make sure everything works with a single airport
         with self.app.test_client() as client:
             response = client.get(url_for("api.airports"))
@@ -231,9 +231,8 @@ class TestAirports(ApiTestCase):
             latitude=0,
             longitude=0,
         )
-        db.session.add(airport1)
-        db.session.add(airport2)
-        db.session.commit()
+        
+        add_to_db([airport1, airport2])
 
         # Search for something that should return no results
         with self.app.test_client() as client:
@@ -305,8 +304,8 @@ class TestAirports(ApiTestCase):
             latitude=36.8977,
             longitude=-76.2154,
         )
-        db.session.add(airport)
-        db.session.commit()
+
+        add_to_db(airport)
 
         # Test for valid aiport id
         with self.app.test_client() as client:
@@ -330,8 +329,8 @@ class TestAirports(ApiTestCase):
             latitude=36.8977,
             longitude=-76.2154,
         )
-        db.session.add(airport)
-        db.session.commit()
+        
+        add_to_db(airport)
 
         # Make sure anonymous users can't delete an airport
         with self.app.test_client() as client:
@@ -366,8 +365,8 @@ class TestAirplanes(ApiTestCase):
             response = client.get(url_for("api.airplanes"))
         self.assertPaginatedResponse(response, expected_page=1, expected_total_pages=0, expected_total_items=0)
 
-        db.session.add(airplane)
-        db.session.commit()
+        add_to_db(airplane)
+
         # Test to make sure everything works with a single airplane
         with self.app.test_client() as client:
             response = client.get(url_for("api.airplanes"))
@@ -393,9 +392,8 @@ class TestAirplanes(ApiTestCase):
             capacity=150,
             range=3300,
         )
-        db.session.add(airplane1)
-        db.session.add(airplane2)
-        db.session.commit()
+        
+        add_to_db([airplane1, airplane2])
         
 
         # Search for something that should return no results
@@ -466,8 +464,8 @@ class TestAirplanes(ApiTestCase):
             capacity=189,
             range=3300,
         )
-        db.session.add(airplane)
-        db.session.commit()
+
+        add_to_db(airplane)
 
         # Test for valid airplane id
         with self.app.test_client() as client:
@@ -489,8 +487,8 @@ class TestAirplanes(ApiTestCase):
             capacity=189,
             range=3300,
         )
-        db.session.add(airplane)
-        db.session.commit()
+        
+        add_to_db(airplane)
 
         # Make sure anonymous users can't delete an airplane
         with self.app.test_client() as client:
