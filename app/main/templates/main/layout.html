@@ -39,7 +39,7 @@
                             <a class="nav-link{% if endpoint == 'main.catalog' %} active {% endif %}" aria-current="page" href="#">Catalog</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link{% if endpoint == 'main.contact' %} active {% endif %}" aria-current="page" href="#">Contact</a>
+                            <a class="nav-link{% if endpoint == 'main.contact' %} active {% endif %}" aria-current="page" href="{{ url_for('main.contact') }}">Contact</a>
                         </li>
                     </ul>
                     <ul class="navbar-nav d-none d-md-flex">

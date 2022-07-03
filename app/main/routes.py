@@ -1,5 +1,5 @@
 from app.main import bp
-from flask import render_template
+from flask import render_template, url_for, redirect, render_template
 
 
 @bp.route('/')
@@ -8,3 +8,9 @@ def home():
         'main/index.html',
         title='Red Eye',
     )
+
+
+
+@bp.route('/contact')
+def contact():
+    return render_template('main/contact.html')
