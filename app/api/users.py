@@ -85,7 +85,7 @@ class Agents(Resource):
 
     @role_required("admin")
     def post(self):
-        form = UserEditForm(formdata=request.json)
+        form = UserEditForm(data=request.json)
         if form.validate():
             user = models.Agent()
             form.populate_obj(user)
@@ -133,7 +133,7 @@ class Admins(Resource):
 
     @role_required("admin")
     def post(self):
-        form = UserEditForm(formdata=request.json)
+        form = UserEditForm(data=request.json)
         if form.validate():
             user = models.Admin()
             form.populate_obj(user)
