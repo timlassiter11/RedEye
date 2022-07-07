@@ -104,7 +104,7 @@ class Agents(Resource):
 class Agent(Resource):
     @owner_or_role_required("admin")
     def get(self, id):
-        user: models.Customer = get_or_404(models.Agent, id)
+        user: models.Agent = get_or_404(models.Agent, id)
         return user.to_dict()
 
 
@@ -152,7 +152,7 @@ class Admins(Resource):
 class Admin(Resource):
     @role_required("admin")
     def get(self, id):
-        user: models.Customer = get_or_404(models.Admin, id)
+        user: models.Admin = get_or_404(models.Admin, id)
         return user.to_dict()
 
 
@@ -175,6 +175,13 @@ class Users(Resource):
             query = query.msearch(f"{search}*")
 
         data = models.User.to_collection_dict(
-            query, page, items_per_page, "api.admins", search=search
+            query, page, items_per_page, "api.users", search=search
         )
         return data
+
+@api.resource("/users/<id>")
+class User(Resource):
+    @role_required("admin")
+    def get(self, id):
+        user: models.User = get_or_404(models.User, id)
+        return user.to_dict()
