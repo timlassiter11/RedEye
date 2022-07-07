@@ -2,7 +2,7 @@ import datetime as dt
 
 import pytz
 from app import db
-from app.models import Airport, Flight, FlightCancellation, PurchasedFlight, TripItinerary, User
+from app.models import Airport, Flight, FlightCancellation, PurchasedTicket, TripItinerary, User
 from helpers import FlaskTestCase
 from helpers import create_users, create_airports, create_airplanes, add_to_db
 
@@ -148,7 +148,7 @@ class TestFlight(FlaskTestCase):
 
         purchases = 5
         for _ in range(purchases):
-            db.session.add(PurchasedFlight(
+            db.session.add(PurchasedTicket(
                 flight_id=flight.id,
                 purchased_by=self.customer.id,
                 purchase_timestamp=dt.datetime.now(),

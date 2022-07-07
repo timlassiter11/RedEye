@@ -237,7 +237,7 @@ class Flight(PaginatedAPIMixin, db.Model):
 
         capacity = self.airplane.capacity
         used = (
-            PurchasedFlight.query.filter_by(flight_id=self.id)
+            PurchasedTicket.query.filter_by(flight_id=self.id)
             .filter_by(departure_date=date)
             .count()
         )
