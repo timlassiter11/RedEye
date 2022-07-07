@@ -1,11 +1,12 @@
 import uuid
+
 from app import db, models
 from app.api import api
 from app.api.helpers import (
-    owner_or_role_required,
-    role_required,
     get_or_404,
     json_abort,
+    owner_or_role_required,
+    role_required,
 )
 from app.forms import UserEditForm
 from flask_restful import Resource, reqparse, request
@@ -153,3 +154,27 @@ class Admin(Resource):
     def get(self, id):
         user: models.Customer = get_or_404(models.Admin, id)
         return user.to_dict()
+
+
+@api.resource("/users")
+class Users(Resource):
+    @role_required("admin")
+    def get(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument("per_page", type=int, default=25, location="args")
+        parser.add_argument("page", type=int, default=1, location="args")
+        parser.add_argument("search", location="args")
+
+        args = parser.parse_args()
+        items_per_page = args["per_page"]
+        page = args["page"]
+        search = args["search"]
+
+        query = models.User.query
+        if search:
+            query = query.msearch(f"{search}*")
+
+        data = models.User.to_collection_dict(
+            query, page, items_per_page, "api.admins", search=search
+        )
+        return data
