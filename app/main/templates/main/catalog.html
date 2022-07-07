@@ -1,4 +1,4 @@
-{% extends "main/layout.html" %}
+{% extends "admin/layout.html" %}
 {% from 'bootstrap/modals.html' import render_modal_form, render_confirmation_modal %}
 
 {% block styles %}
@@ -6,9 +6,7 @@
 <link href="/static/content/typeahead.css" rel="stylesheet">
 {% endblock %}
 
-{% block title_button %}
-<button id="addButton" data-bs-toggle="modal" data-bs-target="#formModal" data-action="{{ url_for('api.flights') }}" data-method="POST" class="btn btn-primary" type="button">Add Flight</button>
-{% endblock %}
+
 
 {% block content %}
 
@@ -56,7 +54,7 @@
             <th data-field="arrival_time" data-formatter="timeFormatter">Arrival Time</th>
             <th data-field="start">Start</th>
             <th data-field="end">End</th>
-            <th data-formatter="actionFormatter">Actions</th>
+            
         </tr>
     </thead>
 </table>
