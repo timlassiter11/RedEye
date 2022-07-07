@@ -279,7 +279,7 @@ class FlightCancellation(db.Model):
     flight = db.relationship("Flight", backref="cancellations")
 
 
-class PurchasedFlight(db.Model):
+class PurchasedTicket(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     flight_id = db.Column(db.Integer, db.ForeignKey("flight.id"))
     purchased_by = db.Column(db.Integer, db.ForeignKey("user.id"))
@@ -288,6 +288,16 @@ class PurchasedFlight(db.Model):
     assisted_by = db.Column(db.Integer, db.ForeignKey("user.id"))
     departure_date = db.Column(db.Date, nullable=False)
     flight = db.relationship("Flight", backref="purchases")
+    refund = db.relationship("RefundedTicket", back_populates="ticket", uselist=False)
+    
+
+class RefundedTicket(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, db.ForeignKey("purchased_ticket.id"))
+    refund_timestamp = db.Column(db.DateTime, nullable=False)
+    refund_amount = db.Column(db.Float, nullable=False)
+    refunded_by = db.Column(db.Integer, db.ForeignKey("user.id"))
+    ticket = db.relationship("PurchasedTicket", back_populates="refund")
 
 
 class TripItinerary:
