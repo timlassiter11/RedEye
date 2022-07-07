@@ -42,5 +42,5 @@ class Register(Resource):
             db.session.add(user)
             db.session.commit()
             db.session.refresh(user)
-            return user.to_dict()
+            return user.to_dict(), 201
         json_abort(400, message=form.errors)
