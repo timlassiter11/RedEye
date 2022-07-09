@@ -2,6 +2,7 @@ import datetime as dt
 import math
 import time
 from typing import Any, Dict, List
+from zoneinfo import ZoneInfo
 
 import geopy.distance
 import jwt
@@ -328,6 +329,18 @@ class TripItinerary:
         return self._total_time
 
     @property
+    def departure_airport(self) -> Airport:
+        if not self._flights:
+            return None
+        return self._flights[0].departure_airport
+
+    @property
+    def arrival_airport(self) -> Airport:
+        if not self._flights:
+            return None
+        return self._flights[-1].arrival_airport
+
+    @property
     def departure_datetime(self) -> dt.datetime:
         if not self._flights:
             return None
@@ -428,11 +441,18 @@ class TripItinerary:
         itinerary._total_time = self._total_time
         return itinerary
 
-    def to_dict(self, expand: bool = False):
+    def to_dict(self, expand: bool = False, utc: bool = False):
+        departure_dt = self.departure_datetime
+        arrival_dt = self.arrival_datetime
+
+        if not utc:
+            departure_dt = departure_dt.astimezone(ZoneInfo(self.departure_airport.timezone))
+            arrival_dt = arrival_dt.astimezone(ZoneInfo(self.arrival_airport.timezone))
+
         return {
             "cost": self.cost,
-            "departure_datetime": self.departure_datetime.isoformat(),
-            "arrival_datetime": self.arrival_datetime.isoformat(),
+            "departure_datetime": departure_dt.isoformat(),
+            "arrival_datetime": arrival_dt.isoformat(),
             "total_time": str(self.total_time),
             "layovers": self.layovers,
             "flights": [flight.to_dict(expand=expand) for flight in self.flights],

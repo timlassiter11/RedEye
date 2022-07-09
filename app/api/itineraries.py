@@ -25,6 +25,7 @@ class FlightSearch(Resource):
         parser.add_argument("min_layover_time", type=int, default=45, location="args")
         parser.add_argument("expand", type=strtobool, default=False, location="args")
         parser.add_argument("limit", type=int, default=10, location="args")
+        parser.add_argument("utc", type=strtobool, default=False, location="args")
         args = parser.parse_args()
 
         expand = args["expand"]
@@ -38,6 +39,7 @@ class FlightSearch(Resource):
         max_layovers = args["max_layovers"]
         min_layover_time = args["min_layover_time"]
         limit = args["limit"]
+        use_utc = args["utc"]
 
         itineraries = models.TripItinerary.search(
             departing_airport=departure.id,
@@ -56,7 +58,7 @@ class FlightSearch(Resource):
         itineraries = itineraries[:limit]
 
         return {
-            "items": [itinerary.to_dict(expand=expand) for itinerary in itineraries],
+            "items": [itinerary.to_dict(expand=expand, utc=use_utc) for itinerary in itineraries],
             "_meta": {
                 "total_items": len(itineraries),
             },
