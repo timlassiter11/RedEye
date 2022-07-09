@@ -1,0 +1,85 @@
+{% extends "main/layout.html" %}
+
+{% block content %}
+<div class="overlay-parent flex-grow-1">
+    <div class="overlay" style="background-color: white;">
+        <div class="overlay-content text-center">
+            <div class="spinner-grow" style="color: red; width: 2rem; height: 2rem; animation-delay: 0ms;" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="spinner-grow" style="color: red; width: 2rem; height: 2rem; animation-delay: 150ms;" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="spinner-grow" style="color: red; width: 2rem; height: 2rem; animation-delay: 300ms;" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="contentContainer" class="container d-none">
+    <h2>{{ departure.code }}<i class="bi bi-arrow-right-short"></i>{{ arrival.code }}</h2>
+    <div class="row">
+        <div id="resultContainer" class="col mx-5"></div>
+    </div>
+</div>
+<template id="resultRow">
+    <div class="card my-3">
+        <div class="card-body">
+            <div class="row">
+                <div class="col">
+                        <h5 class="card-title d-inline-block" id="departureTime"></h5> 
+                        <h5 class="d-inline-block"><i class="bi bi-arrow-right-short"></i></h5>
+                        <h5 class="card-title d-inline-block" id="arrivalTime"></h5>
+                </div>
+                <div class="col">
+                    <h5 id="layovers"></h5>
+                </div>
+            </div>
+        </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="/static/scripts/luxon.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $.ajax({
+            headers : {
+                'Accept' : 'application/json',
+                'Content-Type' : 'application/json'
+            },
+            url : "{{ url_for('api.flightsearch', **args)|safe }}",
+            type : 'GET',
+            success : function(response, textStatus, jqXhr) {
+                if (response._meta.total_items === 0) {
+                    console.log("No results found")
+                } else {
+                    for (const i in response.items) {
+                        const item = response.items[i];
+                        let template = document.querySelector('#resultRow');
+                        let row = template.content.cloneNode(true);
+                        let departure_dt = luxon.DateTime.fromISO(item.departure_datetime);
+                        row.querySelector('#departureTime').textContent = departure_dt.toFormat('hh:mm a');
+                        let arrival_dt = luxon.DateTime.fromISO(item.arrival_datetime);
+                        row.querySelector('#arrivalTime').textContent = arrival_dt.toFormat('hh:mm a');
+                        row.querySelector('#layovers').textContent = item.layovers
+                        document.querySelector("#resultContainer").appendChild(row);
+                    }
+                    console.log(response)
+                }
+            },
+            error : function(jqXHR, textStatus, errorThrown) {
+                // TODO: How should we handle errors?
+                const response = jqXHR.responseJSON
+                console.log(response)
+            },
+            complete : function() {
+                console.log("Complete")
+                document.querySelector(".overlay-parent").style.display = "none";
+                $('#contentContainer').removeClass('d-none');
+            }
+        })
+    })
+</script>
+{% endblock %}

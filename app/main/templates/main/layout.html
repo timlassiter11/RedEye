@@ -7,7 +7,7 @@
 
 {% block body %}
     <div class="d-flex flex-column min-vh-100">
-    {% block navbar %}
+        {% block navbar %}
         <nav class="navbar navbar-expand-md navbar-light bg-white my-3">
             <div class="container">
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
@@ -15,43 +15,19 @@
                     aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <a class="navbar-brand" href="/">
+                <a class="navbar-brand" href="{{ url_for('main.home') }}">
                     <img src="/static/images/logo.png" alt="" width="120" height="30">
                 </a>
-                <ul class="navbar-nav flex-row d-flex d-md-none">
-                    <li class="nav-item">
-                        <a class="nav-link p-2" href="#">
-                            <i class="bi bi-search"></i>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link p-2" href="#">
-                            <i class="bi bi-bag"></i>
-                        </a>
-                    </li>
-                </ul>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link{% if endpoint == 'main.home' %} active {% endif %}" aria-current="page" href="#">Home</a>
+                            <a class="nav-link{% if endpoint == 'main.home' %} active {% endif %}" aria-current="page" href="{{ url_for('main.home') }}">Home</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link{% if endpoint == 'main.catalog' %} active {% endif %}" aria-current="page" href="#">Catalog</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link{% if endpoint == 'main.contact' %} active {% endif %}" aria-current="page" href="#">Contact</a>
-                        </li>
-                    </ul>
-                    <ul class="navbar-nav d-none d-md-flex">
-                        <li class="nav-item">
-                            <a class="nav-link p-2" href="#">
-                                <i class="bi bi-search"></i>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link p-2" href="#">
-                                <i class="bi bi-bag"></i>
-                            </a>
                         </li>
                     </ul>
                     <ul class="navbar-nav">
