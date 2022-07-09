@@ -29,6 +29,7 @@
     <script>
         var airport_bloodhound = null;
         var airplane_bloodhound = null;
+        
         function setupAirplaneTypeahead(id) {
             if (airplane_bloodhound == null) {
                 airplane_bloodhound = new Bloodhound({
@@ -87,10 +88,11 @@
             $input.typeahead(null, {
                 name: 'airports',
                 display: 'code',
+                limit: 10,
                 source: airport_bloodhound,
                 templates: {
                     suggestion: function(data) {
-                        return `<div class="tt-suggestion">${data.code}\t${data.name}</div>`
+                        return `<div class="tt-suggestion"><span class="me-3">${data.code}</span>${data.city}, ${data.state}</div>`
                     }
                 }
             })
