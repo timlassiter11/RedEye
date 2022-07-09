@@ -1,6 +1,6 @@
 from datetime import date
-from typing import Callable, List, Union
-from dateutil.parser import parse
+from typing import List, Union
+from dateutil.parser import parse, ParserError
 from functools import wraps
 
 from flask import jsonify
@@ -70,4 +70,7 @@ def code_to_airport(code: str) -> Airport:
 
 
 def str_to_date(value: str) -> date:
-    return parse(value).date()
+    try:
+        return parse(value).date()
+    except ParserError:
+        raise ValueError("Invalid date format")
