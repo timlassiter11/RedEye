@@ -6,8 +6,8 @@
 {% endif -%}
 
 {% block body %}
+    <div class="d-flex flex-column min-vh-100">
     {% block navbar %}
-    <div class="d-flex flex-column" style="height: 100vh;">
         <nav class="navbar navbar-expand-md navbar-light bg-white my-3">
             <div class="container">
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
@@ -101,21 +101,6 @@
         {% endif %}
         {% endwith %}
         {% endblock %}
-
-        {% block title_row -%}
-        <div class="row">
-            <div class="col">
-                {% block title_heading -%}
-                <h2>{{ title }}</h2>
-                {% endblock -%}
-            </div>
-            <div class="col-auto ms-auto">
-                <div class="d-flex flex-row justify-content-end">
-                    {% block title_button %}{% endblock %}
-                </div>
-            </div>
-        </div>
-        {% endblock -%}
 
         {% block content %}{% endblock %}
     </div>
