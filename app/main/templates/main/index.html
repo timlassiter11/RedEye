@@ -24,7 +24,7 @@
             </div>
             <div class="col mb-3">
                 <div class="form-floating">
-                    <input class="form-control" id="Date" name="departure_date" type="date" required>
+                    <input class="form-control" id="departure_date" name="departure_date" type="date" required>
                     <label for="departure_date">Date</label>
                 </div>
             </div>
@@ -60,11 +60,17 @@
 
 {% block scripts %}
 {{ super() }}
+<script src="/static/scripts/luxon.min.js"></script>
 <script src="/static/scripts/typeahead.bundle.min.js"></script>
 <script>
     $(document).ready(function () {
         setupAirportTypeahead('departure_code');
         setupAirportTypeahead('arrival_code');
+
+        const today = luxon.DateTime.now();
+        $('#departure_date').attr("min", today.toISODate());
+        const max = today.plus({months: 12});
+        $('#departure_date').attr("max", max.toISODate());
     });
 </script>
 {% endblock %}
