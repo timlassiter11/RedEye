@@ -1,12 +1,25 @@
+import datetime as dt
+
+from app.api.helpers import (
+    code_to_airport,
+    get_or_404,
+    json_abort,
+    login_required,
+    role_required,
+)
+from app.models import Airplane, Airport, User, Flight
 from flask import url_for
 from flask_login import login_user
-from werkzeug.test import TestResponse
 from werkzeug.exceptions import HTTPException
+from werkzeug.test import TestResponse
 
-from app import db
-from app.api.helpers import code_to_airport, get_or_404, json_abort, login_required, role_required
-from app.models import Airplane, Airport, User
-from helpers import create_users, create_airports, add_to_db, FlaskTestCase
+from helpers import (
+    FlaskTestCase,
+    add_to_db,
+    create_airplanes,
+    create_airports,
+    create_users,
+)
 
 
 class ApiTestCase(FlaskTestCase):
@@ -36,30 +49,50 @@ class ApiTestCase(FlaskTestCase):
         self.assertApiResponse(response, expected_status)
 
         self.assertIn("_meta", response.json, "Missing _meta in api response")
-        meta = response.json['_meta']
+        meta = response.json["_meta"]
         self.assertIn("page", meta, "Missing _meta.page in api response")
         self.assertIn("per_page", meta, "Missing _meta.per_page in api response")
         self.assertIn("total_pages", meta, "Missing _meta.total_pages in api response")
         self.assertIn("total_items", meta, "Missing _meta.total_items in api response")
 
         self.assertIn("_links", response.json, "Missing _links in api resonse.")
-        links = response.json['_links']
+        links = response.json["_links"]
         self.assertIn("self", links, "Missing _links.self in api response")
         self.assertIn("next", links, "Missing _links.next in api response")
         self.assertIn("prev", links, "Missing _links.prev in api response")
 
         self.assertIn("items", response.json, "Missing items in api response.")
-        items = response.json['items']
+        items = response.json["items"]
 
         if expected_page is not None:
-            self.assertEqual(expected_page, meta["page"], "Incorrect value for _meta.page in api response")
+            self.assertEqual(
+                expected_page,
+                meta["page"],
+                "Incorrect value for _meta.page in api response",
+            )
         if expected_per_page is not None:
-            self.assertEqual(expected_per_page, meta["per_page"], "Incorrect value for _meta.per_page in api response")
+            self.assertEqual(
+                expected_per_page,
+                meta["per_page"],
+                "Incorrect value for _meta.per_page in api response",
+            )
         if expected_total_pages is not None:
-            self.assertEqual(expected_total_pages, meta["total_pages"], "Incorrect value for _meta.total_pages in api response")
+            self.assertEqual(
+                expected_total_pages,
+                meta["total_pages"],
+                "Incorrect value for _meta.total_pages in api response",
+            )
         if expected_total_items is not None:
-            self.assertEqual(expected_total_items, meta["total_items"], "Incorrect value for _meta.total_items in api response")
-            self.assertEqual(expected_total_items, len(items), "Incorrect number of items in api response")
+            self.assertEqual(
+                expected_total_items,
+                meta["total_items"],
+                "Incorrect value for _meta.total_items in api response",
+            )
+            self.assertEqual(
+                expected_total_items,
+                len(items),
+                "Incorrect number of items in api response",
+            )
 
 
 class TestHelpers(ApiTestCase):
@@ -99,7 +132,7 @@ class TestHelpers(ApiTestCase):
             self.assertTrue(f())
 
     def test_single_role_required(self):
-        f = role_required('admin')(lambda: True)
+        f = role_required("admin")(lambda: True)
         # Make sure we get a 401 with no user
         with self.app.test_client():
             with self.assertRaises(HTTPException) as cm:
@@ -133,7 +166,7 @@ class TestHelpers(ApiTestCase):
             self.assertTrue(f())
 
     def test_multiple_role_required(self):
-        f = role_required(['admin', 'customer'])(lambda: True)
+        f = role_required(["admin", "customer"])(lambda: True)
         # Make sure we get a 401 with no user
         with self.app.test_client():
             with self.assertRaises(HTTPException) as cm:
@@ -184,6 +217,7 @@ class TestHelpers(ApiTestCase):
 
         self.assertEquals(airport1.id, airport2.id)
 
+
 class TestAirports(ApiTestCase):
     def test_get_airports(self):
         airport = Airport(
@@ -199,14 +233,18 @@ class TestAirports(ApiTestCase):
         with self.app.test_client() as client:
             response = client.get(url_for("api.airports"))
 
-        self.assertPaginatedResponse(response, expected_page=1, expected_total_pages=0, expected_total_items=0)
+        self.assertPaginatedResponse(
+            response, expected_page=1, expected_total_pages=0, expected_total_items=0
+        )
 
         add_to_db(airport)
         # Test to make sure everything works with a single airport
         with self.app.test_client() as client:
             response = client.get(url_for("api.airports"))
 
-        self.assertPaginatedResponse(response, expected_page=1, expected_total_pages=1, expected_total_items=1)
+        self.assertPaginatedResponse(
+            response, expected_page=1, expected_total_pages=1, expected_total_items=1
+        )
         airport_data = response.json["items"][0]
         self.assertDictEqual(
             airport.to_dict(), airport_data, "Api response doesn't match airport data"
@@ -231,27 +269,33 @@ class TestAirports(ApiTestCase):
             latitude=0,
             longitude=0,
         )
-        
+
         add_to_db([airport1, airport2])
 
         # Search for something that should return no results
         with self.app.test_client() as client:
             response = client.get(url_for("api.airports", search="zxq"))
-        self.assertPaginatedResponse(response, expected_page=1, expected_total_pages=0, expected_total_items=0)
-        
+        self.assertPaginatedResponse(
+            response, expected_page=1, expected_total_pages=0, expected_total_items=0
+        )
+
         # Search for the first airport
         with self.app.test_client() as client:
             response = client.get(url_for("api.airports", search="abc"))
         self.assertPaginatedResponse(response, expected_total_items=1)
         airport_data = response.json["items"][0]
-        self.assertDictEqual(airport1.to_dict(), airport_data, "Api response doesn't match airport data")
+        self.assertDictEqual(
+            airport1.to_dict(), airport_data, "Api response doesn't match airport data"
+        )
 
         # Search for the second airport
         with self.app.test_client() as client:
             response = client.get(url_for("api.airports", search="Some airport"))
         self.assertPaginatedResponse(response, expected_total_items=1)
         airport_data = response.json["items"][0]
-        self.assertDictEqual(airport2.to_dict(), airport_data, "Api response doesn't match airport data")
+        self.assertDictEqual(
+            airport2.to_dict(), airport_data, "Api response doesn't match airport data"
+        )
 
         # Search for something they have in common
         with self.app.test_client() as client:
@@ -270,13 +314,19 @@ class TestAirports(ApiTestCase):
         with self.app.test_client() as client:
             response = client.post(url_for("api.airports"), json=airport_data)
         self.assertApiResponse(response, 401)
-        self.assertIn("message", response.json, "Api response missing message for 401 not authorized")
+        self.assertIn(
+            "message",
+            response.json,
+            "Api response missing message for 401 not authorized",
+        )
 
         # Login a non admin user and make sure they also can't create an airport
         with self.app.test_client(user=self.customer_user) as client:
             response = client.post(url_for("api.airports"), json=airport_data)
         self.assertApiResponse(response, 403)
-        self.assertIn("message", response.json, "Api response missing message for 403 forbidden")
+        self.assertIn(
+            "message", response.json, "Api response missing message for 403 forbidden"
+        )
 
         # Login admin user and make sure they can create an airport
         with self.app.test_client(user=self.admin_user) as client:
@@ -284,7 +334,9 @@ class TestAirports(ApiTestCase):
         self.assertApiResponse(response, 201)
         airport = Airport.query.first()
         self.assertIsNotNone(airport, "Airport not in database")
-        self.assertDictEqual(airport.to_dict(), response.json, "Api response does not match airport data")
+        self.assertDictEqual(
+            airport.to_dict(), response.json, "Api response does not match airport data"
+        )
 
         # Make sure we get an error if we try to create an airport with the same code
         with self.app.test_client(user=self.admin_user) as client:
@@ -292,7 +344,9 @@ class TestAirports(ApiTestCase):
         self.assertApiResponse(response, 409)
         self.assertIn("message", response.json, "Api response missing message")
         # Make sure the response has the "code" field in it
-        self.assertIn("code", response.json["message"], "Api response missing message.code")
+        self.assertIn(
+            "code", response.json["message"], "Api response missing message.code"
+        )
 
     def test_get_airport(self):
         airport = Airport(
@@ -311,13 +365,17 @@ class TestAirports(ApiTestCase):
         with self.app.test_client() as client:
             response = client.get(url_for("api.airport", id=airport.id))
         self.assertApiResponse(response)
-        self.assertDictEqual(airport.to_dict(), response.json, "Api response does not match airport data")
-        
+        self.assertDictEqual(
+            airport.to_dict(), response.json, "Api response does not match airport data"
+        )
+
         # Test for invalid airport id
         with self.app.test_client() as client:
             response = client.get(url_for("api.airport", id=airport.id + 1))
         self.assertApiResponse(response, 404)
-        self.assertIn("message", response.json, "Api response missing message for 404 not found")
+        self.assertIn(
+            "message", response.json, "Api response missing message for 404 not found"
+        )
 
     def test_delete_airport(self):
         airport = Airport(
@@ -329,20 +387,26 @@ class TestAirports(ApiTestCase):
             latitude=36.8977,
             longitude=-76.2154,
         )
-        
+
         add_to_db(airport)
 
         # Make sure anonymous users can't delete an airport
         with self.app.test_client() as client:
             response = client.delete(url_for("api.airport", id=airport.id))
         self.assertApiResponse(response, 401)
-        self.assertIn("message", response.json, "Api response missing message for 401 not authorized")
+        self.assertIn(
+            "message",
+            response.json,
+            "Api response missing message for 401 not authorized",
+        )
 
         # Login a non admin user and make sure they also can't delete an airport
         with self.app.test_client(user=self.customer_user) as client:
             response = client.delete(url_for("api.airport", id=airport.id))
         self.assertApiResponse(response, 403)
-        self.assertIn("message", response.json, "Api response missing message for 403 forbidden")
+        self.assertIn(
+            "message", response.json, "Api response missing message for 403 forbidden"
+        )
 
         # Login admin user and make sure they can delete an airport
         with self.app.test_client(user=self.admin_user) as client:
@@ -350,7 +414,8 @@ class TestAirports(ApiTestCase):
         self.assertApiResponse(response, 204)
         self.assertIsNone(Airport.query.get(airport.id))
 
-class TestAirplanes(ApiTestCase):       
+
+class TestAirplanes(ApiTestCase):
     def test_get_airplanes(self):
         airplane = Airplane(
             registration_number="N1234RE",
@@ -359,11 +424,13 @@ class TestAirplanes(ApiTestCase):
             capacity=189,
             range=1995,
         )
-        
+
         # Test to make sure everything works with no airplanes
         with self.app.test_client() as client:
             response = client.get(url_for("api.airplanes"))
-        self.assertPaginatedResponse(response, expected_page=1, expected_total_pages=0, expected_total_items=0)
+        self.assertPaginatedResponse(
+            response, expected_page=1, expected_total_pages=0, expected_total_items=0
+        )
 
         add_to_db(airplane)
 
@@ -371,10 +438,14 @@ class TestAirplanes(ApiTestCase):
         with self.app.test_client() as client:
             response = client.get(url_for("api.airplanes"))
 
-        self.assertPaginatedResponse(response, expected_page=1, expected_total_pages=1, expected_total_items=1)
+        self.assertPaginatedResponse(
+            response, expected_page=1, expected_total_pages=1, expected_total_items=1
+        )
         airplane_data = response.json["items"][0]
         self.assertDictEqual(
-            airplane.to_dict(), airplane_data, "Api response doesn't match airplane data"
+            airplane.to_dict(),
+            airplane_data,
+            "Api response doesn't match airplane data",
         )
 
     def test_search_airplanes(self):
@@ -392,28 +463,39 @@ class TestAirplanes(ApiTestCase):
             capacity=150,
             range=3300,
         )
-        
+
         add_to_db([airplane1, airplane2])
-        
 
         # Search for something that should return no results
         with self.app.test_client() as client:
             response = client.get(url_for("api.airplanes", search="N789RE"))
-        self.assertPaginatedResponse(response, expected_page=1, expected_total_pages=0, expected_total_items=0)
-        
+        self.assertPaginatedResponse(
+            response, expected_page=1, expected_total_pages=0, expected_total_items=0
+        )
+
         # Search for the first airplane
         with self.app.test_client() as client:
-            response = client.get(url_for("api.airplanes", search=airplane1.registration_number))
+            response = client.get(
+                url_for("api.airplanes", search=airplane1.registration_number)
+            )
         self.assertPaginatedResponse(response, expected_total_items=1)
         airplane_data = response.json["items"][0]
-        self.assertDictEqual(airplane1.to_dict(), airplane_data, "Api response doesn't match airplane data")
+        self.assertDictEqual(
+            airplane1.to_dict(),
+            airplane_data,
+            "Api response doesn't match airplane data",
+        )
 
         # Search for the second airplane
         with self.app.test_client() as client:
             response = client.get(url_for("api.airplanes", search="air"))
         self.assertPaginatedResponse(response, expected_total_items=1)
         airplane_data = response.json["items"][0]
-        self.assertDictEqual(airplane2.to_dict(), airplane_data, "Api response doesn't match airplane data")
+        self.assertDictEqual(
+            airplane2.to_dict(),
+            airplane_data,
+            "Api response doesn't match airplane data",
+        )
 
         # Search for something they have in common
         with self.app.test_client() as client:
@@ -432,13 +514,19 @@ class TestAirplanes(ApiTestCase):
         with self.app.test_client() as client:
             response = client.post(url_for("api.airplanes"), json=airplane_data)
         self.assertApiResponse(response, 401)
-        self.assertIn("message", response.json, "Api response missing message for 401 not authorized")
+        self.assertIn(
+            "message",
+            response.json,
+            "Api response missing message for 401 not authorized",
+        )
 
         # Login a non admin user and make sure they also can't create an airplane
         with self.app.test_client(user=self.customer_user) as client:
             response = client.post(url_for("api.airplanes"), json=airplane_data)
         self.assertApiResponse(response, 403)
-        self.assertIn("message", response.json, "Api response missing message for 403 forbidden")
+        self.assertIn(
+            "message", response.json, "Api response missing message for 403 forbidden"
+        )
 
         # Login admin user and make sure they can create an airplane
         with self.app.test_client(user=self.admin_user) as client:
@@ -446,7 +534,11 @@ class TestAirplanes(ApiTestCase):
         self.assertApiResponse(response, 201)
         airplane = Airplane.query.first()
         self.assertIsNotNone(airplane, "Airplane not in database")
-        self.assertDictEqual(airplane.to_dict(), response.json, "Api response does not match airplane data")
+        self.assertDictEqual(
+            airplane.to_dict(),
+            response.json,
+            "Api response does not match airplane data",
+        )
 
         # Make sure we get an error if we try to create an airplane with the same registration_number
         with self.app.test_client(user=self.admin_user) as client:
@@ -454,7 +546,11 @@ class TestAirplanes(ApiTestCase):
         self.assertApiResponse(response, 409)
         self.assertIn("message", response.json, "Api response missing message")
         # Make sure the response has the "code" field in it
-        self.assertIn("registration_number", response.json["message"], "Api response missing message.registration_number")
+        self.assertIn(
+            "registration_number",
+            response.json["message"],
+            "Api response missing message.registration_number",
+        )
 
     def test_get_airplane(self):
         airplane = Airplane(
@@ -471,13 +567,19 @@ class TestAirplanes(ApiTestCase):
         with self.app.test_client() as client:
             response = client.get(url_for("api.airplane", id=airplane.id))
         self.assertApiResponse(response)
-        self.assertDictEqual(airplane.to_dict(), response.json, "Api response does not match airplane data")
-        
+        self.assertDictEqual(
+            airplane.to_dict(),
+            response.json,
+            "Api response does not match airplane data",
+        )
+
         # Test for invalid airplane id
         with self.app.test_client() as client:
             response = client.get(url_for("api.airplane", id=airplane.id + 1))
         self.assertApiResponse(response, 404)
-        self.assertIn("message", response.json, "Api response missing message for 404 not found")
+        self.assertIn(
+            "message", response.json, "Api response missing message for 404 not found"
+        )
 
     def test_delete_airplane(self):
         airplane = Airplane(
@@ -487,23 +589,71 @@ class TestAirplanes(ApiTestCase):
             capacity=189,
             range=3300,
         )
-        
+
         add_to_db(airplane)
 
         # Make sure anonymous users can't delete an airplane
         with self.app.test_client() as client:
             response = client.delete(url_for("api.airplane", id=airplane.id))
         self.assertApiResponse(response, 401)
-        self.assertIn("message", response.json, "Api response missing message for 401 not authorized")
+        self.assertIn(
+            "message",
+            response.json,
+            "Api response missing message for 401 not authorized",
+        )
 
         # Login a non admin user and make sure they also can't delete an airplane
         with self.app.test_client(user=self.customer_user) as client:
             response = client.delete(url_for("api.airplane", id=airplane.id))
         self.assertApiResponse(response, 403)
-        self.assertIn("message", response.json, "Api response missing message for 403 forbidden")
+        self.assertIn(
+            "message", response.json, "Api response missing message for 403 forbidden"
+        )
 
         # Login admin user and make sure they can delete an airplane
         with self.app.test_client(user=self.admin_user) as client:
             response = client.delete(url_for("api.airplane", id=airplane.id))
         self.assertApiResponse(response, 204)
         self.assertIsNone(Airplane.query.get(airplane.id))
+
+
+class TestFlights(ApiTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        airports = create_airports(count=5)
+        self.airports = list(airports.values())
+        self.airplanes = create_airplanes()
+
+    def test_get_flights(self):
+        flight = Flight(
+            number="1",
+            airplane_id=self.airplanes[0].id,
+            departure_id=self.airports[0].id,
+            arrival_id=self.airports[1].id,
+            departure_time=dt.time(hour=8, minute=30),
+            start=dt.date.today(),
+            end=dt.date.today()
+        )
+
+        # Test to make sure everything works with no flights
+        with self.app.test_client() as client:
+            response = client.get(url_for("api.flights"))
+        self.assertPaginatedResponse(
+            response, expected_page=1, expected_total_pages=0, expected_total_items=0
+        )
+
+        add_to_db(flight)
+
+        # Test to make sure everything works with a single flight
+        with self.app.test_client() as client:
+            response = client.get(url_for("api.flights"))
+
+        self.assertPaginatedResponse(
+            response, expected_page=1, expected_total_pages=1, expected_total_items=1
+        )
+        airplane_data = response.json["items"][0]
+        self.assertDictEqual(
+            flight.to_dict(),
+            airplane_data,
+            "Api response doesn't match flight data",
+        )
