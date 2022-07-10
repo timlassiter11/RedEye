@@ -1,10 +1,7 @@
-from app import db
 from app.admin import bp
 from app.forms import AirplaneForm, AirportForm, FlightForm, UserEditForm
-from app.models import User
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import abort, redirect, render_template, request, url_for
 from flask_login import current_user
-from sqlalchemy.exc import IntegrityError
 
 
 @bp.before_request
@@ -21,15 +18,37 @@ def home():
     return render_template('admin/home.html')
 
 
-@bp.route('/users')
-def users():
-    # TODO: Separate user page into customer, agent, and admin tabs
-    user_form = UserEditForm()
+@bp.route('/customers')
+def customers():
+    form = UserEditForm()
     return render_template(
         'admin/users.html',
-        title='Users',
-        users=User.query.all(),
-        user_form=user_form
+        title='Customers',
+        form=form,
+        api_endpoint='api.customers',
+        role='Customer'
+    )
+
+@bp.route('/agents')
+def agents():
+    form = UserEditForm()
+    return render_template(
+        'admin/users.html',
+        title='Agents',
+        form=form,
+        api_endpoint='api.agents',
+        role='Agent'
+    )
+
+@bp.route('/admins')
+def admins():
+    form = UserEditForm()
+    return render_template(
+        'admin/users.html',
+        title='Admins',
+        form=form,
+        api_endpoint='api.admins',
+        role='Admin'
     )
 
 

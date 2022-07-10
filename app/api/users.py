@@ -59,6 +59,29 @@ class Customer(Resource):
         user: models.Customer = get_or_404(models.Customer, id)
         return user.to_dict()
 
+    @owner_or_role_required(["agent", "admin"])
+    def delete(self, id):
+        user: models.Customer = get_or_404(models.Customer, id)
+        db.session.delete(user)
+        db.session.commit()
+        return "", 204
+
+    @owner_or_role_required(["agent", "admin"])
+    def patch(self, id):
+        user = models.Customer = get_or_404(models.Customer, id)
+        form = UserEditForm(data=request.json)
+        
+        # Fix duplicate email error message
+        if form.email.data == user.email:
+            del form.email
+
+        if form.validate():
+            form.populate_obj(user)
+            db.session.commit()
+            db.session.refresh(user)
+            return user.to_dict(), 200
+        json_abort(400, message=form.errors)
+
 
 @api.resource("/agents")
 class Agents(Resource):
@@ -106,6 +129,29 @@ class Agent(Resource):
     def get(self, id):
         user: models.Agent = get_or_404(models.Agent, id)
         return user.to_dict()
+
+    @owner_or_role_required("admin")
+    def delete(self, id):
+        user: models.Agent = get_or_404(models.Agent, id)
+        db.session.delete(user)
+        db.session.commit()
+        return "", 204
+
+    @owner_or_role_required("admin")
+    def patch(self, id):
+        user = models.Agent = get_or_404(models.Agent, id)
+        form = UserEditForm(data=request.json)
+
+        # Fix duplicate email error message
+        if form.email.data == user.email:
+            del form.email
+
+        if form.validate():
+            form.populate_obj(user)
+            db.session.commit()
+            db.session.refresh(user)
+            return user.to_dict(), 200
+        json_abort(400, message=form.errors)
 
 
 @api.resource("/admins")
@@ -155,6 +201,29 @@ class Admin(Resource):
         user: models.Admin = get_or_404(models.Admin, id)
         return user.to_dict()
 
+    @owner_or_role_required("admin")
+    def delete(self, id):
+        user: models.Admin = get_or_404(models.Admin, id)
+        db.session.delete(user)
+        db.session.commit()
+        return "", 204
+
+    @owner_or_role_required("admin")
+    def patch(self, id):
+        user = models.Admin = get_or_404(models.Admin, id)
+        form = UserEditForm(data=request.json)
+
+        # Fix duplicate email error message
+        if form.email.data == user.email:
+            del form.email
+
+        if form.validate():
+            form.populate_obj(user)
+            db.session.commit()
+            db.session.refresh(user)
+            return user.to_dict(), 200
+        json_abort(400, message=form.errors)
+
 
 @api.resource("/users")
 class Users(Resource):
@@ -181,7 +250,7 @@ class Users(Resource):
 
 @api.resource("/users/<id>")
 class User(Resource):
-    @role_required("admin")
+    @owner_or_role_required("admin")
     def get(self, id):
         user: models.User = get_or_404(models.User, id)
         return user.to_dict()

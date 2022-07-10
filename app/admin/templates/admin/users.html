@@ -1,19 +1,24 @@
 {% extends "admin/layout.html" %}
 {% from 'bootstrap/modals.html' import render_modal_form, render_confirmation_modal %}
 
+{% block title_button %}
+<button id="addButton" data-bs-toggle="modal" data-bs-target="#formModal" data-action="{{ url_for(api_endpoint) }}" data-method="POST" class="btn btn-primary" type="button">Add {{ role }}</button>
+{% endblock %}
+
 {% block content %}
 
-{{ render_modal_form('Edit User', user_form, modal_id='userEditModal', form_id='userEditForm') }}
+{{ render_modal_form(role, form, modal_id='formModal', form_id='userForm', left_button_id='deleteButton', left_button_text='Delete', left_button_class='btn-danger') }}
 
 <div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="modalLabel">Delete User</h5>
+                <h5 class="modal-title" id="modalLabel">Delete {{ role }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <p>Are you sure you want to delete this user?</p>
             </div>
             <div class="modal-footer">
                 <button onclick="$(this).trigger('rejected.bs.modal')" type="button" class="btn btn-secondary"
@@ -25,97 +30,119 @@
     </div>
 </div>
 
-<table id="userTable" data-pagination="true" data-search="true" data-click-to-select="true">
+<table 
+    id="table"
+    data-toggle="table"
+    data-height="550"
+    data-ajax="getItems"
+    data-data-field="items"
+    data-total-field="total"
+    data-side-pagination="server"
+    data-query-params="queryParams"
+    data-pagination="true"
+    data-search="true">
     <thead>
         <tr>
-            <th>First</th>
-            <th>Last</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Actions</th>
+            <th data-field="first_name">First Name</th>
+            <th data-field="last_name">Last Name</th>
+            <th data-field="email">Email</th>
+            <th data-formatter="actionFormatter">Actions</th>
         </tr>
     </thead>
-    <tbody>
-        {% for user in users %}
-        <tr>
-            <td id="firstName{{ user.id }}">{{ user.first_name }}</td>
-            <td id="lastName{{ user.id }}">{{ user.last_name }}</td>
-            <td id="email{{ user.id }}">{{ user.email }}</td>
-            <td id="role{{ user.id }}">{{ user.role }}</td>
-            <td>
-                <button class="btn edit-btn" type="button" data-user-id="{{ user.id }}"><i
-                        class="bi bi-pencil"></i></button>
-                {% if user.id != current_user.id %}
-                <button class="btn delete-btn" type="button" data-user-id="{{ user.id }}"><i
-                        class="bi bi-trash"></i></button>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
 </table>
+
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script src="/static/scripts/apiform.js"></script>
 <script src="/static/scripts/modalform.js"></script>
-{{ super() }}
 <script>
+
+    // Creates the elements for the "Actions" column in the table
+    function actionFormatter(value, row, index, field) {
+        return `<button 
+                    class="btn" 
+                    type="button" 
+                    data-bs-toggle="modal" 
+                    data-bs-target="#formModal"
+                    data-action="${row.self}"
+                    data-method="PATCH"
+                    data-first_name="${row.first_name}"
+                    data-last_name="${row.last_name}"
+                    data-email="${row.email}">
+                        <i class="bi bi-pencil"></i>
+                </button>`
+    }
+
+    // Gets the items from the API and formats the data for Bootstrap Table
+    // https://examples.bootstrap-table.com/#options/table-ajax.html#view-source
+    function getItems(params) {
+        var url = "{{ url_for(api_endpoint, expand=True) }}"
+        $.get(url + '&' + $.param(params.data)).then(function (res) {
+            // Bootstrap Table expects a total number of items 
+            // so it can calculate how many pages and a list of items.
+            params.success({total: res._meta.total_items, items: res.items})
+        })
+    }
+
+    // Bootstrap Table uses limit and offset but our API uses pages and page size.
+    // Convert the limit and and offset to our pages and page size.
+    // https://examples.bootstrap-table.com/#options/query-params.html#view-source
+    function queryParams(params) {
+        page = params.offset / params.limit
+        return {
+            page: page + 1,
+            per_page: params.limit,
+            search: params.search
+        }
+    }
+
     $(document).ready(function () {
-        const $userTable = $('#userTable')
+        const $form = $('#userForm')
 
-        const $userEditForm = $('#userEditForm')
-
-        const $userEditModal = $('#userEditModal')
-        const userEditModal = bootstrap.Modal.getOrCreateInstance($userEditModal[0])
+        const $formModal = $('#formModal')
+        const formModal = bootstrap.Modal.getOrCreateInstance($formModal[0])
 
         const $confirmationModal = $('#confirmationModal')
         const confirmationModal = bootstrap.Modal.getOrCreateInstance($confirmationModal[0])
 
-        $userTable.bootstrapTable('destroy').bootstrapTable({
-            locale: 'en-US'
+        const $table = $('#table')
+
+        $('#userForm').apiform({
+            onSuccess: function(response) {
+                formModal.hide()
+                $table.bootstrapTable('refresh')
+            }
+        });
+
+        $formModal.on('show.bs.modal', function(event) {
+            $form.removeClass('was-validated')
+            // Hide the delete button on the modal if the user is adding a new airport
+            if (event.relatedTarget === $('#addButton')[0]) {
+                $('#deleteButton').hide()
+            } else {
+                $('#deleteButton').show()
+            }
         })
 
-        $('.edit-btn').click(function () {
-            const userId = $(this).data('user-id')
-            const firstName = $(`#firstName${userId}`).text()
-            const lastName = $(`#lastName${userId}`).text()
-            const email = $(`#email${userId}`).text()
-            const role = $(`#role${userId}`).text()
-
-            $userEditForm.find('#first_name').val(firstName)
-            $userEditForm.find('#last_name').val(lastName)
-            $userEditForm.find('#email').val(email)
-            $userEditForm.find('#role').val(role)
-            $userEditForm.attr('action', `/admin/users/${userId}`)
-            $userEditForm.removeClass('was-validated')
-            userEditModal.show()
-        })
-
-        $('.delete-btn').click(function () {
-            const userId = $(this).data('user-id')
-            const firstName = $(`#firstName${userId}`).text()
-            const lastName = $(`#lastName${userId}`).text()
-            $confirmationModal.data('user-id', userId)
-            $confirmationModal.find('.modal-body').append(`<p>Are you sure you want to delete the user <b>${firstName}</b>?</p>`)
+        $('#deleteButton').click(function() {
+            formModal.hide()
             confirmationModal.show()
-        })
 
-        $confirmationModal.on('accepted.bs.modal', function (event) {
-            const userId = $confirmationModal.data('user-id')
-            $userEditForm.attr('action', `/admin/users/${userId}`)
-            $userEditForm.find('#method').val('DELETE')
-            $userEditForm.submit()
-        })
+            $confirmationModal.one('accepted.bs.modal', function(event) {
+                $form.attr('method', 'DELETE')
+                $form.submit()
+            })
 
-        // Handle form validation as per Bootstrap docs
-        $('form.needs-validation').submit(function(event) {
-            const $form = $(this);
-            if (this.checkValidity() === false) {
-                event.preventDefault()
-                event.stopPropagation();
-            } 
-            $form.addClass('was-validated');
+            $confirmationModal.one('rejected.bs.modal', function(event) {
+                formModal.show();
+            })
+
+            $confirmationModal.on('hidden.bs.modal', function() {
+                $confirmationModal.off('accepted.bs.modal');
+                $confirmationModal.off('rejected.bs.modal');
+            })
         })
     })
 </script>
