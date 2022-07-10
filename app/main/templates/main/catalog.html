@@ -1,71 +1,40 @@
-{% extends "admin/layout.html" %}
-{% from 'bootstrap/modals.html' import render_modal_form, render_confirmation_modal %}
+{% extends "main/layout.html" %}
 
 {% block styles %}
 {{ super() }}
-<link href="/static/content/typeahead.css" rel="stylesheet">
+<link href="https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.css" rel="stylesheet">
 {% endblock %}
 
-
-
 {% block content %}
-
-{{ render_modal_form('Flight', form, modal_id='formModal', form_id='flightForm', left_button_id='deleteButton', left_button_text='Delete', left_button_class='btn-danger') }}
-
-<div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalLabel">Delete Flight</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this flight?</p>
-            </div>
-            <div class="modal-footer">
-                <button onclick="$(this).trigger('rejected.bs.modal')" type="button" class="btn btn-secondary"
-                    data-bs-dismiss="modal">No</button>
-                <button onclick="$(this).trigger('accepted.bs.modal')" type="button" class="btn btn-danger"
-                    data-bs-dismiss="modal">Yes</button>
-            </div>
-        </div>
-    </div>
+<div class="container">
+    <table 
+        id="table"
+        data-toggle="table"
+        data-height="550"
+        data-ajax="getItems"
+        data-data-field="items"
+        data-total-field="total"
+        data-side-pagination="server"
+        data-query-params="queryParams"
+        data-pagination="true"
+        data-search="true">
+        <thead>
+            <tr>
+                <th data-field="number">Flight Number</th>
+                <th data-field="airplane.registration_number">Airplane Registration</th>
+                <th data-field="departure_airport.code">Departing Airport</th>
+                <th data-field="arrival_airport.code">Arriving Airport</th>
+                <th data-field="departure_time" data-formatter="timeFormatter">Departing Time</th>
+                <th data-field="arrival_time" data-formatter="timeFormatter">Arrival Time</th>
+            </tr>
+        </thead>
+    </table>
 </div>
-
-<table 
-    id="table"
-    data-toggle="table"
-    data-height="550"
-    data-ajax="getItems"
-    data-data-field="items"
-    data-total-field="total"
-    data-side-pagination="server"
-    data-query-params="queryParams"
-    data-pagination="true"
-    data-search="true">
-    <thead>
-        <tr>
-            <th data-field="number">Flight Number</th>
-            <th data-field="airplane.registration_number">Airplane Registration</th>
-            <th data-field="departure_airport.code">Departing Airport</th>
-            <th data-field="arrival_airport.code">Arriving Airport</th>
-            <th data-field="departure_time" data-formatter="timeFormatter">Departing Time</th>
-            <th data-field="arrival_time" data-formatter="timeFormatter">Arrival Time</th>
-            <th data-field="start">Start</th>
-            <th data-field="end">End</th>
-            <!-- <th data-formatter="actionFormatter">Actions</th> Actions Button removed for customers -->
-        </tr>
-    </thead>
-</table>
-
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-<script src="/static/scripts/typeahead.bundle.min.js"></script>
-<script src="/static/scripts/apiform.js"></script>
-<script src="/static/scripts/modalform.js"></script>
+<script src="https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.js"></script>
 <script src="/static/scripts/luxon.min.js"></script>
 <script>    
     // Formats arrival and departure times into their respective airports timezones.
@@ -79,26 +48,6 @@
             dt = dt.setZone(row.arrival_airport.timezone)
         }
         return dt.toFormat('HH:mm')
-    }
-
-    // Creates the elements for the "Actions" column in the table
-    function actionFormatter(value, row, index, field) {
-        return `<button 
-                    class="btn" 
-                    type="button" 
-                    data-bs-toggle="modal" 
-                    data-bs-target="#formModal"
-                    data-action="${row.self}"
-                    data-method="PATCH"
-                    data-number="${row.number}"
-                    data-airplane="${row.airplane.registration_number}"
-                    data-departure_airport="${row.departure_airport.code}"
-                    data-arrival_airport="${row.arrival_airport.code}"
-                    data-departure_time="${row.departure_time}"
-                    data-start="${row.start}"
-                    data-end="${row.end}">
-                        <i class="bi bi-pencil"></i>
-                </button>`
     }
 
     // Gets the items from the API and formats the data for Bootstrap Table
@@ -125,60 +74,7 @@
     }
 
     $(document).ready(function () {
-        const $form = $('#form')
 
-        const $formModal = $('#formModal')
-        const formModal = bootstrap.Modal.getOrCreateInstance($formModal[0])
-
-        const $confirmationModal = $('#confirmationModal')
-        const confirmationModal = bootstrap.Modal.getOrCreateInstance($confirmationModal[0])
-
-        const $table = $('#table')
-
-        setupAirplaneTypeahead('airplane')
-        setupAirportTypeahead('departure_airport')
-        setupAirportTypeahead('arrival_airport')
-        
-        // Automatically populate form info like method and action
-        // based on data attributes from the button that triggered
-        // the modal show event.
-        //$('.modal').modalform();
-
-        $('#flightForm').apiform({
-            onSuccess: function(response) {
-                formModal.hide()
-                $table.bootstrapTable('refresh')
-            }
-        })
-
-        $formModal.on('show.bs.modal', function(event) {
-            $form.removeClass('was-validated')
-            // Hide the delete button on the modal if the user is adding a new airport
-            if (event.relatedTarget === $('#addButton')[0]) {
-                $('#deleteButton').hide()
-            } else {
-                $('#deleteButton').show()
-            }
-        })
-
-        $('#deleteButton').click(function() {
-            formModal.hide()
-            confirmationModal.show()
-
-            $confirmationModal.one('accepted.bs.modal', function(event) {
-                $form.attr('method', 'DELETE')
-                $form.submit()
-            })
-
-            $confirmationModal.one('rejected.bs.modal', function(event) {
-                formModal.show();
-            })
-
-            $confirmationModal.on('hidden.bs.modal', function() {
-                $confirmationModal.off('accepted.bs.modal');
-                $confirmationModal.off('rejected.bs.modal');
-            })
-        })
     })
 </script>
 {% endblock %}
