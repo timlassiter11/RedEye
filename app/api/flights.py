@@ -93,5 +93,6 @@ class Flight(Resource):
         if form.validate():
             form.populate_obj(flight)
             db.session.commit()
-            return flight.to_dict(), 201
+            db.session.refresh(flight)
+            return flight.to_dict(), 200
         json_abort(400, message=form.errors)

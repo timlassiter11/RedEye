@@ -84,6 +84,7 @@ class Airplane(Resource):
             airplane.home_id = form.home_id
             try:
                 db.session.commit()
+                db.session.refresh(airplane)
             except IntegrityError:
                 db.session.rollback()
                 json_abort(

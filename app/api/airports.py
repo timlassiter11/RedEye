@@ -69,6 +69,7 @@ class Airport(Resource):
             form.populate_obj(airport)
             try:
                 db.session.commit()
+                db.session.refresh(airport)
             except IntegrityError:
                 db.session.rollback()
                 json_abort(
