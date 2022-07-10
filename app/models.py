@@ -229,7 +229,7 @@ class Flight(PaginatedAPIMixin, db.Model):
         db.session.refresh(cancellation)
         return cancellation
 
-    def available_seats(self, date: dt.date):
+    def available_seats(self, date: dt.date) -> int:
         if date < self.start or date > self.end:
             raise ValueError("date must be between start and end")
 
@@ -498,6 +498,12 @@ class TripItinerary:
             departure_time = departure_dt.time()
             # Filter out flights that depart before our departure_time
             query = query.filter(Flight.departure_time >= departure_time)
+        else:
+            # Filter out flights that have already taken off
+            # if they are looking for same day flights.
+            if departure_date == dt.date.today():
+                now = dt.datetime.utcnow()
+                query = query.filter(Flight.departure_time > now.time())
 
         # Find flights departing from our current airport.
         query = query.filter_by(departure_id=departing_airport)
@@ -517,7 +523,7 @@ class TripItinerary:
         prev_ids = [flight.departure_id for flight in current_itinerary.flights]
         query = query.filter(~Flight.arrival_id.in_(prev_ids))
 
-        potential_flights = query.all()
+        potential_flights: List[Flight] = query.all()
         for flight in potential_flights:
             # Enforce a maximum layover length
             if previous_flight:
