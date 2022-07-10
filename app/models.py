@@ -320,8 +320,6 @@ class TripItinerary:
 
     @property
     def layovers(self) -> int:
-        if not self._flights:
-            return None
         return len(self._flights) - 1
 
     @property

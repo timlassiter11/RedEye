@@ -174,7 +174,7 @@ class TestTripItinerary(FlaskTestCase):
         today = dt.date.today()
 
         itinerary = TripItinerary(date=today)
-        self.assertIsNone(itinerary.layovers)
+        self.assertEquals(-1, itinerary.layovers)
 
         flight1 = Flight(
             number="1",
