@@ -64,20 +64,21 @@
             </div>
         </nav>
         {% endblock %}
-        {% block messages %}
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        {% if category == 'message' %}{% set category = 'primary' %}{% endif %}
-        <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div id="alertContainer">
+            {% block messages %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            {% if category == 'message' %}{% set category = 'primary' %}{% endif %}
+            <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+            {% endblock %}
         </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
-        {% endblock %}
-
         {% block content %}{% endblock %}
     </div>
 {% endblock %}
