@@ -47,7 +47,9 @@
 </div>
 <template id="resultRow">
     <div class="my-3 p-3 shadow-sm bg-white mx-auto">
-        <div name="flightNumbers"></div>
+        <div class="d-flex flex-nowrap justify-content-between" name="topRow">
+            <div name="flightNumbers"></div>
+        </div>
         <div class="d-flex flex-nowrap justify-content-between mb-3">
             <h4 class="d-inline-block" name="departureTime"></h4> 
             <!-- <h4 class="d-inline-block"><i class="bi bi-arrow-right-short"></i></h4> -->
@@ -90,13 +92,13 @@
                         const arrival_dt = luxon.DateTime.fromISO(item.arrival_datetime, { zone: "utc" });
 
                         const $departureTime = $row.find('[name="departureTime"]');
-                        const $arrivalTime = $row.find('[name="arrivalTime"');
+                        const $arrivalTime = $row.find('[name="arrivalTime"]');
 
                         $departureTime.text(departure_dt.toFormat('hh:mm a'));
                         $arrivalTime.text(arrival_dt.toFormat('hh:mm a'));
                         
                         if (departure_dt.get('day') < arrival_dt.get('day')) {
-                            $arrivalTime.after('<i class="bi bi-eye-fill text-redeye"></i>')
+                            $row.find('[name="topRow"]').append('<i class="bi bi-eye-fill text-redeye"></i>');
                         }
 
                         const $markerContainer = $row.find('[name="markerContainer"]');
