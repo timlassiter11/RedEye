@@ -2,7 +2,7 @@
 {% from 'bootstrap/modals.html' import render_modal_form, render_confirmation_modal %}
 
 {% block title_button %}
-<button id="addButton" data-bs-toggle="modal" data-bs-target="#formModal" data-action="{{ url_for('api.airports') }}" data-method="POST" class="btn btn-primary" type="button">Add Airport</button>
+<button id="addButton" data-bs-toggle="modal" data-bs-target="#formModal" data-action="{{ url_for('api.airports') }}" data-method="POST" data-modal-title="Create Airport" class="btn btn-primary" type="button">Add Airport</button>
 {% endblock %}
 
 {% block content %}
@@ -70,6 +70,7 @@
                     type="button" 
                     data-bs-toggle="modal" 
                     data-bs-target="#formModal"
+                    data-modal-title="Edit Airport"
                     data-action="${row.self}"
                     data-method="PATCH"
                     data-code="${row.code}"

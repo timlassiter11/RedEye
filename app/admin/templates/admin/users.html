@@ -2,7 +2,7 @@
 {% from 'bootstrap/modals.html' import render_modal_form, render_confirmation_modal %}
 
 {% block title_button %}
-<button id="addButton" data-bs-toggle="modal" data-bs-target="#formModal" data-action="{{ url_for(api_endpoint) }}" data-method="POST" class="btn btn-primary" type="button">Add {{ role }}</button>
+<button id="addButton" data-bs-toggle="modal" data-bs-target="#formModal" data-action="{{ url_for(api_endpoint) }}" data-method="POST" data-modal-title="Create {{ role }}" class="btn btn-primary" type="button">Add {{ role }}</button>
 {% endblock %}
 
 {% block content %}
@@ -66,6 +66,7 @@
                     type="button" 
                     data-bs-toggle="modal" 
                     data-bs-target="#formModal"
+                    data-modal-title="Edit {{ role }}"
                     data-action="${row.self}"
                     data-method="PATCH"
                     data-first_name="${row.first_name}"

@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block title_button %}
-<button id="addButton" data-bs-toggle="modal" data-bs-target="#formModal" data-action="{{ url_for('api.flights') }}" data-method="POST" class="btn btn-primary" type="button">Add Flight</button>
+<button id="addButton" data-bs-toggle="modal" data-bs-target="#formModal" data-action="{{ url_for('api.flights') }}" data-method="POST" data-modal-title="Create Flight" class="btn btn-primary" type="button">Add Flight</button>
 {% endblock %}
 
 {% block content %}
@@ -90,6 +90,7 @@
                     type="button" 
                     data-bs-toggle="modal" 
                     data-bs-target="#formModal"
+                    data-modal-title="Edit Flight"
                     data-action="${row.self}"
                     data-method="PATCH"
                     data-number="${row.number}"

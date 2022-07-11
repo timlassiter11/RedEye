@@ -10,6 +10,12 @@
                 }
 
                 const $modal = $(this);
+
+                const modalTitle = $element.data("modal-title");
+                if (typeof modalTitle === "string") {
+                    $modal.find("#modalLabel").text(modalTitle)
+                }
+
                 const $form = $modal.find('form');
                 $form.trigger('reset');
 
