@@ -4,9 +4,11 @@
 {{ super() }}
 <style>
     .flightPath {
-        width: 100%;
+        /* Give some buffer on the ends or else the line can show past the end markers*/
+        width: calc(100% - 4px);
         position: absolute;
         height: 2px;
+        left: 2px;
         background-color: black;
         top: calc(50% - 1px);
     }
