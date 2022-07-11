@@ -30,7 +30,7 @@
         var airport_bloodhound = null;
         var airplane_bloodhound = null;
         
-        function setupAirplaneTypeahead(id) {
+        function setupAirplaneTypeahead(selector) {
             if (airplane_bloodhound == null) {
                 airplane_bloodhound = new Bloodhound({
                     datumTokenizer: Bloodhound.tokenizers.whitespace,
@@ -46,7 +46,8 @@
                 })
             }
 
-            const $input = $(`#${id}`)
+            const $input = $(selector);
+            const id = $input.attr('id');
             const $label = $(`label[for="${id}"]`)
             const $feedback = $(`#${id}-feedback`)
 
@@ -65,7 +66,7 @@
             $label.after($feedback)
         }
 
-        function setupAirportTypeahead(id) {
+        function setupAirportTypeahead(selector) {
             if (airport_bloodhound == null) {
                 airport_bloodhound = new Bloodhound({
                     datumTokenizer: Bloodhound.tokenizers.whitespace,
@@ -81,7 +82,8 @@
                 })
             }
 
-            const $input = $(`#${id}`)
+            const $input = $(selector);
+            const id = $input.attr('id');
             const $label = $(`label[for="${id}"]`)
             const $feedback = $(`#${id}-feedback`)
 

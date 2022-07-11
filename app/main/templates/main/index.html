@@ -6,19 +6,21 @@
 {% endblock %}
 
 {% block content %}
-<form method="get" action="{{ url_for('main.search') }}">
+<form id="searchForm" class="needs-validation" method="get" action="{{ url_for('main.search') }}" novalidate>
     <div class="container">
         <div class="row">
-            <div class="col-md mb-3">
+            <div class="col-md-5 mb-3">
                 <div class="d-flex flex-row justify-content-center">
                     <div class="form-floating">
                         <input class="form-control" id="departure_code" name="departure_code" placeholder="From" type="text" autocomplete="off" required>
                         <label for="departure_code">From</label>
+                        <div class="d-md-none d-lg-block lead" style="font-size: 0.9rem;" id="departure_code-feedback"></div>
                     </div>
                     <h1><i class="bi bi-arrow-right-short"></i></h1>
                     <div class="form-floating">
                         <input class="form-control" id="arrival_code" name="arrival_code" placeholder="To" type="text" autocomplete="off" required>
                         <label for="arrival_code">To</label>
+                        <div class="d-md-none d-lg-block lead" style="font-size: 0.9rem;" id="arrival_code-feedback"></div>
                     </div>
                 </div>
             </div>
@@ -34,8 +36,8 @@
                     <label for="num_of_passengers">Passengers</label>
                 </div>
             </div>
-            <div class="col-md mb-3">
-                <button type="submit" class="btn btn-danger h-100"><i class="bi bi-arrow-right-circle"></i></button>
+            <div class="col-md-1 mb-3">
+                <button type="submit" class="btn btn-redeye h-100"><i class="bi bi-arrow-right-circle"></i></button>
             </div>
         </div>
     </div>
@@ -64,13 +66,62 @@
 <script src="/static/scripts/typeahead.bundle.min.js"></script>
 <script>
     $(document).ready(function () {
-        setupAirportTypeahead('departure_code');
-        setupAirportTypeahead('arrival_code');
+        const $form = $('#searchForm');
+        const $departure_input = $('#departure_code');
+        const $departure_feedback = $('#departure_code-feedback');
+        const $arrival_input = $('#arrival_code');
+        const $arrival_feedback = $('#arrival_code-feedback');
+        const $date_input = $('#departure_date');
+
+        setupAirportTypeahead($departure_input);
+        setupAirportTypeahead($arrival_input);
+
+        $departure_input.bind('typeahead:change', function(event) {
+            const departure_code = $departure_input.val();
+            $.getJSON(`/api/airports/${departure_code}`, function(data) {
+                $departure_input.removeClass('is-invalid');
+                $departure_input[0].setCustomValidity('');
+                $departure_feedback.removeClass('invalid-feedback');
+                $departure_feedback.text(`${data.city}, ${data.state}`);
+            })
+                .fail(function(jqxhr, textStatus, error) {
+                    if (jqxhr.status === 404) {
+                        $departure_input.addClass('is-invalid');
+                        $departure_input[0].setCustomValidity('Enter valid airport');
+                        $departure_feedback.addClass('invalid-feedback');
+                        $departure_feedback.text('Enter valid airport');
+                    }
+                });
+        });
+
+        $arrival_input.bind('typeahead:change', function(event) {
+            const arrival_code = $arrival_input.val();
+            $.getJSON(`/api/airports/${arrival_code}`, function(data) {
+                $arrival_input.removeClass('is-invalid');
+                $arrival_input[0].setCustomValidity('');
+                $arrival_feedback.removeClass('invalid-feedback');
+                $arrival_feedback.text(`${data.city}, ${data.state}`);
+            })
+                .fail(function(jqxhr, textStatus, error) {
+                    $arrival_input.addClass('is-invalid');
+                    $arrival_input[0].setCustomValidity('Enter valid airport');
+                    $arrival_feedback.addClass('invalid-feedback');
+                    $arrival_feedback.text('Enter valid airport');
+                });
+        });
+
+        $form.submit(function(event) {
+            if (!this.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            $form.addClass('was-validated');
+        });
 
         const today = luxon.DateTime.now();
-        $('#departure_date').attr("min", today.toISODate());
+        $date_input.attr("min", today.toISODate());
         const max = today.plus({months: 12});
-        $('#departure_date').attr("max", max.toISODate());
+        $date_input.attr("max", max.toISODate());
     });
 </script>
 {% endblock %}

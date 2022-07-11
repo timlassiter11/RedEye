@@ -1,3 +1,7 @@
+:root {
+    --redeye: #DB2B30;
+}
+
 .navbar .navbar-toggler {
     border: 0;
 }
@@ -75,5 +79,11 @@
 }
 
 .text-redeye {
-    color: #DB2B30
+    color: var(--redeye);
+}
+
+.btn-redeye {
+    color: #FFF;
+    background-color: var(--redeye);
+    border-color: var(--redeye);
 }

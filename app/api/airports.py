@@ -1,6 +1,6 @@
 from app import db, models
 from app.api import api
-from app.api.helpers import get_or_404, json_abort, role_required
+from app.api.helpers import code_to_airport, get_or_404, json_abort, role_required
 from app.forms import AirportForm
 from flask_restful import Resource, reqparse, request
 from sqlalchemy.exc import IntegrityError
@@ -50,8 +50,18 @@ class Airports(Resource):
 @api.resource("/airports/<id>")
 class Airport(Resource):
     def get(self, id):
-        airport = get_or_404(models.Airport, id)
-        return airport.to_dict()
+        try:
+            id = int(id)
+            airport = get_or_404(models.Airport, id)
+            return airport.to_dict()
+        except ValueError:
+            pass
+
+        try:
+            airport = code_to_airport(id)
+            return airport.to_dict()
+        except ValueError:
+            json_abort(404, message="Resource not found")
 
     @role_required('admin')
     def delete(self, id):
