@@ -51,7 +51,7 @@ class FlightSearch(Resource):
         )
         # Sort the itineraries by the number of layovers, departure time, and total time.
         itineraries.sort(
-            key=attrgetter("layovers", "departure_datetime", "arrival_datetime")
+            key=attrgetter("departure_datetime", "total_time")
         )
         # Slice the list to limit the results.
         # Always do this after sorting so we get the best results.

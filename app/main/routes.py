@@ -12,10 +12,14 @@ def home():
 
 @bp.route('/search')
 def search():
-    departure_code = request.args.get("departure_code")
-    arrival_code = request.args.get("arrival_code")
-    departure_date = request.args.get("departure_date")
-    num_of_passengers = request.args.get("num_of_passengers", 1)
+    args = request.args.copy()
+
+    departure_code = args.get("departure_code")
+    arrival_code = args.get("arrival_code")
+    departure_date = args.get("departure_date")
+    num_of_passengers = args.get("num_of_passengers", 1)
+
+    args['expand'] = True
 
     try:
         departure = code_to_airport(departure_code)
@@ -33,5 +37,5 @@ def search():
         arrival=arrival,
         date=date,
         passengers=num_of_passengers,
-        args=request.args
+        args=args
     )

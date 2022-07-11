@@ -1,5 +1,25 @@
 {% extends "main/layout.html" %}
 
+{% block styles %}
+{{ super() }}
+<style>
+    .flightPath {
+        width: 100%;
+        position: absolute;
+        height: 2px;
+        background-color: black;
+        top: calc(50% - 1px);
+    }
+
+    .pathMarker {
+        height: 8px;
+        width: 8px;
+        background-color: black;
+    }
+
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="overlay-parent flex-grow-1">
     <div class="overlay" style="background-color: white;">
@@ -16,26 +36,28 @@
         </div>
     </div>
 </div>
-<div id="contentContainer" class="container d-none">
-    <h2>{{ departure.code }}<i class="bi bi-arrow-right-short"></i>{{ arrival.code }}</h2>
-    <div class="row">
-        <div id="resultContainer" class="col mx-5"></div>
+<div id="contentContainer" class="flex-grow-1 d-none" style="background-color: #FAFAFA;">
+    <div class="container mt-3" style="max-width: 938px;">
+        <h2>{{ departure.code }}<i class="bi bi-arrow-right-short"></i>{{ arrival.code }}</h2>
+        <h5>{{ date.strftime("%a, %b %d, %Y") }}</h2>
+        <div id="resultContainer" class="mx-md-5"></div>
     </div>
 </div>
 <template id="resultRow">
-    <div class="card my-3">
-        <div class="card-body">
-            <div class="row">
-                <div class="col">
-                        <h5 class="card-title d-inline-block" id="departureTime"></h5> 
-                        <h5 class="d-inline-block"><i class="bi bi-arrow-right-short"></i></h5>
-                        <h5 class="card-title d-inline-block" id="arrivalTime"></h5>
-                </div>
-                <div class="col">
-                    <h5 id="layovers"></h5>
-                </div>
-            </div>
+    <div class="my-3 p-3 shadow-sm bg-white mx-auto">
+        <div name="flightNumbers"></div>
+        <div class="d-flex flex-nowrap justify-content-between mb-3">
+            <h4 class="d-inline-block" name="departureTime"></h4> 
+            <!-- <h4 class="d-inline-block"><i class="bi bi-arrow-right-short"></i></h4> -->
+            <h4 class="d-inline-block" name="arrivalTime"></h4>
         </div>
+        <div name="markerContainer" class="d-flex flex-nowrap justify-content-between position-relative">
+            <div class="flightPath"></div>
+        </div>
+        <div name="airportContainer" class="d-flex flex-nowrap justify-content-between">
+
+        </div>
+    </div>
 </template>
 {% endblock %}
 
@@ -53,18 +75,58 @@
             type : 'GET',
             success : function(response, textStatus, jqXhr) {
                 if (response._meta.total_items === 0) {
+                    // TODO: Display something when no available flights are found.
                     console.log("No results found")
                 } else {
                     for (const i in response.items) {
                         const item = response.items[i];
-                        let template = document.querySelector('#resultRow');
-                        let row = template.content.cloneNode(true);
-                        let departure_dt = luxon.DateTime.fromISO(item.departure_datetime);
-                        row.querySelector('#departureTime').textContent = departure_dt.toFormat('hh:mm a');
-                        let arrival_dt = luxon.DateTime.fromISO(item.arrival_datetime);
-                        row.querySelector('#arrivalTime').textContent = arrival_dt.toFormat('hh:mm a');
-                        row.querySelector('#layovers').textContent = item.layovers
-                        document.querySelector("#resultContainer").appendChild(row);
+                        const template = document.querySelector('#resultRow');
+                        const row = template.content.cloneNode(true);
+                        const $row = $(row);
+
+                        const departure_dt = luxon.DateTime.fromISO(item.departure_datetime, { zone: "utc" });
+                        const arrival_dt = luxon.DateTime.fromISO(item.arrival_datetime, { zone: "utc" });
+
+                        const $departureTime = $row.find('[name="departureTime"]');
+                        const $arrivalTime = $row.find('[name="arrivalTime"');
+
+                        $departureTime.text(departure_dt.toFormat('hh:mm a'));
+                        $arrivalTime.text(arrival_dt.toFormat('hh:mm a'));
+                        
+                        if (departure_dt.get('day') < arrival_dt.get('day')) {
+                            $arrivalTime.after('<i class="bi bi-eye-fill text-redeye"></i>')
+                        }
+
+                        const $markerContainer = $row.find('[name="markerContainer"]');
+                        const $airportContainer = $row.find('[name="airportContainer"]');
+                        
+                        let flightNumbers = '';
+                        var flight;
+                        for (const j in item.flights) {
+                            flight = item.flights[j];
+                            flightNumbers += `RE${flight.number} / `;
+
+                            $markerContainer.append('<div class="pathMarker"></div>');
+                            $airportContainer.append(`<p>${flight.departure_airport.code}</p>`)
+                        }
+
+                        // Add the final stop
+                        $markerContainer.append('<div class="pathMarker"></div>');
+                        $airportContainer.append(`<p>${flight.arrival_airport.code}</p>`)
+
+                        // Remove the extra "/ " from the end.
+                        flightNumbers = flightNumbers.slice(0, flightNumbers.length - 2);
+                        const $flightNumbers = $row.find('[name="flightNumbers"]');
+                        $flightNumbers.text(flightNumbers);
+
+                        const parts = item.total_time.split(':');
+                        const duration = luxon.Duration.fromObject({
+                            hours: parts[0],
+                            minutes: parts[1],
+                            seconds: parts[2]
+                        });
+
+                        $('#resultContainer').append(row);
                     }
                     console.log(response)
                 }
