@@ -14,13 +14,13 @@
                     <div class="form-floating">
                         <input class="form-control" id="departure_code" name="departure_code" placeholder="From" type="text" autocomplete="off" required>
                         <label for="departure_code">From</label>
-                        <div class="d-md-none d-lg-block lead" style="font-size: 0.9rem;" id="departure_code-feedback"></div>
+                        <div class="d-none d-md-block lead" style="font-size: 0.9rem;" id="departure_code-feedback"></div>
                     </div>
                     <h1><i class="bi bi-arrow-right-short"></i></h1>
                     <div class="form-floating">
                         <input class="form-control" id="arrival_code" name="arrival_code" placeholder="To" type="text" autocomplete="off" required>
                         <label for="arrival_code">To</label>
-                        <div class="d-md-none d-lg-block lead" style="font-size: 0.9rem;" id="arrival_code-feedback"></div>
+                        <div class="d-none d-md-block lead" style="font-size: 0.9rem;" id="arrival_code-feedback"></div>
                     </div>
                 </div>
             </div>
@@ -37,6 +37,7 @@
                 </div>
             </div>
             <div class="col-md-1 mb-3">
+                <!-- Height of calc(3.5rem + 2px) keeps the button the same height as the rest of the search fields. -->
                 <button type="submit" class="btn btn-redeye" style="height: calc(3.5rem + 2px);"><i class="bi bi-arrow-right-circle"></i></button>
             </div>
         </div>
@@ -122,6 +123,7 @@
         $date_input.attr("min", today.toISODate());
         const max = today.plus({months: 12});
         $date_input.attr("max", max.toISODate());
+        $date_input.val(today.toISODate());
     });
 </script>
 {% endblock %}
