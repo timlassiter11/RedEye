@@ -19,6 +19,12 @@
         background-color: black;
     }
 
+    .pathText {
+        min-width: 50px;
+        margin-bottom: 0;
+        text-align: center;
+    }
+
 </style>
 {% endblock %}
 
@@ -41,25 +47,33 @@
 <div id="contentContainer" class="flex-grow-1 d-none" style="background-color: #FAFAFA;">
     <div class="container mt-3" style="max-width: 938px;">
         <h2>{{ departure.code }}<i class="bi bi-arrow-right-short"></i>{{ arrival.code }}</h2>
-        <h5>{{ date.strftime("%a, %b %d, %Y") }}</h2>
+        <h5>{{ date.strftime("%a, %b %d, %Y") }}</h5>
         <div id="resultContainer" class="mx-md-5"></div>
     </div>
 </div>
 <template id="resultRow">
-    <div class="my-3 p-3 shadow-sm bg-white mx-auto">
-        <div class="d-flex flex-nowrap justify-content-between" name="topRow">
-            <div name="flightNumbers"></div>
+    <div class="row gx-0">
+        <div class="mb-md-3 p-3 shadow-sm bg-white mx-auto col">
+            <div class="d-flex flex-nowrap" name="topRow">
+                <p class="flex-grow-1" name="flightNumbers"></p>
+                <p name="tripTime"></p>
+            </div>
+            <div class="d-flex flex-nowrap justify-content-between mb-3">
+                <h4 class="d-inline-block" name="departureTime"></h4> 
+                <!-- <h4 class="d-inline-block"><i class="bi bi-arrow-right-short"></i></h4> -->
+                <h4 class="d-inline-block" name="arrivalTime"></h4>
+            </div>
+            <div name="layoverContainer" class="d-flex flex-nowrap justify-content-between"></div>
+            <div name="markerContainer" class="d-flex flex-nowrap justify-content-between position-relative">
+                <div class="flightPath"></div>
+            </div>
+            <div name="airportContainer" class="d-flex flex-nowrap justify-content-between"></div>
         </div>
-        <div class="d-flex flex-nowrap justify-content-between mb-3">
-            <h4 class="d-inline-block" name="departureTime"></h4> 
-            <!-- <h4 class="d-inline-block"><i class="bi bi-arrow-right-short"></i></h4> -->
-            <h4 class="d-inline-block" name="arrivalTime"></h4>
-        </div>
-        <div name="markerContainer" class="d-flex flex-nowrap justify-content-between position-relative">
-            <div class="flightPath"></div>
-        </div>
-        <div name="airportContainer" class="d-flex flex-nowrap justify-content-between">
-
+        <div class="mb-3 p-3 shadow-sm bg-white col-md-4">
+            <div class="d-flex flex-column justify-content-center h-100">
+                <h4 class="text-center" name="cost"></h4>
+                <button name="book" class="btn btn-redeye" type="button">Book Now</button>
+            </div>
         </div>
     </div>
 </template>
@@ -69,6 +83,15 @@
 {{ super() }}
 <script src="/static/scripts/luxon.min.js"></script>
 <script>
+    function strToDuration(str) {
+        const parts = str.split(':');
+        return luxon.Duration.fromObject({
+            hours: parts[0],
+            minutes: parts[1],
+            seconds: parts[2]
+        }).shiftTo('hours', 'minutes');
+    }
+
     $(document).ready(function () {
         $.ajax({
             headers : {
@@ -88,8 +111,8 @@
                         const row = template.content.cloneNode(true);
                         const $row = $(row);
 
-                        const departure_dt = luxon.DateTime.fromISO(item.departure_datetime, { zone: "utc" });
-                        const arrival_dt = luxon.DateTime.fromISO(item.arrival_datetime, { zone: "utc" });
+                        const departure_dt = luxon.DateTime.fromISO(item.departure_datetime, { setZone: true });
+                        const arrival_dt = luxon.DateTime.fromISO(item.arrival_datetime, { setZone: true });
 
                         const $departureTime = $row.find('[name="departureTime"]');
                         const $arrivalTime = $row.find('[name="arrivalTime"]');
@@ -103,11 +126,34 @@
 
                         const $markerContainer = $row.find('[name="markerContainer"]');
                         const $airportContainer = $row.find('[name="airportContainer"]');
+                        const $layoverContainer = $row.find('[name="layoverContainer"]');
                         
                         let flightNumbers = '';
-                        var flight;
+                        let flight = null;
+                        let previousFlight = null;
+                        let current_dt = departure_dt.setZone('utc');
                         for (const j in item.flights) {
+
                             flight = item.flights[j];
+
+                            if (previousFlight !== null) {
+                                let nextDeparture = luxon.DateTime.fromISO(flight.departure_time, { zone: "utc" });
+                                // Handle layover rolling over midnight
+                                if (nextDeparture < current_dt) {
+                                    nextDeparture = nextDeparture.plus(luxon.Duration.fromObject({hours: 24}));
+                                }
+
+                                const layover = nextDeparture.diff(current_dt, ['hours', 'minutes']);
+                                current_dt = current_dt.plus(layover);
+                                $layoverContainer.append(`<p class="pathText"><small>${layover.toFormat("h'h'm'm'")}<small></p>`);
+                            } else {
+                                $layoverContainer.append('<div class="pathText"></div>');
+                            }
+
+                            previousFlight = flight;
+                            const flightTime = strToDuration(flight.flight_time);
+                            current_dt = current_dt.plus(flightTime);
+                            
                             flightNumbers += `RE${flight.number} / `;
 
                             $markerContainer.append('<div class="pathMarker"></div>');
@@ -115,6 +161,7 @@
                         }
 
                         // Add the final stop
+                        $layoverContainer.append('<div class="pathText"></div>');
                         $markerContainer.append('<div class="pathMarker"></div>');
                         $airportContainer.append(`<p>${flight.arrival_airport.code}</p>`)
 
@@ -123,12 +170,13 @@
                         const $flightNumbers = $row.find('[name="flightNumbers"]');
                         $flightNumbers.text(flightNumbers);
 
-                        const parts = item.total_time.split(':');
-                        const duration = luxon.Duration.fromObject({
-                            hours: parts[0],
-                            minutes: parts[1],
-                            seconds: parts[2]
-                        });
+                        
+                        const $tripTime = $row.find('[name="tripTime"]');
+                        const tripTime = strToDuration(item.total_time);
+                        $tripTime.text(tripTime.toFormat("h'h'm'm'"));
+                        
+                        const $cost = $row.find('[name="cost"]');
+                        $cost.text(`\$${item.cost}`);
 
                         $('#resultContainer').append(row);
                     }
