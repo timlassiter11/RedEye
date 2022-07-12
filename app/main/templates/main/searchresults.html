@@ -179,7 +179,7 @@
                         const cost = item.cost.toFixed(2);
                         $cost.text(`\$${cost}`);
 
-                        $('[name="book"]').click(function(event) {
+                        $row.find('[name="book"]').click((event) => {
                             window.sessionStorage.setItem("itinerary", JSON.stringify(item));
                             window.location = "{{ url_for('main.checkout') }}";
                         });
