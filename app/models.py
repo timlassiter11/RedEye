@@ -213,6 +213,13 @@ class Flight(PaginatedAPIMixin, db.Model):
         arrival_dt = departure_dt + self.flight_time
         return arrival_dt.time()
 
+    def cost(self, date: dt.date) -> float:
+        # TODO: Figure out better pricing model. 
+        # Maybe base it on date? 
+        # Weekends more expenive?
+        # Have the ability to put surge charges in the DB?
+        return round(self.distance * 0.2)
+
     def is_cancelled(self, date: dt.date) -> bool:
         query = Flight.query.filter(
             Flight.cancellations.any(FlightCancellation.date == date)
@@ -365,18 +372,27 @@ class TripItinerary:
 
     @property
     def cost(self) -> float:
-        """Calculates cost based on distance. Includes taxes."""
+        return round(self.base_fare + self.taxes, 2)
+
+    @property
+    def base_fare(self):
+        cost = 0
+        for flight in self._flights:
+            cost += flight.cost(self._date)
+        return cost
+
+    @property
+    def taxes(self):
         # https://taxfoundation.org/understanding-the-price-of-your-plane-ticket/#:~:text=The%20U.S.%20government%20charges%20an,(and%20almost%20all%20do).
-        cost = self.distance
         # Excise tax
-        cost += cost * 0.075
+        taxes = self.base_fare * 0.075
         # Flight segment tax of $4.5 per segment
-        cost += 4.5 * len(self.flights)
+        taxes += 4.5 * len(self.flights)
         # September 11th tax
-        cost += 5.6
+        taxes += 5.6
         # Passenger facility charge (PFC)
-        cost += 4.5 * len(self.flights) + 1
-        return round(cost, 2)
+        taxes += 4.5 * len(self.flights) + 1
+        return round(taxes, 2)
 
     def add_flight(self, flight: Flight) -> None:
         # TODO: Should we check to make sure we can add this flight?
@@ -449,6 +465,8 @@ class TripItinerary:
 
         return {
             "cost": self.cost,
+            "base_fare": self.base_fare,
+            "taxes": self.taxes,
             "departure_datetime": departure_dt.isoformat(),
             "arrival_datetime": arrival_dt.isoformat(),
             "total_time": str(self.total_time),
