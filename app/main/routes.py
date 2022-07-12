@@ -39,3 +39,10 @@ def search():
         passengers=num_of_passengers,
         args=args
     )
+
+@bp.route('/checkout')
+def checkout():
+    return render_template(
+        'main/checkout.html',
+        title='Checkout',
+    )

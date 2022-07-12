@@ -1,0 +1,235 @@
+{% extends "main/layout.html" %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .greyIcon {
+        filter: grayscale(100%);
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div id="contentContainer" class="flex-grow-1" style="background-color: #FAFAFA;">
+    <div class="mt-3 mx-auto container" style="max-width: 938px;">
+        <div class="card shadow mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Purchase Details</h5>
+                <hr>
+                <div class="container">
+                    <div class="row">
+                        <div id="flightContainer" class="col">
+                            <div class="hstack">
+                                <h2 id="departureAirport"></h2>
+                                <h2><i class="bi bi-arrow-right-short"></i></h2>
+                                <h2 id="arrivalAirport"></h2>
+                                <h6 class="ms-auto" id="departureDate"></h6>
+                            </div>
+                        </div>
+                        <div class="col-md">
+                            
+                        </div>
+                        <hr class="d-md-none">
+                        <div class="col-md-4">
+                            <div class="row">
+                                <div class="col-8">
+                                    <p>Fare Per Passenger</p>
+                                </div>
+                                <div class="col">
+                                    <p class="text-end" id="baseFare"></p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-8">
+                                    <p>Taxes & Fees</p>
+                                </div>
+                                <div class="col">
+                                    <p class="text-end" id="taxes"></p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-8">
+                                    <p>Passengers</p>
+                                </div>
+                                <div class="col">
+                                    <div class="hstack ms-auto">
+                                        <p class="ms-auto">x</p>
+                                        <p class="text-end" id="passengers"></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-auto">
+                                <div class="col">
+                                    <h4>Total</h4>
+                                </div>
+                                <div class="col">
+                                    <h3 class="text-end" id="totalFare"></h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card shadow mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Payment Method</h5>
+                <hr>
+                <h2>Card</h2>
+                <div class="mb-2">
+                    <img id="genericIcon" src="/static/icons/creditcard-icon.png">
+                    <img id="visaIcon" src="/static/icons/visa-icon.png">
+                    <img id="mastercardIcon" src="/static/icons/mastercard-icon.png">
+                    <img id="amexIcon" src="/static/icons/amex-icon.png">
+                </div>
+                <form>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="bi bi-credit-card"></i></span>
+                        <input type="text" class="form-control" name="credit_card" id="credit_card"
+                            placeholder="Card Number" aria-label="Card Number">
+                    </div>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" aria-label="Expiration">
+                        <input type="text" class="form-control" placeholder="Security Code" aria-label="Security Code">
+                        <span class="input-group-text"><i class="bi bi-credit-card-2-back"></i></span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<template id="flightRow">
+    <div class="hstack">
+        <h6 name="departureCode"></h6>
+        <h6><i class="bi bi-arrow-right-short"></i></h6>
+        <h6 name="arrivalCode"></h6>
+        <h6 name="flightNumber" class="ms-auto"></h6>
+    </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="/static/scripts/luxon.min.js"></script>
+<script type="text/javascript">
+    function GetCardType(number) {
+        // visa
+        var re = new RegExp("^4");
+        if (number.match(re) != null)
+            return "Visa";
+
+        // Mastercard 
+        // Updated for Mastercard 2017 BINs expansion
+        if (/^(5[1-5][0-9]{14}|2(22[1-9][0-9]{12}|2[3-9][0-9]{13}|[3-6][0-9]{14}|7[0-1][0-9]{13}|720[0-9]{12}))$/.test(number))
+            return "Mastercard";
+
+        // AMEX
+        re = new RegExp("^3[47]");
+        if (number.match(re) != null)
+            return "AMEX";
+
+        // Discover
+        re = new RegExp("^(6011|622(12[6-9]|1[3-9][0-9]|[2-8][0-9]{2}|9[0-1][0-9]|92[0-5]|64[4-9])|65)");
+        if (number.match(re) != null)
+            return "Discover";
+
+        // Diners
+        re = new RegExp("^36");
+        if (number.match(re) != null)
+            return "Diners";
+
+        // Diners - Carte Blanche
+        re = new RegExp("^30[0-5]");
+        if (number.match(re) != null)
+            return "Diners - Carte Blanche";
+
+        // JCB
+        re = new RegExp("^35(2[89]|[3-8][0-9])");
+        if (number.match(re) != null)
+            return "JCB";
+
+        // Visa Electron
+        re = new RegExp("^(4026|417500|4508|4844|491(3|7))");
+        if (number.match(re) != null)
+            return "Visa Electron";
+
+        return "";
+    }
+
+    $(document).ready(function () {
+        const $genericIcon = $('#genericIcon');
+        const $visaIcon = $('#visaIcon');
+        const $mastercardIcon = $('#mastercardIcon');
+        const $amexIcon = $('#amexIcon');
+
+        const numOfPassengers = window.sessionStorage.getItem("passengers");
+        const itineraryStr = window.sessionStorage.getItem("itinerary");
+        // TODO: We need to pass this data back to the server and get accurate pricing.
+        // A malicious actor could potentially modify the session storage object with a lower price.
+        const itinerary = JSON.parse(itineraryStr);
+
+        const departure_dt = luxon.DateTime.fromISO(itinerary.departure_datetime, { setZone: true });
+        const arrival_dt = luxon.DateTime.fromISO(itinerary.arrival_datetime, { setZone: true });
+
+        $('#departureDate').text(departure_dt.toFormat("ccc, LLL d"));
+        $('#departureAirport').text(itinerary.departure_airport.code);
+        $('#arrivalAirport').text(itinerary.arrival_airport.code);
+        $('#baseFare').text(`\$${itinerary.base_fare.toFixed(2)}`);
+        $('#taxes').text(`\$${itinerary.taxes.toFixed(2)}`);
+        $('#passengers').text(numOfPassengers);
+
+        const totalFare = itinerary.cost * numOfPassengers;
+        $('#totalFare').text(`\$${totalFare.toFixed(2)}`);
+
+        for (const i in itinerary.flights) {
+            const flight = itinerary.flights[i];
+
+            const template = document.querySelector('#flightRow');
+            const row = template.content.cloneNode(true);
+            const $row = $(row);
+
+            $row.find('[name="flightNumber"]').text(`RE${flight.number}`);
+            $row.find('[name="departureCode"]').text(flight.departure_airport.code);
+            $row.find('[name="arrivalCode"]').text(flight.arrival_airport.code);
+
+            $('#flightContainer').append(row);
+        }
+
+
+        $('#credit_card').on('input', function (event) {
+            const cc = $(this).val();
+            if (cc === "") {
+                $genericIcon.removeClass('greyIcon');
+                $visaIcon.removeClass('greyIcon');
+                $mastercardIcon.removeClass('greyIcon');
+                $amexIcon.removeClass('greyIcon');
+                return
+            }
+
+            const cardType = GetCardType(cc);
+            if (cardType === "Visa") {
+                $genericIcon.addClass('greyIcon');
+                $visaIcon.removeClass('greyIcon');
+                $mastercardIcon.addClass('greyIcon');
+                $amexIcon.addClass('greyIcon');
+            } else if (cardType === "Mastercard") {
+                $genericIcon.addClass('greyIcon');
+                $visaIcon.addClass('greyIcon');
+                $mastercardIcon.removeClass('greyIcon');
+                $amexIcon.addClass('greyIcon');
+            } else if (cardType === "AMEX") {
+                $genericIcon.addClass('greyIcon');
+                $visaIcon.addClass('greyIcon');
+                $mastercardIcon.addClass('greyIcon');
+                $amexIcon.removeClass('greyIcon');
+            } else {
+                $genericIcon.removeClass('greyIcon');
+                $visaIcon.addClass('greyIcon');
+                $mastercardIcon.addClass('greyIcon');
+                $amexIcon.addClass('greyIcon');
+            }
+        });
+    });
+</script>
+{% endblock %}

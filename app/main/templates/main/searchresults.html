@@ -48,7 +48,7 @@
     <div class="container mt-3" style="max-width: 938px;">
         <h2>{{ departure.code }}<i class="bi bi-arrow-right-short"></i>{{ arrival.code }}</h2>
         <h5>{{ date.strftime("%a, %b %d, %Y") }}</h5>
-        <div id="resultContainer" class="mx-md-5"></div>
+        <div id="resultContainer" class="mx-md-5 mt-4"></div>
     </div>
 </div>
 <template id="resultRow">
@@ -181,6 +181,7 @@
 
                         $row.find('[name="book"]').click((event) => {
                             window.sessionStorage.setItem("itinerary", JSON.stringify(item));
+                            window.sessionStorage.setItem("passengers", "{{ args.get('num_of_passengers') }}");
                             window.location = "{{ url_for('main.checkout') }}";
                         });
 

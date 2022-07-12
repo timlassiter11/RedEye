@@ -218,7 +218,7 @@ class Flight(PaginatedAPIMixin, db.Model):
         # Maybe base it on date? 
         # Weekends more expenive?
         # Have the ability to put surge charges in the DB?
-        return round(self.distance * 0.2)
+        return round(self.distance * 0.2, 2)
 
     def is_cancelled(self, date: dt.date) -> bool:
         query = Flight.query.filter(
@@ -467,6 +467,8 @@ class TripItinerary:
             "cost": self.cost,
             "base_fare": self.base_fare,
             "taxes": self.taxes,
+            "departure_airport": self._flights[0].departure_airport.to_dict(),
+            "arrival_airport": self._flights[-1].arrival_airport.to_dict(),
             "departure_datetime": departure_dt.isoformat(),
             "arrival_datetime": arrival_dt.isoformat(),
             "total_time": str(self.total_time),
@@ -520,7 +522,8 @@ class TripItinerary:
             # Filter out flights that have already taken off
             # if they are looking for same day flights.
             if departure_date == dt.date.today():
-                now = dt.datetime.utcnow()
+                # Add 30 minutes to filter out flights that are already boarding.
+                now = dt.datetime.utcnow() + dt.timedelta(minutes=30)
                 query = query.filter(Flight.departure_time > now.time())
 
         # Find flights departing from our current airport.
