@@ -103,9 +103,13 @@
             $label.after($feedback)
         }
 
-        function logout() {
+        function logout(next) {
             $.post("{{ url_for('api.logout') }}", function(data) {
-                window.location = "{{ url_for('main.home') }}"
+                if (typeof next === "string") {
+                    window.location = next;
+                } else {
+                    location.reload();
+                }
             })
         }
     </script>
