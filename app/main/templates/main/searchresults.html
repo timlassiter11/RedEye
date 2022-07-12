@@ -137,7 +137,13 @@
                             flight = item.flights[j];
 
                             if (previousFlight !== null) {
-                                let nextDeparture = luxon.DateTime.fromISO(flight.departure_time, { zone: "utc" });
+                                const parts = flight.departure_time.split(':');
+
+                                let nextDeparture = current_dt.set({
+                                    hour: parts[0],
+                                    minute: parts[1]
+                                });
+                                
                                 // Handle layover rolling over midnight
                                 if (nextDeparture < current_dt) {
                                     nextDeparture = nextDeparture.plus(luxon.Duration.fromObject({hours: 24}));
