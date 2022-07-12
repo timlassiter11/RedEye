@@ -176,7 +176,13 @@
                         $tripTime.text(tripTime.toFormat("h'h'm'm'"));
                         
                         const $cost = $row.find('[name="cost"]');
-                        $cost.text(`\$${item.cost}`);
+                        const cost = item.cost.toFixed(2);
+                        $cost.text(`\$${cost}`);
+
+                        $('[name="book"]').click(function(event) {
+                            window.sessionStorage.setItem("itinerary", JSON.stringify(item));
+                            window.location = "{{ url_for('main.checkout') }}";
+                        });
 
                         $('#resultContainer').append(row);
                     }
