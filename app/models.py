@@ -9,7 +9,7 @@ import jwt
 import pytz
 from flask import current_app, url_for
 from flask_login import UserMixin
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, or_
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, login
@@ -550,10 +550,34 @@ class TripItinerary:
         prev_ids = [flight.departure_id for flight in current_itinerary.flights]
         query = query.filter(~Flight.arrival_id.in_(prev_ids))
 
+        # Create a subquery which counts the total number of tickets sold for each flight
+        # TODO: Take into account refunded tickets
+        subquery = (
+            db.session.query(
+                PurchasedTicket.flight_id,
+                func.count(PurchasedTicket.id).label("purchased_tickets"),
+            )
+            .group_by(PurchasedTicket.flight_id)
+            .group_by(PurchasedTicket.departure_date)
+            .subquery()
+        )
+        # Outer join ensures that results without purchased tickets are still retrieved
+        query = query.outerjoin(subquery, Flight.id == subquery.c.flight_id)
+        # We need to know the capacity of the plane
+        query = query.join(Airplane)
+        # Filter out flights without enough available seats or that have no tickets sold (purchased_tickets == None)
+        query = query.filter(
+            or_(
+                (Airplane.capacity - subquery.c.purchased_tickets) > num_of_passengers,
+                subquery.c.purchased_tickets == None,
+            )
+        )
+
         # Prioritize direct flights by placing them first.
         query = query.order_by(desc(func.field(Flight.arrival_id, final_airport)))
         # Then order by departure time.
         query = query.order_by(desc(Flight.departure_time))
+
         potential_flights: List[Flight] = query.all()
         for flight in potential_flights:
             # Enforce a maximum layover length
@@ -567,11 +591,6 @@ class TripItinerary:
                 delta = end - start
                 if delta > max_layover_time:
                     continue
-
-            # Filter out flights that don't have enough seats.
-            # TODO: Figure out how to make this an SQL query to improve performance.
-            if flight.available_seats(departure_date) < num_of_passengers:
-                continue
 
             TripItinerary.search(
                 departing_airport=flight.arrival_id,
