@@ -66,6 +66,32 @@
 <script src="/static/scripts/luxon.min.js"></script>
 <script src="/static/scripts/typeahead.bundle.min.js"></script>
 <script>
+    function setInvalid($input, $feedback, message) {
+        $input.addClass('is-invalid');
+        $input[0].setCustomValidity(message);
+        $feedback.addClass('invalid-feedback');
+        $feedback.text(message);
+    }
+
+    function setValid($input, $feedback, message) {
+        $input.removeClass('is-invalid');
+        $input[0].setCustomValidity('');
+        $feedback.removeClass('invalid-feedback');
+        $feedback.text(message);
+    }
+
+    function validateInput($input, $feedback) {
+        const code = $input.val();
+        $.getJSON(`/api/airports/${code}`, function(data) {
+            setValid($input, $feedback, `${data.city}, ${data.state}`);
+        })
+            .fail(function(jqxhr, textStatus, error) {
+                if (jqxhr.status === 404) {
+                    setInvalid($input, $feedback, 'Enter valid airport');
+                }
+            });
+    }
+
     $(document).ready(function () {
         const $form = $('#searchForm');
         const $departure_input = $('#departure_code');
@@ -79,36 +105,33 @@
 
         $departure_input.bind('typeahead:change', function(event) {
             const departure_code = $departure_input.val();
-            $.getJSON(`/api/airports/${departure_code}`, function(data) {
-                $departure_input.removeClass('is-invalid');
-                $departure_input[0].setCustomValidity('');
-                $departure_feedback.removeClass('invalid-feedback');
-                $departure_feedback.text(`${data.city}, ${data.state}`);
-            })
-                .fail(function(jqxhr, textStatus, error) {
-                    if (jqxhr.status === 404) {
-                        $departure_input.addClass('is-invalid');
-                        $departure_input[0].setCustomValidity('Enter valid airport');
-                        $departure_feedback.addClass('invalid-feedback');
-                        $departure_feedback.text('Enter valid airport');
-                    }
-                });
+            const arrival_code = $arrival_input.val();
+            if (departure_code === "") {
+                setValid($departure_input, $departure_feedback, "");
+                return
+            } else if (departure_code === arrival_code) {
+                setInvalid($departure_input, $departure_feedback, "Airports cannot match");
+            } else if (arrival_code !== "") {
+                validateInput($arrival_input, $arrival_feedback);
+            }
+
+            validateInput($departure_input, $departure_feedback);
         });
 
         $arrival_input.bind('typeahead:change', function(event) {
+            const departure_code = $departure_input.val();
             const arrival_code = $arrival_input.val();
-            $.getJSON(`/api/airports/${arrival_code}`, function(data) {
-                $arrival_input.removeClass('is-invalid');
-                $arrival_input[0].setCustomValidity('');
-                $arrival_feedback.removeClass('invalid-feedback');
-                $arrival_feedback.text(`${data.city}, ${data.state}`);
-            })
-                .fail(function(jqxhr, textStatus, error) {
-                    $arrival_input.addClass('is-invalid');
-                    $arrival_input[0].setCustomValidity('Enter valid airport');
-                    $arrival_feedback.addClass('invalid-feedback');
-                    $arrival_feedback.text('Enter valid airport');
-                });
+            if (arrival_code === "") {
+                setValid($arrival_input, $arrival_feedback, "");
+                return
+            } else if (arrival_code === departure_code) {
+                setInvalid($arrival_input, $arrival_feedback, "Airports cannot match");
+                return
+            } else if (departure_code !== "") {
+                validateInput($departure_input, $departure_feedback);
+            }
+
+            validateInput($arrival_input, $arrival_feedback);
         });
 
         $form.submit(function(event) {
