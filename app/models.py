@@ -182,9 +182,9 @@ class Flight(PaginatedAPIMixin, db.Model):
     airplane_id = db.Column(db.Integer, db.ForeignKey("airplane.id"))
     departure_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
     arrival_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
-    departure_time = db.Column(db.Time, nullable=False)
-    start = db.Column(db.Date, nullable=False)
-    end = db.Column(db.Date, nullable=False)
+    departure_time = db.Column(db.Time, nullable=False, index=True)
+    start = db.Column(db.Date, nullable=False, index=True)
+    end = db.Column(db.Date, nullable=False, index=True)
 
     departure_airport = db.relationship(
         "Airport", foreign_keys=[departure_id], backref="departures"
@@ -294,7 +294,7 @@ class PurchasedTicket(db.Model):
     purchase_timestamp = db.Column(db.DateTime, nullable=False)
     purchase_price = db.Column(db.Float, nullable=False)
     assisted_by = db.Column(db.Integer, db.ForeignKey("user.id"))
-    departure_date = db.Column(db.Date, nullable=False)
+    departure_date = db.Column(db.Date, nullable=False, index=True)
     flight = db.relationship("Flight", backref="purchases")
     refund = db.relationship("RefundedTicket", back_populates="ticket", uselist=False)
     
@@ -523,7 +523,7 @@ class TripItinerary:
             # if they are looking for same day flights.
             if departure_date == dt.date.today():
                 # Add 30 minutes to filter out flights that are already boarding.
-                now = dt.datetime.utcnow() + dt.timedelta(minutes=30)
+                now = dt.datetime.utcnow() - dt.timedelta(minutes=30)
                 query = query.filter(Flight.departure_time > now.time())
 
         # Find flights departing from our current airport.
