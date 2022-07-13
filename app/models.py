@@ -523,7 +523,7 @@ class TripItinerary:
             # if they are looking for same day flights.
             if departure_date == dt.date.today():
                 # Add 30 minutes to filter out flights that are already boarding.
-                now = dt.datetime.utcnow() - dt.timedelta(minutes=30)
+                now = dt.datetime.utcnow() + dt.timedelta(minutes=50)
                 query = query.filter(Flight.departure_time > now.time())
 
         # Find flights departing from our current airport.
