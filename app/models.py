@@ -9,6 +9,7 @@ import jwt
 import pytz
 from flask import current_app, url_for
 from flask_login import UserMixin
+from sqlalchemy import desc, func
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, login
@@ -230,7 +231,9 @@ class Flight(PaginatedAPIMixin, db.Model):
         if date < self.start or date > self.end:
             raise ValueError("date must be between start and end")
 
-        cancellation = FlightCancellation(date=date, cancelled_by=user_id, flight_id=self.id)
+        cancellation = FlightCancellation(
+            date=date, cancelled_by=user_id, flight_id=self.id
+        )
         db.session.add(cancellation)
         db.session.commit()
         db.session.refresh(cancellation)
@@ -460,7 +463,9 @@ class TripItinerary:
         arrival_dt = self.arrival_datetime
 
         if not utc:
-            departure_dt = departure_dt.astimezone(ZoneInfo(self.departure_airport.timezone))
+            departure_dt = departure_dt.astimezone(
+                ZoneInfo(self.departure_airport.timezone)
+            )
             arrival_dt = arrival_dt.astimezone(ZoneInfo(self.arrival_airport.timezone))
 
         return {
@@ -483,6 +488,7 @@ class TripItinerary:
         departure_date: dt.date,
         num_of_passengers: int = 1,
         max_layovers: int = 2,
+        limit: int = 10,
         min_layover_time: dt.timedelta = dt.timedelta(minutes=45),
         max_layover_time: dt.timedelta = dt.timedelta(hours=5),
         previous_flight: "Flight" = None,
@@ -544,6 +550,10 @@ class TripItinerary:
         prev_ids = [flight.departure_id for flight in current_itinerary.flights]
         query = query.filter(~Flight.arrival_id.in_(prev_ids))
 
+        # Prioritize direct flights by placing them first.
+        query = query.order_by(desc(func.field(Flight.arrival_id, final_airport)))
+        # Then order by departure time.
+        query = query.order_by(desc(Flight.departure_time))
         potential_flights: List[Flight] = query.all()
         for flight in potential_flights:
             # Enforce a maximum layover length
@@ -573,6 +583,9 @@ class TripItinerary:
                 current_itinerary=current_itinerary,
                 trip_itinerarys=trip_itinerarys,
             )
+
+            if len(trip_itinerarys) >= limit:
+                break
 
         # When we exit this context it means we are done with this
         # branch of the "tree". Remove this flight from the path.
