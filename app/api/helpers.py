@@ -62,10 +62,12 @@ def get_or_404(model, id):
     return item
 
 
-def code_to_airport(code: str) -> Airport:
+def code_to_airport(code: str, error_message: str = None) -> Airport:
     airport = Airport.query.filter_by(code=code).first()
     if not airport:
-        raise ValueError("Invalid airport code.")
+        if not error_message:
+            error_message = "Invalid airport code."
+        raise ValueError(error_message)
     return airport
 
 
