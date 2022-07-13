@@ -48,6 +48,9 @@
     <div class="container mt-3" style="max-width: 938px;">
         <h2>{{ departure.code }}<i class="bi bi-arrow-right-short"></i>{{ arrival.code }}</h2>
         <h5>{{ date.strftime("%a, %b %d, %Y") }}</h5>
+        <div id="noFlightsMessage" class="shadow p-3 d-none mt-3">
+            <p class="fw-bold my-2">Unfortunately, no flights meet your search criteria.</p>
+        </div>
         <div id="resultContainer" class="mx-md-5 mt-4"></div>
     </div>
 </div>
@@ -104,6 +107,8 @@
                 if (response._meta.total_items === 0) {
                     // TODO: Display something when no available flights are found.
                     console.log("No results found")
+                    $('#noFlightsMessage').removeClass('d-none');
+                    searchCollapse.show();
                 } else {
                     for (const i in response.items) {
                         const item = response.items[i];
