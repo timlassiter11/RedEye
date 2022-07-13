@@ -50,7 +50,6 @@
     justify-content: center;
     align-items: center;
     height: 100%;
-    z-index: 1;
 }
 
 .overlay {
@@ -60,13 +59,14 @@
     bottom: 0;
     right: 0;
     background-color: rgba(0,0,0,0.5);
-    z-index: 1;
+    z-index: -2;
 }
 
 .overlay-background {
     margin: auto;
     display: block;
     width: 60%;
+    z-index: -3;
 }
   
 .overlay-content {
@@ -76,6 +76,7 @@
     color: white;
     transform: translate(-50%,-50%);
     -ms-transform: translate(-50%,-50%);
+    z-index: -1;
 }
 
 .text-redeye {
@@ -86,4 +87,32 @@
     color: #FFF;
     background-color: var(--redeye);
     border-color: var(--redeye);
+}
+
+.feedback {
+    font-size: 0.875rem !important;
+}
+
+.collapse-button::after {
+    position: absolute;
+    bottom: 5px;
+    left: 0;
+    right: 0;
+    margin: auto;
+    width: 0%;
+    content: "";
+    height: 2px;
+    transition: all 0.5s;
+}
+
+.collapse-button-dark::after {
+    background-color: #FFFFFF;
+}
+
+.collapse-button-light::after {
+    background-color: #000000;
+}
+
+.collapse-button.active::after {
+    width: 70%;
 }

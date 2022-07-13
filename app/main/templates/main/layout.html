@@ -5,85 +5,283 @@
 {% set endpoint = request.endpoint -%}
 {% endif -%}
 
+{% block styles %}
+{{ super() }}
+<link href="/static/content/typeahead.css" rel="stylesheet">
+{% endblock %}
+
 {% block body %}
-    <div class="d-flex flex-column min-vh-100">
-        {% block navbar %}
-        <nav class="navbar navbar-expand-md navbar-light bg-white my-3">
-            <div class="container">
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" 
-                    aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <a class="navbar-brand" href="{{ url_for('main.home') }}">
-                    <img src="/static/images/logo.png" alt="" width="120" height="30">
-                </a>
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link{% if endpoint == 'main.home' %} active {% endif %}" aria-current="page" href="{{ url_for('main.home') }}">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link{% if endpoint == 'main.catalog' %} active {% endif %}" aria-current="page" href="#">Catalog</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link{% if endpoint == 'main.contact' %} active {% endif %}" aria-current="page" href="#">Contact</a>
-                        </li>
-                    </ul>
-                    <ul class="navbar-nav">
-                        {% if current_user.is_anonymous %}
-                        <li class="nav-item">
-                            <a class="nav-link p-2" href="{{ url_for('auth.register') }}">
-                                <i class="bi bi-person-fill mx-2"></i><i>Sign Up</i>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            {% if args is defined %}
-                            {% set next = url_for(endpoint, **args) %}
-                            {% else %}
-                            {% set next = url_for(endpoint) %}
-                            {% endif %}
-                            <a class="nav-link p-2" href="{{ url_for('auth.login', next=next) }}">
-                                <i class="bi bi-box-arrow-in-right mx-2"></i></i>Login</i>
-                            </a>
-                        </li>
+<div class="d-flex flex-column min-vh-100">
+    {% block navbar %}
+    <nav class="navbar navbar-expand-md navbar-light bg-white my-3">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="{{ url_for('main.home') }}">
+                <img src="/static/images/logo.png" alt="" width="120" height="30">
+            </a>
+            <ul class="navbar-nav flex-row d-flex d-md-none">
+                <li class="position-relative">
+                    <a class="nav-link p-2 collapse-button collapse-button-light" name="searchButton" data-bs-toggle="collapse" href="#searchCollapse" role="button" aria-expanded="false" aria-controls="searchCollapse">
+                        <i class="bi bi-search"></i>
+                    </a>
+                </li>
+            </ul>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link{% if endpoint == 'main.home' %} active {% endif %}" aria-current="page"
+                            href="{{ url_for('main.home') }}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link{% if endpoint == 'main.catalog' %} active {% endif %}" aria-current="page"
+                            href="#">Catalog</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link{% if endpoint == 'main.contact' %} active {% endif %}" aria-current="page"
+                            href="#">Contact</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav d-none d-md-flex">
+                    <li class="position-relative">
+                        <a class="nav-link p-2 collapse-button collapse-button-light" name="searchButton" data-bs-toggle="collapse" href="#searchCollapse" role="button" aria-expanded="false" aria-controls="searchCollapse">
+                            <i class="bi bi-search"></i>
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    {% if current_user.is_anonymous %}
+                    <li class="nav-item">
+                        <a class="nav-link p-2" href="{{ url_for('auth.register') }}">
+                            <i class="bi bi-person-fill mx-2"></i><i>Sign Up</i>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        {% if args is defined %}
+                        {% set next = url_for(endpoint, **args) %}
                         {% else %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-item nav-link dropdown-toggle me-md-2" href="#" data-bs-toggle="dropdown"
-                                aria-haspopup="true" aria-expanded="false" id="user-menu">
-                                {{ current_user.first_name }}
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu">
-                                {% if current_user.role == 'admin' %}
-                                <li><a class="dropdown-item" href="{{ url_for('admin.home') }}">Admin</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                {% endif %}
-                                <li><a class="dropdown-item" href="#" onclick="logout()">
-                                    <i class="bi bi-box-arrow-left"></i> Logout</a>
-                                </li>
-                            </ul>
-                        </li>
+                        {% set next = url_for(endpoint) %}
                         {% endif %}
-                    </ul>
+                        <a class="nav-link p-2" href="{{ url_for('auth.login', next=next) }}">
+                            <i class="bi bi-box-arrow-in-right mx-2"></i></i>Login</i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-item nav-link dropdown-toggle me-md-2" href="#" data-bs-toggle="dropdown"
+                            aria-haspopup="true" aria-expanded="false" id="user-menu">
+                            {{ current_user.first_name }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu">
+                            {% if current_user.role == 'admin' %}
+                            <li><a class="dropdown-item" href="{{ url_for('admin.home') }}">Admin</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="#" onclick="logout()">
+                                    <i class="bi bi-box-arrow-left"></i> Logout</a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endblock %}
+    <div id="alertContainer" class="container">
+        {% block messages %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        {% if category == 'message' %}{% set category = 'primary' %}{% endif %}
+        <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% endblock %}
+    </div>
+    {% block search %}
+    <div class="collapse" id="searchCollapse">
+        <form id="searchForm" class="needs-validation" method="get" action="{{ url_for('main.search') }}" novalidate>
+            <div class="container">
+                <div class="d-flex flex-column flex-md-row mb-3 justify-content-center">
+                    <div class="form-floating">
+                        <input class="form-control" id="departure_code" name="departure_code" placeholder="From" type="text"
+                            autocomplete="off" required>
+                        <label for="departure_code">From</label>
+                        <p class="lead feedback" id="departure_code-feedback"></p>
+                    </div>
+                    <h1 class="d-none d-md-block"><i class="bi bi-arrow-right-short"></i></h1>
+                    <div class="form-floating">
+                        <input class="form-control" id="arrival_code" name="arrival_code" placeholder="To" type="text"
+                            autocomplete="off" required>
+                        <label for="arrival_code">To</label>
+                        <p class="lead feedback" id="arrival_code-feedback"></p>
+                    </div>
+                    <div class="form-floating mb-3 mb-md-0 mx-md-3">
+                        <input class="form-control" id="departure_date" name="departure_date" type="date" required>
+                        <label for="departure_date">Date</label>
+                    </div>
+                    <div class="form-floating mb-3 mb-md-0 mx-md-3">
+                        <input class="form-control pe-4" id="num_of_passengers" name="num_of_passengers" type="number"
+                            min="1" max="5" value="1" required>
+                        <label for="num_of_passengers">Passengers</label>
+                    </div>
+                    <div class="d-grid d-md-block">
+                        <!-- Height of calc(3.5rem + 2px) keeps the button the same height as the rest of the search fields. -->
+                        <button type="submit" class="btn btn-redeye" style="height: calc(3.5rem + 2px);"><i
+                                class="bi bi-arrow-right-circle"></i></button>
+                    </div>
                 </div>
             </div>
-        </nav>
-        {% endblock %}
-        <div id="alertContainer" class="container">
-            {% block messages %}
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            {% if category == 'message' %}{% set category = 'primary' %}{% endif %}
-            <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
-            {% endblock %}
-        </div>
-        {% block content %}{% endblock %}
+        </form>
     </div>
+    {% endblock %}
+    {% block content %}{% endblock %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="/static/scripts/luxon.min.js"></script>
+<script src="/static/scripts/typeahead.bundle.min.js"></script>
+<script>
+    let searchCollapse = null;
+
+    function setInvalid($input, $feedback, message) {
+        $input.addClass('is-invalid');
+        $input[0].setCustomValidity(message);
+        $feedback.addClass('invalid-feedback');
+        $feedback.text(message);
+    }
+
+    function setValid($input, $feedback, message) {
+        $input.removeClass('is-invalid');
+        $input[0].setCustomValidity('');
+        $feedback.removeClass('invalid-feedback');
+        $feedback.text(message);
+    }
+
+    function validateInput($input, $feedback) {
+        const code = $input.val();
+        $.getJSON(`/api/airports/${code}`, function (data) {
+            setValid($input, $feedback, `${data.city}, ${data.state}`);
+            const key = `last_${$input.attr("id")}`;
+            window.sessionStorage.setItem(key, code);
+        })
+            .fail(function (jqxhr, textStatus, error) {
+                if (jqxhr.status === 404) {
+                    setInvalid($input, $feedback, 'Enter valid airport');
+                }
+            });
+    }
+
+    $(document).ready(function () {
+        const searchCollapseEl = document.getElementById('searchCollapse')
+        searchCollapse = new bootstrap.Collapse(searchCollapseEl, {
+            toggle: false
+        });
+
+        $(searchCollapseEl).on('show.bs.collapse', function(event) {
+            $('[name="searchButton"]').addClass('active');
+        });
+
+        $(searchCollapseEl).on('hide.bs.collapse', function(event) {
+            $('[name="searchButton"]').removeClass('active');
+        });
+
+        const $form = $('#searchForm');
+        const $departure_input = $('#departure_code');
+        const $departure_feedback = $('#departure_code-feedback');
+        const $arrival_input = $('#arrival_code');
+        const $arrival_feedback = $('#arrival_code-feedback');
+        const $date_input = $('#departure_date');
+        const $passengers_input = $('#num_of_passengers');
+
+        setupAirportTypeahead($departure_input);
+        setupAirportTypeahead($arrival_input);
+
+        $departure_input.on('typeahead:change', function (event) {
+            const departure_code = $departure_input.val();
+            const arrival_code = $arrival_input.val();
+            if (departure_code === "") {
+                setValid($departure_input, $departure_feedback, "");
+                return
+            } else if (departure_code === arrival_code) {
+                setInvalid($departure_input, $departure_feedback, "Airports cannot match");
+            } else if (arrival_code !== "") {
+                validateInput($arrival_input, $arrival_feedback);
+            }
+
+            validateInput($departure_input, $departure_feedback);
+        });
+
+        $arrival_input.on('typeahead:change', function (event) {
+            const departure_code = $departure_input.val();
+            const arrival_code = $arrival_input.val();
+            if (arrival_code === "") {
+                setValid($arrival_input, $arrival_feedback, "");
+                return
+            } else if (arrival_code === departure_code) {
+                setInvalid($arrival_input, $arrival_feedback, "Airports cannot match");
+                return
+            } else if (departure_code !== "") {
+                validateInput($departure_input, $departure_feedback);
+            }
+
+            validateInput($arrival_input, $arrival_feedback);
+        });
+
+        $date_input.on('change', function (event) {
+            window.sessionStorage.setItem('last_departure_date', $date_input.val());
+        });
+
+        $passengers_input.on('change', function (event) {
+            window.sessionStorage.setItem('last_num_of_passengers', $passengers_input.val());
+        });
+
+        $form.submit(function (event) {
+            if (!this.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            $form.addClass('was-validated');
+        });
+
+        const lastDepartureCode = window.sessionStorage.getItem("last_departure_code");
+        if (typeof lastDepartureCode === "string") {
+            $departure_input.val(lastDepartureCode);
+            validateInput($departure_input, $departure_feedback);
+        }
+        const lastArrivalCode = window.sessionStorage.getItem("last_arrival_code");
+        if (typeof lastArrivalCode === "string") {
+            $arrival_input.val(lastArrivalCode);
+            validateInput($arrival_input, $arrival_feedback);
+        }
+
+        const lastDepartureDate = window.sessionStorage.getItem("last_departure_date");
+        if (typeof lastDepartureDate === "string") {
+            $date_input.val(lastDepartureDate);
+        } else {
+            const today = luxon.DateTime.now();
+            $date_input.attr("min", today.toISODate());
+            const max = today.plus({ months: 12 });
+            $date_input.attr("max", max.toISODate());
+            $date_input.val(today.toISODate());
+        }
+
+        const lastNumOfPassengers = window.sessionStorage.getItem("last_num_of_passengers");
+        if (typeof lastNumOfPassengers === "string") {
+            $passengers_input.val(lastNumOfPassengers);
+        }
+    });
+</script>
 {% endblock %}

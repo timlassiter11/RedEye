@@ -1,54 +1,14 @@
 {% extends "main/layout.html" %}
 
-{% block styles %}
-{{ super() }}
-<link href="/static/content/typeahead.css" rel="stylesheet">
-{% endblock %}
-
 {% block content %}
-<form id="searchForm" class="needs-validation" method="get" action="{{ url_for('main.search') }}" novalidate>
-    <div class="container">
-        <div class="row">
-            <div class="col-md-5 mb-3">
-                <div class="d-flex flex-row justify-content-center">
-                    <div class="form-floating">
-                        <input class="form-control" id="departure_code" name="departure_code" placeholder="From" type="text" autocomplete="off" required>
-                        <label for="departure_code">From</label>
-                        <div class="d-none d-md-block lead" style="font-size: 0.9rem;" id="departure_code-feedback"></div>
-                    </div>
-                    <h1><i class="bi bi-arrow-right-short"></i></h1>
-                    <div class="form-floating">
-                        <input class="form-control" id="arrival_code" name="arrival_code" placeholder="To" type="text" autocomplete="off" required>
-                        <label for="arrival_code">To</label>
-                        <div class="d-none d-md-block lead" style="font-size: 0.9rem;" id="arrival_code-feedback"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col mb-3">
-                <div class="form-floating">
-                    <input class="form-control" id="departure_date" name="departure_date" type="date" required>
-                    <label for="departure_date">Date</label>
-                </div>
-            </div>
-            <div class="col mb-3">
-                <div class="form-floating">
-                    <input class="form-control" id="num_of_passengers" name="num_of_passengers" type="number" min="1" max="5" value="1" required>
-                    <label for="num_of_passengers">Passengers</label>
-                </div>
-            </div>
-            <div class="col-md-1 mb-3">
-                <!-- Height of calc(3.5rem + 2px) keeps the button the same height as the rest of the search fields. -->
-                <button type="submit" class="btn btn-redeye" style="height: calc(3.5rem + 2px);"><i class="bi bi-arrow-right-circle"></i></button>
-            </div>
-        </div>
-    </div>
-</form>
 <div class="overlay-parent flex-grow-1">
     <img src="/static/images/logo.png" class="overlay-background">
     <div class="overlay">
-        <div class="overlay-content text-center" style="top: 80%; transform: translate(-50%, -80%); -ms-transform: translate(-50%,-80%);">
+        <div class="overlay-content text-center"
+            style="top: 80%; transform: translate(-50%, -80%); -ms-transform: translate(-50%,-80%);">
             <h1>Book Now</h1>
-            <p class="text-wrap text-uppercase">Book a flight quick and easy with 24/7 customer support and free cancellations</p>
+            <p class="text-wrap text-uppercase">Book a flight quick and easy with 24/7 customer support and free
+                cancellations</p>
             <div>
                 <button type="button" class="btn btn-outline-light mx-auto">Search All</button>
             </div>
@@ -57,96 +17,20 @@
 </div>
 <div class="my-3 text-center">
     <h3 class="mb-3">Book a flight with our new user friendly app!</h3>
-    <p class="text-wrap">Red Eye is a website for booking flights with free cancellation and email notifications. Book your flight today!</p>
+    <p class="text-wrap">Red Eye is a website for booking flights with free cancellation and email notifications. Book
+        your flight today!</p>
 </div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-<script src="/static/scripts/luxon.min.js"></script>
-<script src="/static/scripts/typeahead.bundle.min.js"></script>
 <script>
-    function setInvalid($input, $feedback, message) {
-        $input.addClass('is-invalid');
-        $input[0].setCustomValidity(message);
-        $feedback.addClass('invalid-feedback');
-        $feedback.text(message);
-    }
-
-    function setValid($input, $feedback, message) {
-        $input.removeClass('is-invalid');
-        $input[0].setCustomValidity('');
-        $feedback.removeClass('invalid-feedback');
-        $feedback.text(message);
-    }
-
-    function validateInput($input, $feedback) {
-        const code = $input.val();
-        $.getJSON(`/api/airports/${code}`, function(data) {
-            setValid($input, $feedback, `${data.city}, ${data.state}`);
-        })
-            .fail(function(jqxhr, textStatus, error) {
-                if (jqxhr.status === 404) {
-                    setInvalid($input, $feedback, 'Enter valid airport');
-                }
-            });
-    }
-
     $(document).ready(function () {
-        const $form = $('#searchForm');
-        const $departure_input = $('#departure_code');
-        const $departure_feedback = $('#departure_code-feedback');
-        const $arrival_input = $('#arrival_code');
-        const $arrival_feedback = $('#arrival_code-feedback');
-        const $date_input = $('#departure_date');
-
-        setupAirportTypeahead($departure_input);
-        setupAirportTypeahead($arrival_input);
-
-        $departure_input.bind('typeahead:change', function(event) {
-            const departure_code = $departure_input.val();
-            const arrival_code = $arrival_input.val();
-            if (departure_code === "") {
-                setValid($departure_input, $departure_feedback, "");
-                return
-            } else if (departure_code === arrival_code) {
-                setInvalid($departure_input, $departure_feedback, "Airports cannot match");
-            } else if (arrival_code !== "") {
-                validateInput($arrival_input, $arrival_feedback);
-            }
-
-            validateInput($departure_input, $departure_feedback);
-        });
-
-        $arrival_input.bind('typeahead:change', function(event) {
-            const departure_code = $departure_input.val();
-            const arrival_code = $arrival_input.val();
-            if (arrival_code === "") {
-                setValid($arrival_input, $arrival_feedback, "");
-                return
-            } else if (arrival_code === departure_code) {
-                setInvalid($arrival_input, $arrival_feedback, "Airports cannot match");
-                return
-            } else if (departure_code !== "") {
-                validateInput($departure_input, $departure_feedback);
-            }
-
-            validateInput($arrival_input, $arrival_feedback);
-        });
-
-        $form.submit(function(event) {
-            if (!this.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            $form.addClass('was-validated');
-        });
-
-        const today = luxon.DateTime.now();
-        $date_input.attr("min", today.toISODate());
-        const max = today.plus({months: 12});
-        $date_input.attr("max", max.toISODate());
-        $date_input.val(today.toISODate());
+        // Show search by default on larger screens.
+        const x = window.matchMedia("(min-width: 768px)")
+        if (x.matches) {
+            searchCollapse.show();
+        }
     });
 </script>
 {% endblock %}
