@@ -11,12 +11,12 @@
 {% block head_scripts %}
 {{ super() }}
 <script>
-const numOfPassengers = window.sessionStorage.getItem("passengers");
-const itineraryStr = window.sessionStorage.getItem("itinerary");
-if (itineraryStr === null || numOfPassengers === null) {
-    // If they navigated to this page from a previous session we need to send them back to the home page.
-    window.location.replace("{{ url_for('main.home') }}");
-}
+    const numOfPassengers = parseInt(window.sessionStorage.getItem("passengers"));
+    const itineraryStr = window.sessionStorage.getItem("itinerary");
+    if (itineraryStr === null || numOfPassengers === NaN) {
+        // If they navigated to this page from a previous session we need to send them back to the home page.
+        window.location.replace("{{ url_for('main.home') }}");
+    }
 </script>
 {% endblock %}
 
@@ -38,7 +38,7 @@ if (itineraryStr === null || numOfPassengers === null) {
                             </div>
                         </div>
                         <div class="col-md">
-                            
+
                         </div>
                         <hr class="d-md-none">
                         <div class="col-md-4">
@@ -84,6 +84,13 @@ if (itineraryStr === null || numOfPassengers === null) {
         </div>
         <div class="card shadow mb-3">
             <div class="card-body">
+                <h5 class="card-title">Passenger Info</h5>
+                <hr>
+                <div id="passengerFormContainer"></div>
+            </div>
+        </div>
+        <div class="card shadow mb-3">
+            <div class="card-body">
                 <h5 class="card-title">Payment Method</h5>
                 <hr>
                 <h2>Card</h2>
@@ -97,11 +104,14 @@ if (itineraryStr === null || numOfPassengers === null) {
                     <div class="input-group mb-3">
                         <span class="input-group-text"><i class="bi bi-credit-card"></i></span>
                         <label for="card_number" hidden></label>
-                        <input class="form-control" name="card_number" id="card_number" placeholder="Card Number" required autocomplete="cc-number"/>
+                        <input class="form-control" name="card_number" id="card_number" placeholder="Card Number"
+                            required autocomplete="cc-number" />
                     </div>
                     <div class="input-group mb-3">
-                        <input name="card_expiry" id="card_expiry" type="text" class="form-control" placeholder="MM / YY" required autocomplete="cc-exp">
-                        <input name="card_cvc" id="card_cvc" type="text" class="form-control" placeholder="CVC" required autocomplete="off">
+                        <input name="card_expiry" id="card_expiry" type="text" class="form-control"
+                            placeholder="MM / YY" required autocomplete="cc-exp">
+                        <input name="card_cvc" id="card_cvc" type="text" class="form-control" placeholder="CVC" required
+                            autocomplete="off">
                         <span class="input-group-text"><i class="bi bi-credit-card-2-back"></i></span>
                     </div>
                 </form>
@@ -109,6 +119,84 @@ if (itineraryStr === null || numOfPassengers === null) {
         </div>
     </div>
 </div>
+<template id="passengerForm">
+    <form class="p-3 m-3">
+        <h6 name="passengerHeader"></h6>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <input class="form-control" name="first_name" placeholder="First Name" type="text"
+                        autocomplete="given-name" required>
+                    <label for="first_name">First Name</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <input class="form-control" name="middle_name" placeholder="Middle Name" type="text"
+                        autocomplete="additional-name">
+                    <label for="middle_name">Middle Name</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <input class="form-control" name="last_name" placeholder="Last Name" type="text"
+                        autocomplete="family-name" required>
+                    <label for="last_name">Last Name</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <input class="form-control" name="date_of_birth" placeholder="Date of Birth" type="date"
+                        autocomplete="bday" required>
+                    <label for="date_of_birth">Date of Birth</label>
+                </div>
+            </div>
+            <!--
+            <span>Date of Birth</span>
+            <div class="col-md-3">
+                <div class="form-floating mb-3">
+                    <select class="form-control" name="dob_month" autocomplete="bday bday-month">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <label for="dob_month">Month</label>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-floating mb-3">
+                    <input class="form-control" name="dob_day" type="text" autocomplete="bday bday-day" placeholder="DD" maxlength="2" pattern="\d\d" required>
+                    <label for="dob_day">Day</label>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-floating mb-3">
+                    <input class="form-control" name="dob_year" type="text" autocomplete="bday bday-year" placeholder="YYYY" maxlength="4" pattern="\d\d\d\d" required>
+                    <label for="dob_year">Year</label>
+                </div>
+            </div>
+            -->
+            <div class="col-md-3">
+                <div class="form-floating mb-3">
+                    <select class="form-control" name="gender" autocomplete="sex">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                    <label for="gender">Gender</label>
+                </div>
+            </div>
+        </div>
+    </form>
+</template>
 <template id="flightRow">
     <div class="hstack">
         <h6 name="departureCode"></h6>
@@ -125,6 +213,30 @@ if (itineraryStr === null || numOfPassengers === null) {
 <script src="/static/scripts/luxon.min.js"></script>
 <script type="text/javascript">
     $(document).ready(function () {
+        for (let i = 0; i < numOfPassengers; ++i) {
+            const template = document.querySelector('#passengerForm');
+            const form = template.content.cloneNode(true);
+            const $form = $(form);
+
+            $form.find('[name="passengerHeader"]').text(`Passenger ${i + 1}`);
+
+            $form.find('input').each(function(index, element) {
+                const name = element.getAttribute('name');
+                element.setAttribute('name', `${name}-${i}`);
+                const label = $form.find(`label[for="${name}"]`)[0];
+                if (typeof label !== "undefined") {
+                    label.setAttribute('for', `${name}-${i}`);
+                }
+            });
+
+            $('#passengerFormContainer').append(form);
+
+            if (i != numOfPassengers - 1) {
+                $('#passengerFormContainer').append('<hr>');
+            }
+        }
+
+
         $('#card_number').payment('formatCardNumber');
         $('#card_expiry').payment('formatCardExpiry');
         $('#card_cvc').payment('formatCardCVC');
