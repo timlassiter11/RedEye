@@ -1,3 +1,5 @@
+{% from 'bootstrap/forms.html' import render_field %}
+{% from 'bootstrap/messages.html' import render_messages %}
 {% extends "main/layout.html" %}
 
 {% block styles %}
@@ -21,8 +23,13 @@
 {% endblock %}
 
 {% block content %}
+<form id="purchase_transaction_form" class="needs-validation" action="{{ url_for('api.checkout') }}" method="post" hidden novalidate>
+    {{ form.hidden_tag() }}
+    {{ form.departure_date() }}
+</form>
 <div id="contentContainer" class="flex-grow-1" style="background-color: #FAFAFA;">
     <div class="mt-3 mx-auto container" style="max-width: 938px;">
+        {{ render_messages(sticky=true) }}
         <div class="card shadow mb-3">
             <div class="card-body">
                 <h5 class="card-title">Purchase Details</h5>
@@ -65,7 +72,7 @@
                                 <div class="col">
                                     <div class="hstack ms-auto">
                                         <p class="ms-auto">x</p>
-                                        <p class="text-end" id="passengers"></p>
+                                        <p class="text-end" id="priceNumOfPassengers"></p>
                                     </div>
                                 </div>
                             </div>
@@ -86,117 +93,98 @@
             <div class="card-body">
                 <h5 class="card-title">Passenger Info</h5>
                 <hr>
-                <div id="passengerFormContainer"></div>
+                <div id="passengerFormContainer">
+                    {% for passenger_form in form.passengers %}
+                    <div class="px-3 my-2" name="passengerForm">
+                        <h6 name="passengerHeader">Passenger {{ loop.index }}</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                {{ render_field(passenger_form.first_name, autocomplete="given-name", form="purchase_transaction_form") }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ render_field(passenger_form.middle_name, autocomplete="additional-name", form="purchase_transaction_form") }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ render_field(passenger_form.last_name, autocomplete="family-name", form="purchase_transaction_form") }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ render_field(passenger_form.date_of_birth, autocomplete="bday", form="purchase_transaction_form") }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ render_field(passenger_form.gender, autocomplete="sex", form="purchase_transaction_form") }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
         <div class="card shadow mb-3">
             <div class="card-body">
-                <h5 class="card-title">Payment Method</h5>
+                <h5 class="card-title">Contact Info</h5>
                 <hr>
-                <h2>Card</h2>
-                <div class="mb-2">
+                <div id="contactFormContainer" class="row">
+                    <div class="col-md-4">
+                        {{ render_field(form.email, autocomplete="email", form="purchase_transaction_form") }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card shadow mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Billing Info</h5>
+                <hr>
+                <h6>Billing Address</h6>
+                <div id="billingFormContainer" class="px-3 my-2 row">
+                    <div class="col-md-4">
+                        {{ render_field(form.country, autocomplete="billing country", form="purchase_transaction_form") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ render_field(form.street_address, autocomplete="billing address-line1", form="purchase_transaction_form") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ render_field(form.street_address2, autocomplete="billing address-line2", form="purchase_transaction_form") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ render_field(form.city, autocomplete="billing address-level2", form="purchase_transaction_form") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ render_field(form.state, autocomplete="billing address-level1", form="purchase_transaction_form") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ render_field(form.zip_code, autocomplete="billing postal-code", form="purchase_transaction_form") }}
+                    </div>
+                </div>
+                <h6>Credit Card Info</h6>
+                <div class="px-3 mb-2">
                     <img id="genericIcon" src="/static/icons/creditcard-icon.png">
                     <img id="visaIcon" src="/static/icons/visa-icon.png">
                     <img id="mastercardIcon" src="/static/icons/mastercard-icon.png">
                     <img id="amexIcon" src="/static/icons/amex-icon.png">
                 </div>
-                <form>
-                    <div class="input-group mb-3">
-                        <span class="input-group-text"><i class="bi bi-credit-card"></i></span>
-                        <label for="card_number" hidden></label>
-                        <input class="form-control" name="card_number" id="card_number" placeholder="Card Number"
-                            required autocomplete="cc-number" />
+                <div id="creditCardFormContainer" class="px-3 my-2 row">
+                    <div class="col-md-6">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="bi bi-credit-card"></i></span>
+                            {{ render_field(form.card_number, autocomplete="cc-number", wrapper_classes="flex-grow-1", render_feedback=false, form="purchase_transaction_form") }}
+                        </div>
                     </div>
-                    <div class="input-group mb-3">
-                        <input name="card_expiry" id="card_expiry" type="text" class="form-control"
-                            placeholder="MM / YY" required autocomplete="cc-exp">
-                        <input name="card_cvc" id="card_cvc" type="text" class="form-control" placeholder="CVC" required
-                            autocomplete="off">
-                        <span class="input-group-text"><i class="bi bi-credit-card-2-back"></i></span>
+                    <div class="col">
+                        <div class="input-group mb-3 flex-nowrap">
+                            {{ render_field(form.card_expiration, autocomplete="cc-exp", wrapper_classes="flex-grow-1", render_feedback=false, form="purchase_transaction_form") }}
+                            {{ render_field(form.card_cvc, autocomplete="off", wrapper_classes="flex-grow-1", render_feedback=false, form="purchase_transaction_form") }}
+                            <span class="input-group-text"><i class="bi bi-credit-card-2-back"></i></span>
+                        </div>
                     </div>
-                </form>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <input id="submitButton" class="btn btn-redeye flex-grow-1 flex-md-grow-0" type="submit" form="purchase_transaction_form" value="Submit" >
+                </div>
+            </div>
             </div>
         </div>
     </div>
 </div>
-<template id="passengerForm">
-    <form class="p-3 m-3">
-        <h6 name="passengerHeader"></h6>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="form-floating mb-3">
-                    <input class="form-control" name="first_name" placeholder="First Name" type="text"
-                        autocomplete="given-name" required>
-                    <label for="first_name">First Name</label>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="form-floating mb-3">
-                    <input class="form-control" name="middle_name" placeholder="Middle Name" type="text"
-                        autocomplete="additional-name">
-                    <label for="middle_name">Middle Name</label>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="form-floating mb-3">
-                    <input class="form-control" name="last_name" placeholder="Last Name" type="text"
-                        autocomplete="family-name" required>
-                    <label for="last_name">Last Name</label>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="form-floating mb-3">
-                    <input class="form-control" name="date_of_birth" placeholder="Date of Birth" type="date"
-                        autocomplete="bday" required>
-                    <label for="date_of_birth">Date of Birth</label>
-                </div>
-            </div>
-            <!--
-            <span>Date of Birth</span>
-            <div class="col-md-3">
-                <div class="form-floating mb-3">
-                    <select class="form-control" name="dob_month" autocomplete="bday bday-month">
-                        <option value="1">January</option>
-                        <option value="2">February</option>
-                        <option value="3">March</option>
-                        <option value="4">April</option>
-                        <option value="5">May</option>
-                        <option value="6">June</option>
-                        <option value="7">July</option>
-                        <option value="8">August</option>
-                        <option value="9">September</option>
-                        <option value="10">October</option>
-                        <option value="11">November</option>
-                        <option value="12">December</option>
-                    </select>
-                    <label for="dob_month">Month</label>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="form-floating mb-3">
-                    <input class="form-control" name="dob_day" type="text" autocomplete="bday bday-day" placeholder="DD" maxlength="2" pattern="\d\d" required>
-                    <label for="dob_day">Day</label>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="form-floating mb-3">
-                    <input class="form-control" name="dob_year" type="text" autocomplete="bday bday-year" placeholder="YYYY" maxlength="4" pattern="\d\d\d\d" required>
-                    <label for="dob_year">Year</label>
-                </div>
-            </div>
-            -->
-            <div class="col-md-3">
-                <div class="form-floating mb-3">
-                    <select class="form-control" name="gender" autocomplete="sex">
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                    </select>
-                    <label for="gender">Gender</label>
-                </div>
-            </div>
-        </div>
-    </form>
-</template>
 <template id="flightRow">
     <div class="hstack">
         <h6 name="departureCode"></h6>
@@ -209,63 +197,75 @@
 
 {% block scripts %}
 {{ super() }}
+<script src="/static/scripts/apiform.js"></script>
 <script src="/static/scripts/jquery.payment.js"></script>
 <script src="/static/scripts/luxon.min.js"></script>
 <script type="text/javascript">
     $(document).ready(function () {
-        for (let i = 0; i < numOfPassengers; ++i) {
-            const template = document.querySelector('#passengerForm');
-            const form = template.content.cloneNode(true);
+        // Create all of the passenger fields for each passenger
+        for (let i = 1; i < numOfPassengers; ++i) {
+            //const template = document.querySelector('#passengerForm');
+            const form = document.querySelector('[name="passengerForm"]').cloneNode(true);
             const $form = $(form);
 
             $form.find('[name="passengerHeader"]').text(`Passenger ${i + 1}`);
 
-            $form.find('input').each(function(index, element) {
-                const name = element.getAttribute('name');
-                element.setAttribute('name', `${name}-${i}`);
-                const label = $form.find(`label[for="${name}"]`)[0];
+            $form.find('input, select').each(function (index, element) {
+                const original_name = element.getAttribute('name');
+                const new_name = original_name.replace("-0-", `-${i}-`);
+                element.setAttribute('name', new_name);
+                element.setAttribute('id', new_name);
+                const label = $form.find(`label[for="${original_name}"]`)[0];
                 if (typeof label !== "undefined") {
-                    label.setAttribute('for', `${name}-${i}`);
+                    label.setAttribute('for', new_name);
                 }
             });
 
+            $('#passengerFormContainer').append('<hr>');
             $('#passengerFormContainer').append(form);
-
-            if (i != numOfPassengers - 1) {
-                $('#passengerFormContainer').append('<hr>');
-            }
         }
-
-
+        
+        // Stripe's jquery-payment library
         $('#card_number').payment('formatCardNumber');
-        $('#card_expiry').payment('formatCardExpiry');
+        $('#card_expiration').payment('formatCardExpiry');
         $('#card_cvc').payment('formatCardCVC');
 
+        // Icons used to display card type
         const $genericIcon = $('#genericIcon');
         const $visaIcon = $('#visaIcon');
         const $mastercardIcon = $('#mastercardIcon');
         const $amexIcon = $('#amexIcon');
 
         // TODO: We need to pass this data back to the server and get accurate pricing.
-        // A malicious actor could potentially modify the session storage object with a lower price.
+        // If the price is modified it will only affect the display, not what the user is "charged".
         const itinerary = JSON.parse(itineraryStr);
 
         const departure_dt = luxon.DateTime.fromISO(itinerary.departure_datetime, { setZone: true });
         const arrival_dt = luxon.DateTime.fromISO(itinerary.arrival_datetime, { setZone: true });
 
+        // Set the hidden "departure_date" field that gets sent to the api with the form data
+        const departureStr = departure_dt.toFormat("yyyy-MM-dd");
+        $('#departure_date').val(departure_dt.toFormat("yyyy-MM-dd"));
+
+        // Setup all of the purhcase info with the info from the itinerary object
         $('#departureDate').text(departure_dt.toFormat("ccc, LLL d"));
         $('#departureAirport').text(itinerary.departure_airport.code);
         $('#arrivalAirport').text(itinerary.arrival_airport.code);
         $('#baseFare').text(`\$${itinerary.base_fare.toFixed(2)}`);
         $('#taxes').text(`\$${itinerary.taxes.toFixed(2)}`);
-        $('#passengers').text(numOfPassengers);
-
+        $('#priceNumOfPassengers').text(numOfPassengers);
         const totalFare = itinerary.cost * numOfPassengers;
         $('#totalFare').text(`\$${totalFare.toFixed(2)}`);
 
-        for (const i in itinerary.flights) {
+        for (let i = 0; i < itinerary.flights.length; ++i) {
             const flight = itinerary.flights[i];
 
+            // Create flight input fields for each flight they are purchasing and assign the flight number.
+            // This also gets sent to the API so it knows which flights to purchase.
+            $('#purchase_transaction_form').append(`<input type="hidden" name="flights-${i}" id="flights-${i}" value="${flight.number}">`)
+
+            // Create a flight row and populate the data.
+            // This is displayed under the "Purchase Info" header.
             const template = document.querySelector('#flightRow');
             const row = template.content.cloneNode(true);
             const $row = $(row);
@@ -277,7 +277,11 @@
             $('#flightContainer').append(row);
         }
 
-
+        // Monitor changes on the card number and update
+        // the card type on each change. This is used to
+        // display the card type by highlighting the appropriate
+        // icon as well as to verify the card on submit.
+        let cardType = ''
         $('#card_number').on('input', function (event) {
             const cc = $(this).val();
             if (cc === "") {
@@ -288,7 +292,7 @@
                 return
             }
 
-            const cardType = $.payment.cardType(cc);
+            cardType = $.payment.cardType(cc);
             if (cardType === "visa") {
                 $genericIcon.addClass('greyIcon');
                 $visaIcon.removeClass('greyIcon');
@@ -311,6 +315,59 @@
                 $amexIcon.addClass('greyIcon');
             }
         });
+
+        $('#purchase_transaction_form').apiform({
+            onSubmit: function (event) {
+                $('#submitButton').prop('disabled', true);
+                $('#passengerFormContainer').addClass('was-validated');
+                $('#contactFormContainer').addClass('was-validated');
+                $('#billingFormContainer').addClass('was-validated');
+                $('#creditCardFormContainer').addClass('was-validated');
+
+                const cardNumber = $('#card_number').val();
+                const cardExpiration = $('#card_expiration').payment('cardExpiryVal');
+                const cardCVC = $('#card_cvc').val();
+
+                let success = true;
+
+                if (!$.payment.validateCardNumber(cardNumber)) {
+                    $('#card_number')[0].setCustomValidity('Invalid card number');
+                    success = false;
+                } else {
+                    $('#card_number')[0].setCustomValidity('');
+                }
+
+                if (!$.payment.validateCardExpiry(cardExpiration.month, cardExpiration.year)) {
+                    $('#card_expiration')[0].setCustomValidity('Invalid expiration');
+                    success = false;
+                } else {
+                    $('#card_expiration')[0].setCustomValidity('');
+                }
+
+                if (!$.payment.validateCardCVC(cardCVC, cardType)) {
+                    $('#card_cvc')[0].setCustomValidity('Invalid CVC');
+                    success = false;
+                } else {
+                    $('#card_cvc')[0].setCustomValidity('');
+                }
+
+                if (!success) {
+                    $('#submitButton').prop('disabled', false);
+                }
+
+                return success;
+            },
+            onSuccess: function (response) {
+                console.log(response);
+            },
+            onError: function (response) {
+                console.log(response);
+            },
+            onComplete: function() {
+                $('#submitButton').prop('disabled', false);
+            }
+        });
+
     });
 </script>
 {% endblock %}

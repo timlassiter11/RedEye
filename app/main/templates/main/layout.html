@@ -1,3 +1,4 @@
+{% from 'bootstrap/messages.html' import render_messages %}
 {% extends "base.html" %}
 
 {% set endpoint = '' -%}
@@ -92,48 +93,33 @@
             </div>
         </div>
     </nav>
-    {% endblock %}
-    <div id="alertContainer" class="container">
-        {% block messages %}
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        {% if category == 'message' %}{% set category = 'primary' %}{% endif %}
-        <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
-        {% endblock %}
-    </div>
+    {% endblock navbar %}
     {% block search %}
     <div class="collapse" id="searchCollapse">
         <form id="searchForm" class="needs-validation" method="get" action="{{ url_for('main.search') }}" novalidate>
             <div class="container">
                 <div class="d-flex flex-column flex-md-row mb-3 justify-content-center">
                     <div class="form-floating">
-                        <input class="form-control" id="departure_code" name="departure_code" placeholder="From" type="text"
-                            autocomplete="off" required>
-                        <label for="departure_code">From</label>
-                        <p class="lead feedback" id="departure_code-feedback"></p>
+                        <input class="form-control" id="searchDepartureCode" name="departure_code" placeholder="From" type="text"
+                            autocomplete="off">
+                        <label for="searchDepartureCode">From</label>
+                        <p class="lead feedback" id="searchDepartureCode-feedback"></p>
                     </div>
                     <h1 class="d-none d-md-block"><i class="bi bi-arrow-right-short"></i></h1>
                     <div class="form-floating">
-                        <input class="form-control" id="arrival_code" name="arrival_code" placeholder="To" type="text"
-                            autocomplete="off" required>
-                        <label for="arrival_code">To</label>
-                        <p class="lead feedback" id="arrival_code-feedback"></p>
+                        <input class="form-control" id="searchArrivalCode" name="arrival_code" placeholder="To" type="text"
+                            autocomplete="off">
+                        <label for="searchArrivalCode">To</label>
+                        <p class="lead feedback" id="searchArrivalCode-feedback"></p>
                     </div>
                     <div class="form-floating mb-3 mb-md-0 mx-md-3">
-                        <input class="form-control" id="departure_date" name="departure_date" type="date" required>
-                        <label for="departure_date">Date</label>
+                        <input class="form-control" id="searchDepartureDate" name="departure_date" type="date">
+                        <label for="searchDepartureDate">Date</label>
                     </div>
                     <div class="form-floating mb-3 mb-md-0 me-md-3" style="min-width: 120px;">
-                        <input class="form-control pe-4" id="num_of_passengers" name="num_of_passengers" type="number"
-                            min="1" max="5" value="1" required>
-                        <label for="num_of_passengers">Passengers</label>
+                        <input class="form-control pe-4" id="searchNumOfPassengers" name="num_of_passengers" type="number"
+                            min="1" max="5" value="1">
+                        <label for="searchNumOfPassengers">Passengers</label>
                     </div>
                     <div class="d-grid d-md-block">
                         <!-- Height of calc(3.5rem + 2px) keeps the button the same height as the rest of the search fields. -->
@@ -144,8 +130,8 @@
             </div>
         </form>
     </div>
-    {% endblock %}
-    {% block content %}{% endblock %}
+    {% endblock search %}
+    {% block content required %}{% endblock content %}
 </div>
 {% endblock %}
 
@@ -177,6 +163,8 @@
             setInvalid($input, $feedback, 'Enter valid airport');
         } else {
             setValid($input, $feedback, `${airport.city}, ${airport.state}`);
+            const key = `last_${$input.attr("name")}`;
+            window.sessionStorage.setItem(key, code);
         }
     }
 
@@ -195,12 +183,12 @@
         });
 
         const $form = $('#searchForm');
-        const $departure_input = $('#departure_code');
-        const $departure_feedback = $('#departure_code-feedback');
-        const $arrival_input = $('#arrival_code');
-        const $arrival_feedback = $('#arrival_code-feedback');
-        const $date_input = $('#departure_date');
-        const $passengers_input = $('#num_of_passengers');
+        const $departure_input = $('#searchDepartureCode');
+        const $departure_feedback = $('#searchDepartureCode-feedback');
+        const $arrival_input = $('#searchArrivalCode');
+        const $arrival_feedback = $('#searchArrivalCode-feedback');
+        const $date_input = $('#searchDepartureDate');
+        const $passengers_input = $('#searchNumOfPassengers');
 
         setupAirportTypeahead($departure_input);
         setupAirportTypeahead($arrival_input);

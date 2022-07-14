@@ -10,6 +10,9 @@ from wtforms import (
     StringField,
     TimeField,
     DateField,
+    FieldList,
+    FormField,
+    HiddenField
 )
 from wtforms.validators import (
     EqualTo,
@@ -20,7 +23,7 @@ from wtforms.validators import (
 )
 
 from app.fields import TypeaheadField
-from app.validators import AirplaneValidator, AirportValidator, UniqueEmailValidator, UserValidator
+from app.validators import AirplaneValidator, AirportValidator, FlightValidator, UniqueEmailValidator, UserValidator
 
 
 class LoginForm(FlaskForm):
@@ -102,3 +105,27 @@ class FlightForm(FlaskForm):
     def validate_end(form, _):
         if form.start.data >= form.end.data:
             raise ValidationError("End date must come after start date")
+
+
+class PassengerForm(FlaskForm):
+    first_name = StringField("First Name", validators=[InputRequired()])
+    middle_name = StringField("Middle Name")
+    last_name = StringField("Last Name", validators=[InputRequired()])
+    date_of_birth = DateField("Date of Birth", validators=[InputRequired()])
+    gender = SelectField("Gender", choices=[('male', 'Male'), ('female', 'Female')])
+
+
+class PurchaseTransactionForm(FlaskForm):
+    departure_date = DateField(render_kw={'hidden': True})
+    email = EmailField("Email", validators=[InputRequired()])
+    country = SelectField("Country", choices=[(key, value) for key, value in pytz.country_names.items()], default="US")
+    street_address = StringField("Street Address", validators=[InputRequired()])
+    street_address2 = StringField("Street Address 2")
+    city = StringField("City/Town", validators=[InputRequired()])
+    state = StringField("State/Province/Region", [InputRequired()])
+    zip_code = StringField("Zip Code", validators=[InputRequired()])
+    card_number = StringField("Card Number", validators=[InputRequired()])
+    card_expiration = StringField("MM / YYYY", validators=[InputRequired()])
+    card_cvc = StringField("CVC", validators=[InputRequired()])
+    passengers = FieldList(FormField(PassengerForm), min_entries=1)
+    flights = FieldList(HiddenField(validators=[InputRequired(), FlightValidator()]), min_entries=1)

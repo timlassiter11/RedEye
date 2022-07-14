@@ -1,4 +1,4 @@
-{% macro render_field(field, wrapper_classes='mb-3') -%}
+{% macro render_field(field, wrapper_classes='mb-3', render_feedback=true) -%}
 {% if field.type == 'CSRFTokenField' or field.type == 'HiddenField' -%}
     {{ field() }}
 {% elif field.type == 'SubmitField' -%}
@@ -30,7 +30,9 @@
             {{ field(class='form-control', placeholder=field.label.text, **kwargs) }}
             {% endif -%}
             {{ field.label() }}
+            {% if render_feedback %}
             <div class="invalid-feedback" id="{{ field.name ~ '-feedback' }}"></div>
+            {% endif %}
         </div>
     {% endif -%}
     {% if description -%}

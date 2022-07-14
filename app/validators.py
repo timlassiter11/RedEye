@@ -1,6 +1,6 @@
 from wtforms.validators import ValidationError
 
-from app.models import Airplane, Airport, User
+from app.models import Airplane, Airport, Flight, User
 
 
 class UniqueEmailValidator:
@@ -47,3 +47,15 @@ class AirportValidator:
             message = self.message or "No airport with that code exists"
             raise ValidationError(message)
         field.data = airport
+
+class FlightValidator:
+    def __init__(self, message=None):
+        self.message = message
+
+    def __call__(self, form, field):
+        flight = Flight.query.filter_by(number=field.data).first()
+        if not flight:
+            message = self.message or "Invalid flight id"
+            raise ValidationError(message)
+        field.data = flight
+

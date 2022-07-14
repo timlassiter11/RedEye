@@ -1,0 +1,24 @@
+{% macro render_messages(dismissable=true, sticky=false, classes=[]) -%}
+
+
+{% set classes="fade show alert alert-" ~ category %}
+{% for class in classes %}
+{% set classes = classes ~ ' ' ~ class %}
+{% endfor %}
+
+<div id="messageContainer" {% if sticky %}class="sticky-top py-1"{% endif %}>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    {% if category == 'message' %}{% set category = 'primary' %}{% endif %}
+    <div class="{{ classes }}" role="alert">
+        {{ message }}
+        {% if dismissable %}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+</div>
+{% endmacro %}

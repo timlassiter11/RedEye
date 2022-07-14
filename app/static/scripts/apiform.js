@@ -8,7 +8,16 @@
             // https://getbootstrap.com/docs/5.1/forms/validation/#custom-styles
 
            $form.submit(function(event) {
-                event.preventDefault()
+                event.preventDefault();
+
+                if (options.onSubmit != null) {
+                    if (!options.onSubmit(event)) {
+                        $form.find(':submit').prop('disabled', false)
+                        $form.addClass('was-validated')
+                        return;
+                    }
+                }
+
                 if (this.checkValidity() === false) {
                     event.stopPropagation()
                 } else {
@@ -75,7 +84,7 @@
                                         ${message}
                                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                     </div>`;
-                                    $('#alertContainer').append(alertHtml)
+                                    $('#messageContainer').append(alertHtml)
                                 }
                             }
                         },

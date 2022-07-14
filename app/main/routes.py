@@ -1,6 +1,9 @@
 import datetime as dt
 
+from flask_login import current_user
+
 from app.api.helpers import code_to_airport, str_to_date
+from app.forms import PurchaseTransactionForm
 from app.main import bp
 from flask import flash, redirect, render_template, request, url_for
 
@@ -60,7 +63,16 @@ def search():
 
 @bp.route('/checkout')
 def checkout():
+    form = PurchaseTransactionForm()
+
+    if not current_user.is_anonymous:
+        form.email.data = current_user.email
+        if form.email.render_kw is None:
+            form.email.render_kw = {}
+        form.email.render_kw['disabled'] = "disabled"
+
     return render_template(
         'main/checkout.html',
         title='Checkout',
+        form=form
     )

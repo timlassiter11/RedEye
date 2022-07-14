@@ -107,7 +107,9 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
 
 class Customer(User):
     __endpoint__ = "api.customer"
-    __tablename__ = None
+
+    id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
+
     __mapper_args__ = {
         "polymorphic_identity": "customer",
     }
@@ -115,7 +117,9 @@ class Customer(User):
 
 class Agent(User):
     __endpoint__ = "api.agent"
-    __tablename__ = None
+    
+    id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
+
     __mapper_args__ = {
         "polymorphic_identity": "agent",
     }
@@ -123,7 +127,9 @@ class Agent(User):
 
 class Admin(User):
     __endpoint__ = "api.admin"
-    __tablename__ = None
+    
+    id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
+
     __mapper_args__ = {
         "polymorphic_identity": "admin",
     }
@@ -285,30 +291,33 @@ class Flight(PaginatedAPIMixin, db.Model):
 class FlightCancellation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     flight_id = db.Column(db.Integer, db.ForeignKey("flight.id"))
-    cancelled_by = db.Column(db.Integer, db.ForeignKey("user.id"))
+    cancelled_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
     date = db.Column(db.Date, nullable=False)
     flight = db.relationship("Flight", backref="cancellations")
 
 
+class PurchaseTransaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), index=True)
+    purchase_timestamp = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    assisted_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
+
+
 class PurchasedTicket(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    flight_id = db.Column(db.Integer, db.ForeignKey("flight.id"))
-    purchased_by = db.Column(db.Integer, db.ForeignKey("user.id"))
-    purchase_timestamp = db.Column(db.DateTime, nullable=False)
+    transaction_id = db.Column(db.Integer, db.ForeignKey("purchase_transaction.id"), nullable=False)
+    departure_date = db.Column(db.Date, nullable=False)
+    flight_id = db.Column(db.Integer, db.ForeignKey("flight.id"), nullable=False)
+    first_name = db.Column(db.String(120), nullable=False)
+    middle_name = db.Column(db.String(120))
+    last_name = db.Column(db.String(120), nullable=False)
+    date_of_birth = db.Column(db.Date, nullable=False)
+    gender = db.Column(db.String(10), nullable=False)
     purchase_price = db.Column(db.Float, nullable=False)
-    assisted_by = db.Column(db.Integer, db.ForeignKey("user.id"))
-    departure_date = db.Column(db.Date, nullable=False, index=True)
+    transaction = db.relationship("PurchaseTransaction", backref="tickets")
+    refund_timestamp = db.Column(db.DateTime)
+    refunded_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
     flight = db.relationship("Flight", backref="purchases")
-    refund = db.relationship("RefundedTicket", back_populates="ticket", uselist=False)
-    
-
-class RefundedTicket(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    ticket_id = db.Column(db.Integer, db.ForeignKey("purchased_ticket.id"))
-    refund_timestamp = db.Column(db.DateTime, nullable=False)
-    refund_amount = db.Column(db.Float, nullable=False)
-    refunded_by = db.Column(db.Integer, db.ForeignKey("user.id"))
-    ticket = db.relationship("PurchasedTicket", back_populates="refund")
 
 
 class TripItinerary:
@@ -528,8 +537,8 @@ class TripItinerary:
             # Filter out flights that have already taken off
             # if they are looking for same day flights.
             if departure_date == dt.date.today():
-                # Add 30 minutes to filter out flights that are already boarding.
-                now = dt.datetime.utcnow() + dt.timedelta(minutes=50)
+                # Add 45 minutes to filter out flights that are already boarding.
+                now = dt.datetime.utcnow() + dt.timedelta(minutes=45)
                 query = query.filter(Flight.departure_time > now.time())
 
         # Find flights departing from our current airport.
@@ -568,7 +577,7 @@ class TripItinerary:
         # Filter out flights without enough available seats or that have no tickets sold (purchased_tickets == None)
         query = query.filter(
             or_(
-                (Airplane.capacity - subquery.c.purchased_tickets) > num_of_passengers,
+                (Airplane.capacity - subquery.c.purchased_tickets) >= num_of_passengers,
                 subquery.c.purchased_tickets == None,
             )
         )
