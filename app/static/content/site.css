@@ -116,3 +116,21 @@
 .collapse-button.active::after {
     width: 70%;
 }
+
+.form-control:required + label::after{
+    color: var(--redeye);
+    content: ' *';
+    display:inline;
+}
+
+.input-group>:first-child:not(:last-child).form-floating>.form-control,
+.input-group>:not(:first-child):not(:last-child).form-floating>.form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.input-group>:last-child:not(:first-child).form-floating>.form-control,
+.input-group>:not(:first-child):not(:last-child).form-floating>.form-control {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
