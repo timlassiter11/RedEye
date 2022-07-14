@@ -42,7 +42,7 @@ def create_user() -> None:
             print(f"User with that email already exists... Try again.")
 
 
-def populate_airports() -> None:
+def populate_airports(us_only: bool = False) -> None:
     print("Populating database with airports from data/airports.json.")
 
     with open("data/airports.json") as f:
@@ -58,6 +58,9 @@ def populate_airports() -> None:
     count = 0
     total_airports = len(json_data)
     for airport in alive_it(json_data):
+        if us_only and airport["country"] != 'United States':
+            continue
+
         # Some airports are missing timezones and names.
         # This info is required so just ignore them.
         if not airport["tz"] or not airport["name"]:
@@ -145,11 +148,13 @@ def create_flights(percentage: int = 90) -> None:
     )
 
     Flight.query.delete()
-    airports = Airport.query.all()
+    all_airports = list(Airport.query.all())
+    airports = all_airports.copy()
     planes = Airplane.query.all()
     # Grab a random list of planes to use based on the percentage given.
     # This allows us to have some spares that can be used as backups.
     total_flights = len(planes) * (percentage / 100)
+
     planes = random.sample(planes, k=int(total_flights))
     # A standard amount of time we want to set aside between
     # flights for deboarding, cleaning the plane, and boarding.
@@ -205,7 +210,10 @@ def create_flights(percentage: int = 90) -> None:
         while retrys:
             # If we are out of home flights start randomly grabbing airports
             if use_random:
-                visiting_airport = random.choice(airports)
+                if not airports:
+                    airports = all_airports.copy()
+
+                visiting_airport = random.sample(airports, 1)[0]
             
             distance = home_airport.distance_to(visiting_airport)
             # If the plane can't fly that far, start over and choose a new destination.
@@ -300,6 +308,12 @@ if __name__ == "__main__":
         help="Percentage of planes that should not be assigned flights.",
     )
 
+    parser.add_argument(
+        "--us-only",
+        action="store_true",
+        help="Only populate with US airports"
+    )
+
     args = parser.parse_args()
 
     # If no args are given just do everything
@@ -334,7 +348,7 @@ if __name__ == "__main__":
 
         if no_args or args.create_airports:
             try:
-                populate_airports()
+                populate_airports(args.us_only)
                 db.session.commit()
             except (KeyboardInterrupt, Exception) as e:
                 db.session.rollback()
