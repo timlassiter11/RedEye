@@ -87,12 +87,22 @@
 <script src="/static/scripts/luxon.min.js"></script>
 <script>
     function strToDuration(str) {
-        const parts = str.split(':');
-        return luxon.Duration.fromObject({
-            hours: parts[0],
-            minutes: parts[1],
-            seconds: parts[2]
-        }).shiftTo('hours', 'minutes');
+        // Format = 1 days, 1:23:45
+        const obj = {}
+
+        let parts = str.split(',');
+        if (parts.length === 2) {
+            let days = parts.shift();
+            obj.days = days.split(' ')[0];
+        }
+
+        parts = parts[0].split(':');
+    
+        obj.hours = parts[0];
+        obj.minutes = parts[1];
+        obj.seconds = parts[2];
+
+        return luxon.Duration.fromObject(obj).shiftTo('hours', 'minutes');
     }
 
     $(document).ready(function () {
