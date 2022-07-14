@@ -98,7 +98,7 @@
     <div class="collapse" id="searchCollapse">
         <form id="searchForm" class="needs-validation" method="get" action="{{ url_for('main.search') }}" novalidate>
             <div class="container">
-                <div class="d-flex flex-column flex-md-row mb-3 justify-content-center">
+                <div class="d-flex flex-column flex-md-row justify-content-center">
                     <div class="form-floating">
                         <input class="form-control" id="searchDepartureCode" name="departure_code" placeholder="From" type="text"
                             autocomplete="off">
@@ -131,7 +131,14 @@
         </form>
     </div>
     {% endblock search %}
-    {% block content required %}{% endblock content %}
+    
+    {% block content %}
+
+    {% block messages %}
+    {{ render_messages(container_classes=['container']) }}
+    {% endblock %}
+
+    {% endblock content %}
 </div>
 {% endblock %}
 

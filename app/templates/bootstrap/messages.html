@@ -1,17 +1,31 @@
-{% macro render_messages(dismissable=true, sticky=false, classes=[]) -%}
+{% macro render_messages(dismissable=true, classes=[], container_id="messageContainer", container_classes=[]) -%}
 
+{% set ns = namespace(class_str="fade show alert", container_class_str="") %}
 
-{% set classes="fade show alert alert-" ~ category %}
+{% if dismissable %}
+{% set ns.class_str = ns.class_str ~ ' alert-dismissible' %}
+{% endif %}
+
 {% for class in classes %}
-{% set classes = classes ~ ' ' ~ class %}
+{% set ns.class_str = ns.class_str ~ class %}
+{% if not loop.last %}
+{% set ns.class_str = ns.class_str ~ ' ' %}
+{% endif %}
 {% endfor %}
 
-<div id="messageContainer" {% if sticky %}class="sticky-top py-1"{% endif %}>
+{% for class in container_classes %}
+{% set ns.container_class_str = ns.container_class_str ~ class %}
+{% if not loop.last %}
+{% set ns.container_class_str = ns.container_class_str ~ ' ' %}
+{% endif %}
+{% endfor %}
+
+<div id="messageContainer" class="{{ ns.container_class_str }}">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     {% for category, message in messages %}
     {% if category == 'message' %}{% set category = 'primary' %}{% endif %}
-    <div class="{{ classes }}" role="alert">
+    <div class="{{ ns.class_str }} alert-{{category}}" role="alert">
         {{ message }}
         {% if dismissable %}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>

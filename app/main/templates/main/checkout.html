@@ -29,7 +29,9 @@
 </form>
 <div id="contentContainer" class="flex-grow-1" style="background-color: #FAFAFA;">
     <div class="mt-3 mx-auto container" style="max-width: 938px;">
-        {{ render_messages(sticky=true) }}
+        {% block message %}
+        {{ render_messages(container_classes=['sticky-top', 'py-1']) }}
+        {% endblock %}
         <div class="card shadow mb-3">
             <div class="card-body">
                 <h5 class="card-title">Purchase Details</h5>
@@ -358,10 +360,8 @@
                 return success;
             },
             onSuccess: function (response) {
-                console.log(response);
             },
             onError: function (response) {
-                console.log(response);
             },
             onComplete: function() {
                 $('#submitButton').prop('disabled', false);

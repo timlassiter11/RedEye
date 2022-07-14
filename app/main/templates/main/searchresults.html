@@ -116,7 +116,6 @@
             success : function(response, textStatus, jqXhr) {
                 if (response._meta.total_items === 0) {
                     // TODO: Display something when no available flights are found.
-                    console.log("No results found")
                     $('#noFlightsMessage').removeClass('d-none');
                     searchCollapse.show();
                 } else {
@@ -208,16 +207,13 @@
 
                         $('#resultContainer').append(row);
                     }
-                    console.log(response)
                 }
             },
             error : function(jqXHR, textStatus, errorThrown) {
                 // TODO: How should we handle errors?
                 const response = jqXHR.responseJSON
-                console.log(response)
             },
             complete : function() {
-                console.log("Complete")
                 document.querySelector(".overlay-parent").style.display = "none";
                 $('#contentContainer').removeClass('d-none');
             }
