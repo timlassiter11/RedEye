@@ -172,16 +172,12 @@
 
     function validateInput($input, $feedback) {
         const code = $input.val();
-        $.getJSON(`/api/airports/${code}`, function (data) {
-            setValid($input, $feedback, `${data.city}, ${data.state}`);
-            const key = `last_${$input.attr("id")}`;
-            window.sessionStorage.setItem(key, code);
-        })
-            .fail(function (jqxhr, textStatus, error) {
-                if (jqxhr.status === 404) {
-                    setInvalid($input, $feedback, 'Enter valid airport');
-                }
-            });
+        const airport = airport_bloodhound.get(code)[0];
+        if (airport == undefined) {
+            setInvalid($input, $feedback, 'Enter valid airport');
+        } else {
+            setValid($input, $feedback, `${airport.city}, ${airport.state}`);
+        }
     }
 
     $(document).ready(function () {
@@ -249,6 +245,8 @@
         });
 
         $form.submit(function (event) {
+            validateInput($departure_input, $departure_feedback);
+            validateInput($arrival_input, $arrival_feedback);   
             if (!this.checkValidity()) {
                 event.preventDefault();
                 event.stopPropagation();
