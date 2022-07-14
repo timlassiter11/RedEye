@@ -61,6 +61,7 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
     __endpoint__ = "api.user"
 
     id = db.Column(db.Integer, primary_key=True)
+
     email = db.Column(db.String(120), index=True, unique=True)
     first_name = db.Column(db.String(120))
     last_name = db.Column(db.String(120))
@@ -145,6 +146,7 @@ class Airport(PaginatedAPIMixin, db.Model):
     __searchable__ = ["code", "name", "city", "state"]
 
     id = db.Column(db.Integer, primary_key=True)
+
     code = db.Column(db.String(3), index=True, unique=True)
     name = db.Column(db.String(120), nullable=False)
     timezone = db.Column(db.String(120), nullable=False)
@@ -172,11 +174,13 @@ class Airplane(PaginatedAPIMixin, db.Model):
     __searchable__ = ["registration_number", "model_name", "model_code"]
 
     id = db.Column(db.Integer, primary_key=True)
+
     registration_number = db.Column(db.String(120), index=True, unique=True)
     model_name = db.Column(db.String(120), nullable=False)
     model_code = db.Column(db.String(120), nullable=False)
     capacity = db.Column(db.Integer, nullable=False)
     range = db.Column(db.Integer, nullable=False)
+
     flights = db.relationship("Flight", backref="airplane")
 
 
@@ -185,6 +189,7 @@ class Flight(PaginatedAPIMixin, db.Model):
     __searchable__ = ["number"]
 
     id = db.Column(db.Integer, primary_key=True)
+    
     number = db.Column(db.String(4), index=True)
     airplane_id = db.Column(db.Integer, db.ForeignKey("airplane.id"))
     departure_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
@@ -290,14 +295,17 @@ class Flight(PaginatedAPIMixin, db.Model):
 
 class FlightCancellation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+
     flight_id = db.Column(db.Integer, db.ForeignKey("flight.id"))
     cancelled_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
     date = db.Column(db.Date, nullable=False)
+
     flight = db.relationship("Flight", backref="cancellations")
 
 
 class PurchaseTransaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+
     email = db.Column(db.String(120), index=True)
     purchase_timestamp = db.Column(db.DateTime, nullable=False, server_default=func.now())
     assisted_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
@@ -305,18 +313,20 @@ class PurchaseTransaction(db.Model):
 
 class PurchasedTicket(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+
     transaction_id = db.Column(db.Integer, db.ForeignKey("purchase_transaction.id"), nullable=False)
-    departure_date = db.Column(db.Date, nullable=False)
     flight_id = db.Column(db.Integer, db.ForeignKey("flight.id"), nullable=False)
+    departure_date = db.Column(db.Date, nullable=False)
     first_name = db.Column(db.String(120), nullable=False)
     middle_name = db.Column(db.String(120))
     last_name = db.Column(db.String(120), nullable=False)
     date_of_birth = db.Column(db.Date, nullable=False)
     gender = db.Column(db.String(10), nullable=False)
     purchase_price = db.Column(db.Float, nullable=False)
-    transaction = db.relationship("PurchaseTransaction", backref="tickets")
     refund_timestamp = db.Column(db.DateTime)
     refunded_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
+
+    transaction = db.relationship("PurchaseTransaction", backref="tickets")
     flight = db.relationship("Flight", backref="purchases")
 
 

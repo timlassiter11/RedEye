@@ -2,7 +2,7 @@ import datetime as dt
 
 import pytz
 from app import db
-from app.models import Airport, Flight, FlightCancellation, PurchasedTicket, TripItinerary, User
+from app.models import Airport, Flight, FlightCancellation, PurchaseTransaction, PurchasedTicket, TripItinerary, User
 from helpers import FlaskTestCase
 from helpers import create_users, create_airports, create_airplanes, add_to_db
 
@@ -146,16 +146,20 @@ class TestFlight(FlaskTestCase):
 
         self.assertEquals(plane.capacity, flight.available_seats(today))
 
+        transaction = PurchaseTransaction(email=self.customer.email)
+
         purchases = 5
         for _ in range(purchases):
-            db.session.add(PurchasedTicket(
+            transaction.tickets.append(PurchasedTicket(
                 flight_id=flight.id,
-                purchased_by=self.customer.id,
-                purchase_timestamp=dt.datetime.now(),
+                departure_date=today,
+                first_name="Fake",
+                last_name="Person",
+                date_of_birth=dt.date.today(),
+                gender="no",
                 purchase_price=500,
-                departure_date=today
             ))
-        db.session.commit()
+        add_to_db(transaction)
         
         self.assertEquals(plane.capacity - purchases, flight.available_seats(today))
 
