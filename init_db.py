@@ -176,7 +176,8 @@ def create_flights(percentage: int = 90) -> None:
     # Creates a list of pairs of airports covering all possible combinations.
     # This will allow us to create flights from every hub to every other hub
     # which will help with creating more available connecting flights.
-    home_flights = list(combinations(home_airports, 2))
+    #home_flights = list(combinations(home_airports, 2))
+    home_flights = [(a, b) for idx, a in enumerate(home_airports) for b in home_airports[idx + 1:]]
 
     flight_number = 1
     for plane in alive_it(planes):
