@@ -1,34 +1,33 @@
-{% macro render_field(field, disabled=false, description=none) -%}
+{% macro render_field(field, wrapper_classes='mb-3') -%}
 {% if field.type == 'CSRFTokenField' or field.type == 'HiddenField' -%}
     {{ field() }}
 {% elif field.type == 'SubmitField' -%}
-    {{ field(class="btn btn-primary", disabled=disabled) }}
+    {{ field(class="btn btn-primary", **kwargs) }}
 {% else -%}
-    <div class="mb-3 field-container">
     {% if field.type == 'ToggleSwitchField' -%}
-        <div class="form-check form-switch">
-            {{ field(class='form-check-input', disabled=disabled) }}
+        <div class="form-check form-switch {{ wrapper_classes }}">
+            {{ field(class='form-check-input', **kwargs) }}
             {{ field.label(class='form-check-label') }}
         </div>
     {% elif field.type == 'BooleanField' -%}
-        <div class="form-check">
-            {{ field(class='form-check-input', disabled=disabled) }}
+        <div class="form-check {{ wrapper_classes }}">
+            {{ field(class='form-check-input', **kwargs) }}
             {{ field.label(class='form-check-label')}}
         </div>
     {% elif field.type == 'RadioField' -%}
         {{ field.label(class='d-block') }}
-        <div class="btn-group" role="group" aria-label="{{ field.label.text }}">
+        <div class="btn-group {{ wrapper_classes }}" role="group" aria-label="{{ field.label.text }}">
             {% for subfield in field -%}
-            {{ subfield(class='btn-check', disabled=disabled) }}
+            {{ subfield(class='btn-check', **kwargs) }}
             {{ subfield.label(class='btn btn-secondary') }}
             {% endfor -%}
         </div>
     {% else -%}
-        <div class="form-floating">
+        <div class="form-floating {{ wrapper_classes }}">
             {% if field.type == 'TextAreaField' -%}
-            {{ field(class='form-control', placeholder=field.label.text, style='min-height: 100px;', disabled=disabled) }}
+            {{ field(class='form-control', placeholder=field.label.text, style='min-height: 100px;', **kwargs) }}
             {% else -%}
-            {{ field(class='form-control', placeholder=field.label.text, disabled=disabled) }}
+            {{ field(class='form-control', placeholder=field.label.text, **kwargs) }}
             {% endif -%}
             {{ field.label() }}
             <div class="invalid-feedback" id="{{ field.name ~ '-feedback' }}"></div>
@@ -37,6 +36,5 @@
     {% if description -%}
         <div class="form-text" id="{{ field.name ~ '-description' }}">{{ description }}</div>
     {% endif -%}
-    </div>
 {% endif -%}
 {% endmacro -%}
