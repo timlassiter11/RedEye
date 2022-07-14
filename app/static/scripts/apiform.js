@@ -47,7 +47,19 @@
                                 const message = response.message
                                 if (typeof message === 'object') {
                                     for (const property in message) {
-                                        const $field = $form.find(`#${property}`)
+                                        // Search the entire document for the id first
+                                        // This handles cases where the input uses the "form" attribute
+                                        // and isn't actually inside the form DOM element.
+                                        let $field = $(`#${property}`);
+                                        if ($field.length < 1) {
+                                            // If that doesn't work search inside the form by the name
+                                            $field = $form.find(`[name="${property}"]`);
+                                            if ($field.length < 1) {
+                                                // TODO: How do we handle when we can't find the bad input?
+                                                continue;
+                                            }
+                                        }
+
                                         const $feedback = $(`#${property}-feedback`)
                                         $field.one('change', function(event) {
                                             $field[0].setCustomValidity("")
