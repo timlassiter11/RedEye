@@ -70,16 +70,15 @@
         function setupAirportTypeahead(selector) {
             if (airport_bloodhound == null) {
                 airport_bloodhound = new Bloodhound({
-                    datumTokenizer: Bloodhound.tokenizers.whitespace,
+                    datumTokenizer: Bloodhound.tokenizers.obj.whitespace('code', 'name', 'city', 'state'),
                     queryTokenizer: Bloodhound.tokenizers.whitespace,
-                    remote: {
-                        url: "{{ url_for('api.airports', search='_QUERY') }}",
-                        wildcard: '_QUERY',
+                    prefetch: {
+                        url: "{{ url_for('api.airports', per_page=9999) }}",
                         transform: function(res) {
                             return res.items;
                         }
                     },
-                    identify: function (obj) { return obj.id; }
+                    identify: function (obj) { return obj.code; }
                 })
             }
 
