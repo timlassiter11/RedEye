@@ -574,8 +574,10 @@ class TripItinerary:
         subquery = (
             db.session.query(
                 PurchasedTicket.flight_id,
+                PurchasedTicket.departure_date,
                 func.count(PurchasedTicket.id).label("purchased_tickets"),
             )
+            .filter(PurchasedTicket.departure_date == departure_date)
             .group_by(PurchasedTicket.flight_id)
             .group_by(PurchasedTicket.departure_date)
             .subquery()
