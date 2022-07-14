@@ -13,7 +13,7 @@ from alive_progress import alive_it
 from sqlalchemy.exc import IntegrityError
 
 from app import create_app, db, search
-from app.models import Admin, Airplane, Airport, Flight
+from app.models import Admin, Airplane, Airport, Flight, PurchasedTicket
 from config import Config
 
 
@@ -51,6 +51,7 @@ def populate_airports(us_only: bool = False) -> None:
 
     # Since both airplanes and flights rely
     # on airports we have to delete them.
+    PurchasedTicket.query.delete()
     Flight.query.delete()
     Airplane.query.delete()
     Airport.query.delete()
@@ -147,6 +148,7 @@ def create_flights(percentage: int = 90) -> None:
         f"Populating database with randomly generated flights using {percentage}% of the planes"
     )
 
+    PurchasedTicket.query.delete()
     Flight.query.delete()
     all_airports = list(Airport.query.all())
     airports = all_airports.copy()
