@@ -20,8 +20,7 @@ span.twitter-typeahead .tt-menu {
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 0.25rem;
   max-height: 100vh;
-  overflow-y: scroll;
-  overflow-x: hidden;
+  min-width: 100%;
 }
   
 span.twitter-typeahead .tt-suggestion {
@@ -112,7 +111,7 @@ span.twitter-typeahead {
 }
 
 .form-floating>.twitter-typeahead>.tt-menu {
-  top: calc(3.5rem + 2px) !important; /* form-floating input height with 2px margin */
+  top: calc(3.5rem + 4px) !important; /* form-floating input height with 2px margin */
 }
 
 @media (max-width: 768px) {
