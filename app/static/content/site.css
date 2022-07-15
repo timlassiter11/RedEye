@@ -44,7 +44,6 @@
 }
 
 .overlay-parent {
-    z-index: -2;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -115,4 +114,10 @@
 .input-group>:not(:first-child):not(:last-child).form-floating>.form-control {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
+}
+
+/* Override the deafault input focus with redeye colors */
+.form-control:focus {
+    border-color: var(--redeye);
+    box-shadow: 0 0 0 .25rem rgba(210,40,43,.45);
 }
