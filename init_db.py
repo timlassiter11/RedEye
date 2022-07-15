@@ -1,4 +1,3 @@
-from itertools import combinations
 import json
 import random
 from argparse import ArgumentParser
@@ -12,9 +11,9 @@ import flask_migrate
 from alive_progress import alive_it
 from sqlalchemy.exc import IntegrityError
 
-from app import create_app, db, search
-from app.models import Admin, Airplane, Airport, Flight, PurchasedTicket
 from config import Config
+from app import create_app, db, search
+from app.models import Admin, Airplane, Airport, Flight, PurchaseTransaction, PurchasedTicket
 
 
 def create_db() -> None:
@@ -49,13 +48,11 @@ def populate_airports(us_only: bool = False) -> None:
         data = f.read()
         json_data = json.loads(data)
 
-    # Since both airplanes and flights rely
-    # on airports we have to delete them.
     PurchasedTicket.query.delete()
+    PurchaseTransaction.query.delete()
     Flight.query.delete()
-    Airplane.query.delete()
     Airport.query.delete()
-    
+
     count = 0
     total_airports = len(json_data)
     for airport in alive_it(json_data):
@@ -317,6 +314,15 @@ if __name__ == "__main__":
         help="Only populate with US airports"
     )
 
+    parser.add_argument(
+        "-i",
+        "--create-indexes",
+        action="store_true",
+        help='''Create search indexes. Search indexes are automatically created. 
+        This is just for manually creating them.
+        '''
+    )
+
     args = parser.parse_args()
 
     # If no args are given just do everything
@@ -325,13 +331,12 @@ if __name__ == "__main__":
         or args.create_airports
         or args.create_airplanes
         or args.create_flights
+        or args.create_indexes
     )
 
     config = Config
-    # Dont' track modifications as this slows things down.
-    # We will manually tell msearch to update the indexes at the end.
     config.SQLALCHEMY_TRACK_MODIFICATIONS = False
-    app = create_app(config)
+    app = create_app()
 
     with app.app_context():
         # Always create the database regardless if tables were dropped.
@@ -383,5 +388,6 @@ if __name__ == "__main__":
                 else:
                     print_exc()
 
-        print("Creating search indexes.")
-        search.create_index()
+        if no_args or args.create_indexes:
+            print("Creating search indexes")
+            search.create_index()
