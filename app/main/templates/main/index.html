@@ -3,21 +3,15 @@
 
 {% block content %}
 {{ super() }}
-<div class="overlay-parent flex-grow-1">
-    <img src="/static/images/logo.png" class="overlay-background">
-    <div class="overlay">
-        <div class="overlay-content text-center"
-            style="top: 80%; transform: translate(-50%, -80%); -ms-transform: translate(-50%,-80%);">
-            <h1>Book Now</h1>
-            <p class="text-wrap text-uppercase">Book a flight quick and easy with 24/7 customer support and free
-                cancellations</p>
-            <div>
-                <button type="button" class="btn btn-outline-light mx-auto">Search All</button>
-            </div>
-        </div>
+<div class="flex-grow-1 overlay-parent" style="background-color: rgba(0,0,0,0.5);">
+    <img src="/static/images/logo.png" class="overlay-background" style="width: 75%; max-width: 500px; filter: brightness(0.7);">
+    <div class="text-center text-light m-4 mt-auto mb-4">
+        <h1>Book Now</h1>
+        <p class="text-wrap text-uppercase">Book a flight quick and easy with 24/7 customer support and free cancellations</p>
+        <button type="button" class="btn btn-outline-light mx-auto">Search All</button>
     </div>
 </div>
-<div class="my-3 text-center">
+<div class="my-auto mx-4 text-center">
     <h3 class="mb-3">Book a flight with our new user friendly app!</h3>
     <p class="text-wrap">Red Eye is a website for booking flights with free cancellation and email notifications. Book
         your flight today!</p>

@@ -100,14 +100,14 @@
             <div class="container">
                 <div class="d-flex flex-column flex-md-row justify-content-center">
                     <div class="form-floating">
-                        <input class="form-control" id="searchDepartureCode" name="departure_code" placeholder="From" type="text"
+                        <input class="form-control airport-typeahead" id="searchDepartureCode" name="departure_code" placeholder="From" type="text"
                             autocomplete="off">
                         <label for="searchDepartureCode">From</label>
                         <p class="lead feedback" id="searchDepartureCode-feedback"></p>
                     </div>
                     <h1 class="d-none d-md-block"><i class="bi bi-arrow-right-short"></i></h1>
                     <div class="form-floating">
-                        <input class="form-control" id="searchArrivalCode" name="arrival_code" placeholder="To" type="text"
+                        <input class="form-control airport-typeahead" id="searchArrivalCode" name="arrival_code" placeholder="To" type="text"
                             autocomplete="off">
                         <label for="searchArrivalCode">To</label>
                         <p class="lead feedback" id="searchArrivalCode-feedback"></p>
@@ -123,7 +123,7 @@
                     </div>
                     <div class="d-grid d-md-block">
                         <!-- Height of calc(3.5rem + 2px) keeps the button the same height as the rest of the search fields. -->
-                        <button type="submit" class="btn btn-redeye mb-md-3" style="height: calc(3.5rem + 2px);"><i
+                        <button type="submit" class="btn btn-redeye mb-3 mb-md-0" style="height: calc(3.5rem + 2px); min-width: calc(3.5rem + 2px);"><i
                                 class="bi bi-arrow-right-circle d-none d-md-inline"></i><p class="d-inline d-md-none">Search</p></button>
                     </div>
                 </div>
@@ -177,6 +177,7 @@
     }
 
     $(document).ready(function () {
+    
         const searchCollapseEl = document.getElementById('searchCollapse')
         searchCollapse = new bootstrap.Collapse(searchCollapseEl, {
             toggle: false
@@ -200,6 +201,22 @@
 
         setupAirportTypeahead($departure_input);
         setupAirportTypeahead($arrival_input);
+
+        $('.airport-typeahead').on('input', function(event) {
+            const val = event.target.value;
+            if (val === '') {
+                const $feedback = $(`#${event.target.id}-feedback`);
+                $feedback.text('');
+            }
+        });
+
+        $departure_input.on('typeahead:select', function(event, item, dataset) {
+            $arrival_input.focus();
+        });
+
+        $arrival_input.on('typeahead:select', function(event, item, dataset) {
+            $date_input.focus();
+        });
 
         $departure_input.on('typeahead:change', function (event) {
             const departure_code = $departure_input.val();
@@ -252,13 +269,13 @@
 
         const lastDepartureCode = window.sessionStorage.getItem("last_departure_code");
         if (typeof lastDepartureCode === "string") {
-            $departure_input.val(lastDepartureCode);
-            validateInput($departure_input, $departure_feedback);
+            $departure_input.typeahead('val', lastDepartureCode);
+            $departure_input.trigger('typeahead:change')
         }
         const lastArrivalCode = window.sessionStorage.getItem("last_arrival_code");
         if (typeof lastArrivalCode === "string") {
-            $arrival_input.val(lastArrivalCode);
-            validateInput($arrival_input, $arrival_feedback);
+            $arrival_input.typeahead('val', lastArrivalCode);
+            $arrival_input.trigger('typeahead:change');
         }
 
         const lastDepartureDate = window.sessionStorage.getItem("last_departure_date");
