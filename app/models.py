@@ -59,6 +59,7 @@ class PaginatedAPIMixin:
 
 class User(UserMixin, PaginatedAPIMixin, db.Model):
     __endpoint__ = "api.user"
+    __searchable__ = ["email", "first_name", "last_name"]
 
     id = db.Column(db.Integer, primary_key=True)
 
