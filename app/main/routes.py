@@ -65,11 +65,16 @@ def search():
 def checkout():
     form = PurchaseTransactionForm()
 
-    if not current_user.is_anonymous:
+    # Agents can enter information for customers. If it's an agent we don't want
+    # them to be forced to use their email. That wouldn't make sense.
+    if not current_user.is_anonymous and current_user.role == 'customer':
         form.email.data = current_user.email
         if form.email.render_kw is None:
             form.email.render_kw = {}
         form.email.render_kw['disabled'] = "disabled"
+
+        form.passengers[0].first_name.data = current_user.first_name
+        form.passengers[0].last_name.data = current_user.last_name
 
     return render_template(
         'main/checkout.html',
