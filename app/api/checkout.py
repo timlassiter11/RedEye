@@ -1,3 +1,4 @@
+from flask_login import current_user
 from app import db, models
 from app.api import api
 from app.api.helpers import json_abort
@@ -9,10 +10,29 @@ class Checkout(Resource):
     def post(self):
         form = PurchaseTransactionForm(data=request.json)
         if form.validate():
+            user = models.User.query.filter_by(email=form.email.data).first()
+
             transaction = models.PurchaseTransaction()
             # TODO: What if the user is logged in? Should we use their email instead?
             transaction.email = form.email.data
 
+            form_user = -1
+            if user is not None:
+                form_user = user.id
+                if user.role in ['admin', 'agent']:
+                    # TODO: Should employees be able to use their work accounts to purchase tickets?
+                    # Maybe they get a discount if they do?
+                    pass
+            
+            session_user = -1
+            if not current_user.is_anonymous and current_user.role == 'agent':        
+                session_user = current_user.id
+
+            # If session_user is an agent we want to give them credit for the sale
+            # unless they are purchasing it themselves.
+            if form_user != session_user and session_user != -1:
+                transaction.assisted_by = session_user
+                
             departure_date = form.departure_date.data
             num_of_passengers = len(form.passengers)
 
