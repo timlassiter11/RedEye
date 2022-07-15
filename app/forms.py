@@ -47,7 +47,7 @@ class RegistrationForm(FlaskForm):
 
 
 class ResetPasswordRequestForm(FlaskForm):
-    email = EmailField("Email", validators=[InputRequired(), UserValidator()])
+    email = EmailField("Email", validators=[InputRequired(), UserValidator(populate_field=False)])
 
 
 class ResetPasswordForm(FlaskForm):
