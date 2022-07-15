@@ -20,6 +20,9 @@
 
                 if (this.checkValidity() === false) {
                     event.stopPropagation()
+                    if (options.onComplete != null) {
+                        options.onComplete();
+                    }
                 } else {
                     $form.find(':submit').prop('disabled', true)
                     const data = new FormData(this)
