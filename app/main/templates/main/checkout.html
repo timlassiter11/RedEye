@@ -368,6 +368,47 @@
             }
         });
 
+        {% if not current_user.is_anonymous and current_user.role != 'customer' %}
+        user_bloodhound = new Bloodhound({
+            datumTokenizer: Bloodhound.tokenizers.whitespace,
+            queryTokenizer: Bloodhound.tokenizers.whitespace,
+            remote: {
+                url: "{{ url_for('api.customers', search='_QUERY') }}",
+                wildcard: '_QUERY',
+                transform: function(res) {
+                    return res.items;
+                }
+            },
+            identify: function (obj) { return obj.code; }
+        });
+        const $input = $('#email');
+        $input.attr('autocomplete', 'off');
+        const id = $input.attr('id');
+        const $label = $(`label[for="${id}"]`)
+        const $feedback = $(`#${id}-feedback`)
+
+        $input.typeahead({
+            autoselect: true,
+        }, {
+            name: 'customers',
+            display: 'email',
+            source: user_bloodhound,
+            templates: {
+                suggestion: function(data) {
+                    return `<div class="tt-suggestion">${data.first_name} ${data.last_name}<small class="ms-2">${data.email}</small></div>`
+                }
+            }
+        });
+
+        $input.on('typeahead:selected', function(event, item, dataset) {
+            $('#passengers-0-first_name').val(item.first_name);
+            $('#passengers-0-last_name').val(item.last_name);
+        })
+
+        $input.after($label)
+        $label.after($feedback)
+        {% endif %}
+
     });
 </script>
 {% endblock %}

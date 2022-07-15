@@ -1,28 +1,28 @@
 {% extends "auth/layout.html" %}
 {% from "bootstrap/forms.html" import render_field %}
 
-{% block content %}
+{% block form %}
 <form class="needs-validation api-form" method="POST" action="/api/register" novalidate>
     {{ form.hidden_tag() }}
     <div class="text-dark row">
         <div class="col">
-            {{ render_field(form.first_name) }}
+            {{ render_field(form.first_name, autocomplete="given-name") }}
         </div>
         <div class="col">
-            {{ render_field(form.last_name) }}
+            {{ render_field(form.last_name, autocomplete="family-name") }}
         </div>
     </div>
     <div class="text-dark">
-        {{ render_field(form.email) }}
+        {{ render_field(form.email, autocomplete="email") }}
     </div>
     <div class="text-dark">
-        {{ render_field(form.password) }}
+        {{ render_field(form.password, autocomplete="new-password") }}
     </div>
     <div class="text-dark">
-        {{ render_field(form.password2) }}
+        {{ render_field(form.password2, autocomplete="new-password") }}
     </div>
     <div class="d-grid">
-        <input type="submit" class="btn btn-primary" value="Sign Up">
+        <input type="submit" class="btn btn-redeye" value="Sign Up">
     </div>
 </form>
 <div class="d-flex justify-content-center mt-2">
