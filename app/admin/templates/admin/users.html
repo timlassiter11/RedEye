@@ -111,6 +111,17 @@
         const $table = $('#table')
 
         $('#userForm').apiform({
+            onSubmit: function(event) {
+                const pass1 = $('#password').val();
+                const pass2 = $('#password2').val();
+                if (pass1 !== pass2) {
+                    $('#password2')[0].setCustomValidity('Passwords do not match');
+                    return false;
+                }
+
+                $('#password2')[0].setCustomValidity('');
+                return true;
+            },
             onSuccess: function(response) {
                 formModal.hide()
                 $table.bootstrapTable('refresh')

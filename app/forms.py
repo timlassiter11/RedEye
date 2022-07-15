@@ -65,6 +65,19 @@ class UserEditForm(FlaskForm):
     email = EmailField("Email", validators=[InputRequired(), UniqueEmailValidator()])
     first_name = StringField("First Name", validators=[InputRequired()])
     last_name = StringField("Last Name", validators=[InputRequired()])
+    password = PasswordField("Password")
+    password2 = PasswordField("Confirm Password", validators=[EqualTo("password", message="Passwords do not match")])
+
+    def populate_obj(self, obj):
+        pass1 = self.password.data
+        
+        del self.password
+        del self.password2
+
+        if pass1 and hasattr(obj, 'set_password'):
+            obj.set_password(pass1)
+
+        return super().populate_obj(obj)
 
 
 class AirportForm(FlaskForm):
