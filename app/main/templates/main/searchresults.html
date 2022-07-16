@@ -44,7 +44,7 @@
         </div>
     </div>
 </div>
-<div id="contentContainer" class="flex-grow-1 d-none" style="background-color: #FAFAFA;">
+<div id="contentContainer" class="flex-grow-1 d-none content-background">
     <div class="container mt-3" style="max-width: 938px;">
         <h2>{{ departure.code }}<i class="bi bi-arrow-right-short"></i>{{ arrival.code }}</h2>
         <h5>{{ date.strftime("%a, %b %d, %Y") }}</h5>
@@ -55,7 +55,7 @@
     </div>
 </div>
 <template id="resultRow">
-    <div class="row gx-0 mb-3 shadow">
+    <div class="row gx-0 mb-3 content-card">
         <div class="p-3 bg-white mx-auto col">
             <div class="d-flex flex-nowrap" name="topRow">
                 <p class="flex-grow-1" name="flightNumbers"></p>

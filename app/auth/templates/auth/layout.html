@@ -2,11 +2,11 @@
 {% extends "main/layout.html" %}
 
 {% block content %}
-<div class="container flex-grow-1 mt-5">
-    <div class="vstack gap-3 px-3">
+<div class="flex-grow-1 my-auto content-background">
+    <div class="vstack gap-3 mx-auto content-card" style="max-width: 450px">
         <h1 class="text-center text-redeye">{{ title }}</h1>
         <div class="col">
-            <div class="mx-auto" style="max-width: 450px;">
+            <div class="mx-auto">
                 {% block messages %}
                 {{ render_messages() }}    
                 {% endblock %}

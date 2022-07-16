@@ -99,13 +99,6 @@
                     suggestion: function(data) {
                         return `<div class="tt-suggestion"><span class="me-3">${data.code}</span>${data.city}, ${data.state}</div>`
                     },
-                    notFound: function(data) {
-                        let text = 'No matching airports found...';
-                        if (data.query === '') {
-                            text = 'Start typing to find an airport.'
-                        }
-                        return `<div class="tt-suggestion">${text}</div>`
-                    }
                 }
             })
 

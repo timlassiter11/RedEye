@@ -23,166 +23,174 @@
 {% endblock %}
 
 {% block content %}
-<form id="purchase_transaction_form" class="needs-validation" action="{{ url_for('api.checkout') }}" method="post" hidden novalidate>
+<form id="purchase_transaction_form" class="needs-validation" action="{{ url_for('api.checkout') }}" method="post"
+    hidden novalidate>
     {{ form.hidden_tag() }}
     {{ form.departure_date() }}
 </form>
-<div id="contentContainer" class="flex-grow-1" style="background-color: #FAFAFA;">
+<div id="contentContainer" class="flex-grow-1 content-background">
     <div class="mt-3 mx-auto container" style="max-width: 938px;">
         {% block message %}
         {{ render_messages(container_classes=['sticky-top', 'py-1']) }}
         {% endblock %}
-        <div class="card shadow mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Purchase Details</h5>
-                <hr>
-                <div class="container">
-                    <div class="row">
-                        <div id="flightContainer" class="col">
-                            <div class="hstack">
-                                <h2 id="departureAirport"></h2>
-                                <h2><i class="bi bi-arrow-right-short"></i></h2>
-                                <h2 id="arrivalAirport"></h2>
-                                <h6 class="ms-auto" id="departureDate"></h6>
-                            </div>
+        <div class="content-card mb-3">
+            <h5>Purchase Details</h5>
+            <hr>
+            <div class="container">
+                <div class="row">
+                    <div id="flightContainer" class="col">
+                        <div class="hstack">
+                            <h2 id="departureAirport"></h2>
+                            <h2><i class="bi bi-arrow-right-short"></i></h2>
+                            <h2 id="arrivalAirport"></h2>
+                            <h6 class="ms-auto" id="departureDate"></h6>
                         </div>
-                        <div class="col-md">
+                    </div>
+                    <div class="col-md">
 
-                        </div>
-                        <hr class="d-md-none">
-                        <div class="col-md-4">
-                            <div class="row">
-                                <div class="col-8">
-                                    <p>Fare Per Passenger</p>
-                                </div>
-                                <div class="col">
-                                    <p class="text-end" id="baseFare"></p>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-8">
-                                    <p>Taxes & Fees</p>
-                                </div>
-                                <div class="col">
-                                    <p class="text-end" id="taxes"></p>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-8">
-                                    <p>Passengers</p>
-                                </div>
-                                <div class="col">
-                                    <div class="hstack ms-auto">
-                                        <p class="ms-auto">x</p>
-                                        <p class="text-end" id="priceNumOfPassengers"></p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row mt-auto">
-                                <div class="col">
-                                    <h4>Total</h4>
-                                </div>
-                                <div class="col">
-                                    <h3 class="text-end" id="totalFare"></h3>
-                                </div>
-                            </div>
-                        </div>
                     </div>
-                </div>
-            </div>
-        </div>
-        <div class="card shadow mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Passenger Info</h5>
-                <hr>
-                <div id="passengerFormContainer">
-                    {% for passenger_form in form.passengers %}
-                    <div class="px-3 my-2" name="passengerForm">
-                        <h6 name="passengerHeader">Passenger {{ loop.index }}</h6>
+                    <hr class="d-md-none">
+                    <div class="col-md-4">
                         <div class="row">
-                            <div class="col-md-4">
-                                {{ render_field(passenger_form.first_name, autocomplete="given-name", form="purchase_transaction_form") }}
+                            <div class="col-8">
+                                <p>Fare Per Passenger</p>
                             </div>
-                            <div class="col-md-4">
-                                {{ render_field(passenger_form.middle_name, autocomplete="additional-name", form="purchase_transaction_form") }}
+                            <div class="col">
+                                <p class="text-end" id="baseFare"></p>
                             </div>
-                            <div class="col-md-4">
-                                {{ render_field(passenger_form.last_name, autocomplete="family-name", form="purchase_transaction_form") }}
+                        </div>
+                        <div class="row">
+                            <div class="col-8">
+                                <p>Taxes & Fees</p>
                             </div>
-                            <div class="col-md-4">
-                                {{ render_field(passenger_form.date_of_birth, autocomplete="bday", form="purchase_transaction_form") }}
+                            <div class="col">
+                                <p class="text-end" id="taxes"></p>
                             </div>
-                            <div class="col-md-4">
-                                {{ render_field(passenger_form.gender, autocomplete="sex", form="purchase_transaction_form") }}
+                        </div>
+                        <div class="row">
+                            <div class="col-8">
+                                <p>Passengers</p>
+                            </div>
+                            <div class="col">
+                                <div class="hstack ms-auto">
+                                    <p class="ms-auto">x</p>
+                                    <p class="text-end" id="priceNumOfPassengers"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-auto">
+                            <div class="col">
+                                <h4>Total</h4>
+                            </div>
+                            <div class="col">
+                                <h3 class="text-end" id="totalFare"></h3>
                             </div>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
         </div>
-        <div class="card shadow mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Contact Info</h5>
-                <hr>
-                <div id="contactFormContainer" class="row">
-                    <div class="col-md-4">
-                        {{ render_field(form.email, autocomplete="email", form="purchase_transaction_form") }}
+        <div class="content-card mb-3">
+            <h5>Passenger Info</h5>
+            <hr>
+            <div id="passengerFormContainer">
+                {% for passenger_form in form.passengers %}
+                <div class="px-3 my-2" name="passengerForm">
+                    <h6 name="passengerHeader">Passenger {{ loop.index }}</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            {{ render_field(passenger_form.first_name, autocomplete="given-name",
+                            form="purchase_transaction_form") }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ render_field(passenger_form.middle_name, autocomplete="additional-name",
+                            form="purchase_transaction_form") }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ render_field(passenger_form.last_name, autocomplete="family-name",
+                            form="purchase_transaction_form") }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ render_field(passenger_form.date_of_birth, autocomplete="bday",
+                            form="purchase_transaction_form") }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ render_field(passenger_form.gender, autocomplete="sex", form="purchase_transaction_form")
+                            }}
+                        </div>
                     </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="content-card mb-3">
+            <h5>Contact Info</h5>
+            <hr>
+            <div id="contactFormContainer" class="row">
+                <div class="col-md-4">
+                    {{ render_field(form.email, autocomplete="email", form="purchase_transaction_form") }}
                 </div>
             </div>
         </div>
-        <div class="card shadow mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Billing Info</h5>
-                <hr>
-                <h6>Billing Address</h6>
-                <div id="billingFormContainer" class="px-3 my-2 row">
-                    <div class="col-md-4">
-                        {{ render_field(form.country, autocomplete="billing country", form="purchase_transaction_form") }}
-                    </div>
-                    <div class="col-md-4">
-                        {{ render_field(form.street_address, autocomplete="billing address-line1", form="purchase_transaction_form") }}
-                    </div>
-                    <div class="col-md-4">
-                        {{ render_field(form.street_address2, autocomplete="billing address-line2", form="purchase_transaction_form") }}
-                    </div>
-                    <div class="col-md-4">
-                        {{ render_field(form.city, autocomplete="billing address-level2", form="purchase_transaction_form") }}
-                    </div>
-                    <div class="col-md-4">
-                        {{ render_field(form.state, autocomplete="billing address-level1", form="purchase_transaction_form") }}
-                    </div>
-                    <div class="col-md-4">
-                        {{ render_field(form.zip_code, autocomplete="billing postal-code", form="purchase_transaction_form") }}
-                    </div>
+        <div class="content-card mb-3">
+            <h5>Billing Info</h5>
+            <hr>
+            <div id="billingFormContainer" class="px-3 my-2 row">
+                <div class="col-md-4">
+                    {{ render_field(form.country, autocomplete="billing country", form="purchase_transaction_form") }}
                 </div>
-                <h6>Credit Card Info</h6>
-                <div class="px-3 mb-2">
-                    <img id="genericIcon" src="/static/icons/creditcard-icon.png">
-                    <img id="visaIcon" src="/static/icons/visa-icon.png">
-                    <img id="mastercardIcon" src="/static/icons/mastercard-icon.png">
-                    <img id="amexIcon" src="/static/icons/amex-icon.png">
+                <div class="col-md-4">
+                    {{ render_field(form.street_address, autocomplete="billing address-line1",
+                    form="purchase_transaction_form") }}
                 </div>
-                <div id="creditCardFormContainer" class="px-3 my-2 row">
-                    <div class="col-md-6">
-                        <div class="input-group mb-3">
-                            <span class="input-group-text"><i class="bi bi-credit-card"></i></span>
-                            {{ render_field(form.card_number, autocomplete="cc-number", wrapper_classes="flex-grow-1", render_feedback=false, form="purchase_transaction_form") }}
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="input-group mb-3 flex-nowrap">
-                            {{ render_field(form.card_expiration, autocomplete="cc-exp", wrapper_classes="flex-grow-1", render_feedback=false, form="purchase_transaction_form") }}
-                            {{ render_field(form.card_cvc, autocomplete="off", wrapper_classes="flex-grow-1", render_feedback=false, form="purchase_transaction_form") }}
-                            <span class="input-group-text"><i class="bi bi-credit-card-2-back"></i></span>
-                        </div>
-                    </div>
+                <div class="col-md-4">
+                    {{ render_field(form.street_address2, autocomplete="billing address-line2",
+                    form="purchase_transaction_form") }}
                 </div>
-                <div class="d-flex justify-content-end">
-                    <input id="submitButton" class="btn btn-redeye flex-grow-1 flex-md-grow-0" type="submit" form="purchase_transaction_form" value="Submit" >
+                <div class="col-md-4">
+                    {{ render_field(form.city, autocomplete="billing address-level2", form="purchase_transaction_form")
+                    }}
+                </div>
+                <div class="col-md-4">
+                    {{ render_field(form.state, autocomplete="billing address-level1", form="purchase_transaction_form")
+                    }}
+                </div>
+                <div class="col-md-4">
+                    {{ render_field(form.zip_code, autocomplete="billing postal-code", form="purchase_transaction_form")
+                    }}
                 </div>
             </div>
+        </div>
+        <div class="content-card mb-3">
+            <h5>Credit Card Info</h5>
+            <hr>
+            <div class="px-3 mb-2">
+                <img id="genericIcon" src="/static/icons/creditcard-icon.png">
+                <img id="visaIcon" src="/static/icons/visa-icon.png">
+                <img id="mastercardIcon" src="/static/icons/mastercard-icon.png">
+                <img id="amexIcon" src="/static/icons/amex-icon.png">
+            </div>
+            <div id="creditCardFormContainer" class="px-3 my-2 row">
+                <div class="col-md-6">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="bi bi-credit-card"></i></span>
+                        {{ render_field(form.card_number, autocomplete="cc-number", wrapper_classes="flex-grow-1",
+                        render_feedback=false, form="purchase_transaction_form") }}
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="input-group mb-3 flex-nowrap">
+                        {{ render_field(form.card_expiration, autocomplete="cc-exp", wrapper_classes="flex-grow-1",
+                        render_feedback=false, form="purchase_transaction_form") }}
+                        {{ render_field(form.card_cvc, autocomplete="off", wrapper_classes="flex-grow-1",
+                        render_feedback=false, form="purchase_transaction_form") }}
+                        <span class="input-group-text"><i class="bi bi-credit-card-2-back"></i></span>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end">
+                <input id="submitButton" class="btn btn-redeye flex-grow-1 flex-md-grow-0" type="submit"
+                    form="purchase_transaction_form" value="Submit">
             </div>
         </div>
     </div>
@@ -226,7 +234,7 @@
             $('#passengerFormContainer').append('<hr>');
             $('#passengerFormContainer').append(form);
         }
-        
+
         // Stripe's jquery-payment library
         $('#card_number').payment('formatCardNumber');
         $('#card_expiration').payment('formatCardExpiry');
@@ -363,7 +371,7 @@
             },
             onError: function (response) {
             },
-            onComplete: function() {
+            onComplete: function () {
                 $('#submitButton').prop('disabled', false);
             }
         });
@@ -375,7 +383,7 @@
             remote: {
                 url: "{{ url_for('api.customers', search='_QUERY') }}",
                 wildcard: '_QUERY',
-                transform: function(res) {
+                transform: function (res) {
                     return res.items;
                 }
             },
@@ -394,13 +402,13 @@
             display: 'email',
             source: user_bloodhound,
             templates: {
-                suggestion: function(data) {
+                suggestion: function (data) {
                     return `<div class="tt-suggestion">${data.first_name} ${data.last_name}<small class="ms-2">${data.email}</small></div>`
                 }
             }
         });
 
-        $input.on('typeahead:selected', function(event, item, dataset) {
+        $input.on('typeahead:selected', function (event, item, dataset) {
             $('#passengers-0-first_name').val(item.first_name);
             $('#passengers-0-last_name').val(item.last_name);
         })
