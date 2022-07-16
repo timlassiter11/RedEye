@@ -56,7 +56,7 @@
 </div>
 <template id="resultRow">
     <div class="row gx-0 mb-3 content-card">
-        <div class="p-3 bg-white mx-auto col">
+        <div class="col me-md-5 mb-3 mb-md-0">
             <div class="d-flex flex-nowrap" name="topRow">
                 <p class="flex-grow-1" name="flightNumbers"></p>
                 <p name="tripTime"></p>
@@ -72,7 +72,9 @@
             </div>
             <div name="airportContainer" class="d-flex flex-nowrap justify-content-between"></div>
         </div>
-        <div class="p-3 bg-white col-md-4">
+        <hr class="d-md-none">
+        <div class="vr d-none d-md-block"></div>
+        <div class="col-md-4 ms-md-5 mt-3 mt-md-0 ">
             <div class="d-flex flex-column justify-content-center h-100">
                 <h4 class="text-center" name="cost"></h4>
                 <button name="book" class="btn btn-redeye" type="button">Book Now</button>

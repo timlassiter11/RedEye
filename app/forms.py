@@ -138,7 +138,7 @@ class PurchaseTransactionForm(FlaskForm):
     state = StringField("State/Province/Region", [InputRequired()])
     zip_code = StringField("Zip Code", validators=[InputRequired()])
     card_number = StringField("Card Number", validators=[InputRequired()])
-    card_expiration = StringField("MM / YYYY", validators=[InputRequired()])
+    card_expiration = StringField("MM/YYYY", validators=[InputRequired()])
     card_cvc = StringField("CVC", validators=[InputRequired()])
     passengers = FieldList(FormField(PassengerForm), min_entries=1)
     flights = FieldList(HiddenField(validators=[InputRequired(), FlightValidator()]), min_entries=1)

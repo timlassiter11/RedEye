@@ -33,69 +33,67 @@
         {% block message %}
         {{ render_messages(container_classes=['sticky-top', 'py-1']) }}
         {% endblock %}
-        <div class="content-card mb-3">
+        <div class="content-card">
             <h5>Purchase Details</h5>
             <hr>
-            <div class="container">
-                <div class="row">
-                    <div id="flightContainer" class="col">
-                        <div class="hstack">
-                            <h2 id="departureAirport"></h2>
-                            <h2><i class="bi bi-arrow-right-short"></i></h2>
-                            <h2 id="arrivalAirport"></h2>
-                            <h6 class="ms-auto" id="departureDate"></h6>
-                        </div>
+            <div class="row px-md-3">
+                <div id="flightContainer" class="col pb-3">
+                    <div class="hstack">
+                        <h2 id="departureAirport"></h2>
+                        <h2><i class="bi bi-arrow-right-short"></i></h2>
+                        <h2 id="arrivalAirport"></h2>
+                        <h6 class="ms-auto" id="departureDate"></h6>
                     </div>
-                    <div class="col-md">
+                </div>
+                <div class="col-md">
 
+                </div>
+                <hr class="d-md-none">
+                <div class="col-md-4">
+                    <div class="row">
+                        <div class="col-8">
+                            <p class="mb-1">Fare Per Passenger</p>
+                        </div>
+                        <div class="col">
+                            <p class="mb-1 text-end" id="baseFare"></p>
+                        </div>
                     </div>
-                    <hr class="d-md-none">
-                    <div class="col-md-4">
-                        <div class="row">
-                            <div class="col-8">
-                                <p>Fare Per Passenger</p>
-                            </div>
-                            <div class="col">
-                                <p class="text-end" id="baseFare"></p>
+                    <div class="row">
+                        <div class="col-8">
+                            <p class="mb-1">Taxes & Fees</p>
+                        </div>
+                        <div class="col">
+                            <p class="mb-1 text-end" id="taxes"></p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-8">
+                            <p class="mb-1">Passengers</p>
+                        </div>
+                        <div class="col">
+                            <div class="hstack ms-auto">
+                                <p class="mb-1 ms-auto">x</p>
+                                <p class="mb-1 text-end" id="priceNumOfPassengers"></p>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-8">
-                                <p>Taxes & Fees</p>
-                            </div>
-                            <div class="col">
-                                <p class="text-end" id="taxes"></p>
-                            </div>
+                    </div>
+                    <div class="row mt-auto pt-3">
+                        <div class="col">
+                            <h4>Total</h4>
                         </div>
-                        <div class="row">
-                            <div class="col-8">
-                                <p>Passengers</p>
-                            </div>
-                            <div class="col">
-                                <div class="hstack ms-auto">
-                                    <p class="ms-auto">x</p>
-                                    <p class="text-end" id="priceNumOfPassengers"></p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mt-auto">
-                            <div class="col">
-                                <h4>Total</h4>
-                            </div>
-                            <div class="col">
-                                <h3 class="text-end" id="totalFare"></h3>
-                            </div>
+                        <div class="col">
+                            <h3 class="text-end" id="totalFare"></h3>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="content-card mb-3">
+        <div class="content-card">
             <h5>Passenger Info</h5>
             <hr>
             <div id="passengerFormContainer">
                 {% for passenger_form in form.passengers %}
-                <div class="px-3 my-2" name="passengerForm">
+                <div class="my-2 px-md-3" name="passengerForm">
                     <h6 name="passengerHeader">Passenger {{ loop.index }}</h6>
                     <div class="row">
                         <div class="col-md-4">
@@ -123,19 +121,19 @@
                 {% endfor %}
             </div>
         </div>
-        <div class="content-card mb-3">
+        <div class="content-card">
             <h5>Contact Info</h5>
             <hr>
-            <div id="contactFormContainer" class="row">
+            <div id="contactFormContainer" class="row px-md-3">
                 <div class="col-md-4">
                     {{ render_field(form.email, autocomplete="email", form="purchase_transaction_form") }}
                 </div>
             </div>
         </div>
-        <div class="content-card mb-3">
+        <div class="content-card">
             <h5>Billing Info</h5>
             <hr>
-            <div id="billingFormContainer" class="px-3 my-2 row">
+            <div id="billingFormContainer" class="my-2 row px-md-3">
                 <div class="col-md-4">
                     {{ render_field(form.country, autocomplete="billing country", form="purchase_transaction_form") }}
                 </div>
@@ -161,30 +159,32 @@
                 </div>
             </div>
         </div>
-        <div class="content-card mb-3">
+        <div class="content-card">
             <h5>Credit Card Info</h5>
             <hr>
-            <div class="px-3 mb-2">
-                <img id="genericIcon" src="/static/icons/creditcard-icon.png">
-                <img id="visaIcon" src="/static/icons/visa-icon.png">
-                <img id="mastercardIcon" src="/static/icons/mastercard-icon.png">
-                <img id="amexIcon" src="/static/icons/amex-icon.png">
-            </div>
-            <div id="creditCardFormContainer" class="px-3 my-2 row">
-                <div class="col-md-6">
-                    <div class="input-group mb-3">
-                        <span class="input-group-text"><i class="bi bi-credit-card"></i></span>
-                        {{ render_field(form.card_number, autocomplete="cc-number", wrapper_classes="flex-grow-1",
-                        render_feedback=false, form="purchase_transaction_form") }}
-                    </div>
+            <div class="px-md-3">
+                <div class="mb-2">
+                    <img id="genericIcon" src="/static/icons/creditcard-icon.png">
+                    <img id="visaIcon" src="/static/icons/visa-icon.png">
+                    <img id="mastercardIcon" src="/static/icons/mastercard-icon.png">
+                    <img id="amexIcon" src="/static/icons/amex-icon.png">
                 </div>
-                <div class="col">
-                    <div class="input-group mb-3 flex-nowrap">
-                        {{ render_field(form.card_expiration, autocomplete="cc-exp", wrapper_classes="flex-grow-1",
-                        render_feedback=false, form="purchase_transaction_form") }}
-                        {{ render_field(form.card_cvc, autocomplete="off", wrapper_classes="flex-grow-1",
-                        render_feedback=false, form="purchase_transaction_form") }}
-                        <span class="input-group-text"><i class="bi bi-credit-card-2-back"></i></span>
+                <div id="creditCardFormContainer" class="my-2 row">
+                    <div class="col-md-6">
+                        <div class="input-group flex-nowrap mb-3">
+                            <span class="input-group-text"><i class="bi bi-credit-card"></i></span>
+                            {{ render_field(form.card_number, autocomplete="cc-number", wrapper_classes="flex-grow-1",
+                            render_feedback=false, form="purchase_transaction_form") }}
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="input-group mb-3 flex-nowrap">
+                            {{ render_field(form.card_expiration, autocomplete="cc-exp", wrapper_classes="flex-grow-1",
+                            render_feedback=false, form="purchase_transaction_form") }}
+                            {{ render_field(form.card_cvc, autocomplete="off", wrapper_classes="flex-grow-1",
+                            render_feedback=false, form="purchase_transaction_form") }}
+                            <span class="input-group-text"><i class="bi bi-credit-card-2-back"></i></span>
+                        </div>
                     </div>
                 </div>
             </div>
