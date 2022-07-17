@@ -1,3 +1,5 @@
+import random
+import string
 from flask import session
 from flask_login import current_user
 from app import db, models
@@ -5,6 +7,22 @@ from app.api import api
 from app.api.helpers import get_or_404, json_abort, str_to_date
 from app.forms import PurchaseTransactionForm
 from flask_restful import Resource, request
+from sqlalchemy import and_
+
+
+def generate_confirmation_number(email: str):
+    while True:
+        cn = "".join(
+            random.SystemRandom().choice(string.ascii_uppercase + string.digits)
+            for _ in range(6)
+        )
+        exists = models.PurchaseTransaction.query.filter(
+            and_(models.PurchaseTransaction.email == email),
+            models.PurchaseTransaction.confirmation_number == cn,
+        ).count()
+        if not exists:
+            return cn
+
 
 @api.resource("/checkout")
 class Checkout(Resource):
@@ -17,7 +35,12 @@ class Checkout(Resource):
             if itinerary is None:
                 json_abort(404, message="Quote is not longer valid")
 
-            flights = [get_or_404(models.Flight, id, "One ore more flights are no longer available.") for id in itinerary['flights']]
+            flights = [
+                get_or_404(
+                    models.Flight, id, "One ore more flights are no longer available."
+                )
+                for id in itinerary["flights"]
+            ]
             departure_date = str_to_date(itinerary["departure_date"])
 
             user = models.User.query.filter_by(email=form.email.data).first()
@@ -25,29 +48,34 @@ class Checkout(Resource):
             transaction = models.PurchaseTransaction()
             # TODO: What if the user is logged in? Should we use their email instead?
             transaction.email = form.email.data
+            transaction.confirmation_number = generate_confirmation_number(
+                form.email.data
+            )
 
             form_user = -1
             if user is not None:
                 form_user = user.id
-                if user.role in ['admin', 'agent']:
+                if user.role in ["admin", "agent"]:
                     # TODO: Should employees be able to use their work accounts to purchase tickets?
                     # Maybe they get a discount if they do?
                     pass
-            
+
             session_user = -1
-            if not current_user.is_anonymous and current_user.role == 'agent':        
+            if not current_user.is_anonymous and current_user.role == "agent":
                 session_user = current_user.id
 
             # If session_user is an agent we want to give them credit for the sale
             # unless they are purchasing it themselves.
             if form_user != session_user and session_user != -1:
                 transaction.assisted_by = session_user
-                
+
             num_of_passengers = len(form.passengers)
 
             for flight in flights:
                 if not flight.available_seats(departure_date) >= num_of_passengers:
-                    json_abort(400, message=f'Flight {flight.number} is no longer available')
+                    json_abort(
+                        400, message=f"Flight {flight.number} is no longer available"
+                    )
 
                 price = flight.cost(departure_date)
 
@@ -63,12 +91,14 @@ class Checkout(Resource):
                     ticket.purchase_price = price
                     transaction.tickets.append(ticket)
 
-            transaction.base_fare = itinerary['base_fare']
-            transaction.purchase_price = itinerary['total_price']
+            transaction.base_fare = itinerary["base_fare"]
+            transaction.purchase_price = itinerary["total_price"]
 
             db.session.add(transaction)
             db.session.commit()
             db.session.refresh(transaction)
+
+            # TODO: Send confirmation email
             return transaction.to_dict(expand=True)
-        
+
         json_abort(400, message=form.errors)

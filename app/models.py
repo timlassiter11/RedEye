@@ -10,7 +10,7 @@ import jwt
 import pytz
 from flask import current_app, url_for
 from flask_login import UserMixin
-from sqlalchemy import desc, func, or_
+from sqlalchemy import UniqueConstraint, desc, func, or_
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, login
@@ -311,11 +311,14 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    email = db.Column(db.String(120), index=True)
+    email = db.Column(db.String(120), nullable=False, index=True)
+    confirmation_number = db.Column(db.String(6), index=True, nullable=False)
     purchase_timestamp = db.Column(db.DateTime, nullable=False, server_default=func.now())
     base_fare = db.Column(db.Float, nullable=False)
     purchase_price = db.Column(db.Float, nullable=False)
     assisted_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
+
+    __table_args__ = (UniqueConstraint('email', 'confirmation_number', name='_pnr'), )
 
     def to_dict(self, expand=False) -> Dict[str, Any]:
         data = super().to_dict(expand)
