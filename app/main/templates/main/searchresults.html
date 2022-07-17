@@ -24,28 +24,30 @@
         margin-bottom: 0;
         text-align: center;
     }
-
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="overlay-parent flex-grow-1">
-    <div class="my-auto" style="background-color: white;">
-        <div class="text-center">
-            <div class="spinner-grow text-redeye" style="width: 2rem; height: 2rem; animation-delay: 0ms;" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <div class="spinner-grow text-redeye" style="width: 2rem; height: 2rem; animation-delay: 150ms;" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <div class="spinner-grow text-redeye" style="width: 2rem; height: 2rem; animation-delay: 300ms;" role="status">
-                <span class="visually-hidden">Loading...</span>
+<div class="overlay-parent flex-grow-1 content-background">
+    <div id="loadingScreen" class="overlay-content vstack justify-content-center fade show bg-white">
+        <div class="my-auto">
+            <div class="text-center">
+                <div class="spinner-grow text-redeye" style="width: 2rem; height: 2rem; animation-delay: 0ms;"
+                    role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div class="spinner-grow text-redeye" style="width: 2rem; height: 2rem; animation-delay: 150ms;"
+                    role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div class="spinner-grow text-redeye" style="width: 2rem; height: 2rem; animation-delay: 300ms;"
+                    role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
         </div>
     </div>
-</div>
-<div id="contentContainer" class="flex-grow-1 d-none content-background">
-    <div class="container mt-3" style="max-width: 938px;">
+    <div id="contentContainer" class="container mt-3 d-none" style="max-width: 938px;">
         <h2>{{ departure.code }}<i class="bi bi-arrow-right-short"></i>{{ arrival.code }}</h2>
         <h5>{{ date.strftime("%a, %b %d, %Y") }}</h5>
         <div id="noFlightsMessage" class="shadow p-3 d-none mt-3">
@@ -62,7 +64,7 @@
                 <p name="tripTime"></p>
             </div>
             <div class="d-flex flex-nowrap justify-content-between mb-3">
-                <h4 class="d-inline-block" name="departureTime"></h4> 
+                <h4 class="d-inline-block" name="departureTime"></h4>
                 <!-- <h4 class="d-inline-block"><i class="bi bi-arrow-right-short"></i></h4> -->
                 <h4 class="d-inline-block" name="arrivalTime"></h4>
             </div>
@@ -99,7 +101,7 @@
         }
 
         parts = parts[0].split(':');
-    
+
         obj.hours = parts[0];
         obj.minutes = parts[1];
         obj.seconds = parts[2];
@@ -109,13 +111,13 @@
 
     $(document).ready(function () {
         $.ajax({
-            headers : {
-                'Accept' : 'application/json',
-                'Content-Type' : 'application/json'
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             },
-            url : "{{ url_for('api.flightsearch', **args)|safe }}",
-            type : 'GET',
-            success : function(response, textStatus, jqXhr) {
+            url: "{{ url_for('api.flightsearch', **args)|safe }}",
+            type: 'GET',
+            success: function (response, textStatus, jqXhr) {
                 if (response._meta.total_items === 0) {
                     // TODO: Display something when no available flights are found.
                     $('#noFlightsMessage').removeClass('d-none');
@@ -135,7 +137,7 @@
 
                         $departureTime.text(departure_dt.toFormat('hh:mm a'));
                         $arrivalTime.text(arrival_dt.toFormat('hh:mm a'));
-                        
+
                         if (departure_dt.get('day') < arrival_dt.get('day')) {
                             $row.find('[name="topRow"]').append('<i class="bi bi-eye-fill text-redeye"></i>');
                         }
@@ -143,7 +145,7 @@
                         const $markerContainer = $row.find('[name="markerContainer"]');
                         const $airportContainer = $row.find('[name="airportContainer"]');
                         const $layoverContainer = $row.find('[name="layoverContainer"]');
-                        
+
                         let flightNumbers = '';
                         let flight = null;
                         let previousFlight = null;
@@ -159,10 +161,10 @@
                                     hour: parts[0],
                                     minute: parts[1]
                                 });
-                                
+
                                 // Handle layover rolling over midnight
                                 if (nextDeparture < current_dt) {
-                                    nextDeparture = nextDeparture.plus(luxon.Duration.fromObject({hours: 24}));
+                                    nextDeparture = nextDeparture.plus(luxon.Duration.fromObject({ hours: 24 }));
                                 }
 
                                 const layover = nextDeparture.diff(current_dt, ['hours', 'minutes']);
@@ -175,7 +177,7 @@
                             previousFlight = flight;
                             const flightTime = strToDuration(flight.flight_time);
                             current_dt = current_dt.plus(flightTime);
-                            
+
                             flightNumbers += `RE${flight.number} / `;
 
                             $markerContainer.append('<div class="pathMarker"></div>');
@@ -192,11 +194,11 @@
                         const $flightNumbers = $row.find('[name="flightNumbers"]');
                         $flightNumbers.text(flightNumbers);
 
-                        
+
                         const $tripTime = $row.find('[name="tripTime"]');
                         const tripTime = strToDuration(item.total_time);
                         $tripTime.text(tripTime.toFormat("h'h'm'm'"));
-                        
+
                         const $cost = $row.find('[name="cost"]');
                         const cost = item.cost.toFixed(2);
                         $cost.text(`\$${cost}`);
@@ -211,13 +213,16 @@
                     }
                 }
             },
-            error : function(jqXHR, textStatus, errorThrown) {
+            error: function (jqXHR, textStatus, errorThrown) {
                 // TODO: How should we handle errors?
                 const response = jqXHR.responseJSON
             },
-            complete : function() {
-                document.querySelector(".overlay-parent").style.display = "none";
+            complete: function () {
                 $('#contentContainer').removeClass('d-none');
+                $('#loadingScreen').removeClass('show');
+                setTimeout(function() {
+                    $('#loadingScreen').hide();
+                }, 150);
             }
         })
     })
