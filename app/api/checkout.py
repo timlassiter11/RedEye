@@ -1,7 +1,8 @@
+from flask import session
 from flask_login import current_user
 from app import db, models
 from app.api import api
-from app.api.helpers import json_abort
+from app.api.helpers import get_or_404, json_abort, str_to_date
 from app.forms import PurchaseTransactionForm
 from flask_restful import Resource, request
 
@@ -10,6 +11,15 @@ class Checkout(Resource):
     def post(self):
         form = PurchaseTransactionForm(data=request.json)
         if form.validate():
+            # Get itinerary from session data
+            itineraries = session["itineraries"]
+            itinerary = itineraries.get(form.itinerary.data)
+            if itinerary is None:
+                json_abort(404, message="Quote is not longer valid")
+
+            flights = [get_or_404(models.Flight, id, "One ore more flights are no longer available.") for id in itinerary['flights']]
+            departure_date = str_to_date(itinerary["departure_date"])
+
             user = models.User.query.filter_by(email=form.email.data).first()
 
             transaction = models.PurchaseTransaction()
@@ -33,12 +43,9 @@ class Checkout(Resource):
             if form_user != session_user and session_user != -1:
                 transaction.assisted_by = session_user
                 
-            departure_date = form.departure_date.data
             num_of_passengers = len(form.passengers)
 
-            total_price = 0
-            for field in form.flights:
-                flight = field.data
+            for flight in flights:
                 if not flight.available_seats(departure_date) >= num_of_passengers:
                     json_abort(400, message=f'Flight {flight.number} is no longer available')
 
@@ -55,11 +62,13 @@ class Checkout(Resource):
                     ticket.flight_id = flight.id
                     ticket.purchase_price = price
                     transaction.tickets.append(ticket)
-                    total_price += price
+
+            transaction.base_fare = itinerary['base_fare']
+            transaction.purchase_price = itinerary['total_price']
 
             db.session.add(transaction)
             db.session.commit()
             db.session.refresh(transaction)
-            return "", 204
+            return transaction.to_dict(expand=True)
         
         json_abort(400, message=form.errors)

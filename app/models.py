@@ -2,6 +2,7 @@ import datetime as dt
 import math
 import time
 from typing import Any, Dict, List
+import uuid
 from zoneinfo import ZoneInfo
 
 import geopy.distance
@@ -13,6 +14,7 @@ from sqlalchemy import desc, func, or_
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, login
+from app.helpers import calculate_taxes
 
 
 class PaginatedAPIMixin:
@@ -304,12 +306,21 @@ class FlightCancellation(db.Model):
     flight = db.relationship("Flight", backref="cancellations")
 
 
-class PurchaseTransaction(db.Model):
+class PurchaseTransaction(PaginatedAPIMixin, db.Model):
+    __endpoint__ = "api.purchases"
+
     id = db.Column(db.Integer, primary_key=True)
 
     email = db.Column(db.String(120), index=True)
     purchase_timestamp = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    base_fare = db.Column(db.Float, nullable=False)
+    purchase_price = db.Column(db.Float, nullable=False)
     assisted_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
+
+    def to_dict(self, expand=False) -> Dict[str, Any]:
+        data = super().to_dict(expand)
+        data['tickets'] = [ticket.to_dict(expand) for ticket in self.tickets]
+        return data
 
 
 class PurchasedTicket(db.Model):
@@ -330,9 +341,25 @@ class PurchasedTicket(db.Model):
     transaction = db.relationship("PurchaseTransaction", backref="tickets")
     flight = db.relationship("Flight", backref="purchases")
 
+    def to_dict(self, expand=False):
+        return {
+            'self': url_for('api.purchase', id=self.id),
+            'flight': self.flight.to_dict(expand) if expand else url_for('api.flight', id=self.flight_id),
+            'departure_date': self.departure_date.strftime("%Y-%m-%d"),
+            'first_name': self.first_name,
+            'middle_name': self.middle_name,
+            'last_name': self.last_name,
+            'date_of_birth': self.date_of_birth.strftime("%Y-%m-%d"),
+            'gender': self.gender,
+            'purchase_price': self.purchase_price,
+            'refund_timestamp': self.refund_timestamp,
+            'refunded_by': self.refunded_by
+        }
+
 
 class TripItinerary:
     def __init__(self, date: dt.date, flights: List[Flight] = None) -> None:
+        self.id = uuid.uuid4().hex
         self._total_time = dt.timedelta()
         self._flights: List[Flight] = []
         self._date = date
@@ -406,16 +433,7 @@ class TripItinerary:
 
     @property
     def taxes(self):
-        # https://taxfoundation.org/understanding-the-price-of-your-plane-ticket/#:~:text=The%20U.S.%20government%20charges%20an,(and%20almost%20all%20do).
-        # Excise tax
-        taxes = self.base_fare * 0.075
-        # Flight segment tax of $4.5 per segment
-        taxes += 4.5 * len(self.flights)
-        # September 11th tax
-        taxes += 5.6
-        # Passenger facility charge (PFC)
-        taxes += 4.5 * len(self.flights) + 1
-        return round(taxes, 2)
+        return calculate_taxes(self.base_fare, len(self._flights))
 
     def add_flight(self, flight: Flight) -> None:
         # TODO: Should we check to make sure we can add this flight?
@@ -489,6 +507,7 @@ class TripItinerary:
             arrival_dt = arrival_dt.astimezone(ZoneInfo(self.arrival_airport.timezone))
 
         return {
+            "id": self.id,
             "cost": self.cost,
             "base_fare": self.base_fare,
             "taxes": self.taxes,

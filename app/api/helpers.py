@@ -55,10 +55,10 @@ def owner_or_role_required(roles: Union[str, List[str]]):
     return decorator
 
 
-def get_or_404(model, id):
+def get_or_404(model, id, message: str = "Resource not found"):
     item = model.query.get(int(id))
     if item is None:
-        json_abort(404, message="Resource not found")
+        json_abort(404, message=message)
     return item
 
 

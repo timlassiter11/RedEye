@@ -26,7 +26,6 @@
 <form id="purchase_transaction_form" class="needs-validation" action="{{ url_for('api.checkout') }}" method="post"
     hidden novalidate>
     {{ form.hidden_tag() }}
-    {{ form.departure_date() }}
 </form>
 <div id="contentContainer" class="flex-grow-1 content-background">
     <div class="mt-3 mx-auto container" style="max-width: 938px;">
@@ -250,12 +249,10 @@
         // If the price is modified it will only affect the display, not what the user is "charged".
         const itinerary = JSON.parse(itineraryStr);
 
+        $('#purchase_transaction_form').find('#itinerary').val(itinerary.id);
+
         const departure_dt = luxon.DateTime.fromISO(itinerary.departure_datetime, { setZone: true });
         const arrival_dt = luxon.DateTime.fromISO(itinerary.arrival_datetime, { setZone: true });
-
-        // Set the hidden "departure_date" field that gets sent to the api with the form data
-        const departureStr = departure_dt.toFormat("yyyy-MM-dd");
-        $('#departure_date').val(departure_dt.toFormat("yyyy-MM-dd"));
 
         // Setup all of the purhcase info with the info from the itinerary object
         $('#departureDate').text(departure_dt.toFormat("ccc, LLL d"));
@@ -272,7 +269,7 @@
 
             // Create flight input fields for each flight they are purchasing and assign the flight number.
             // This also gets sent to the API so it knows which flights to purchase.
-            $('#purchase_transaction_form').append(`<input type="hidden" name="flights-${i}" id="flights-${i}" value="${flight.number}">`)
+            //$('#purchase_transaction_form').append(`<input type="hidden" name="flights-${i}" id="flights-${i}" value="${flight.number}">`)
 
             // Create a flight row and populate the data.
             // This is displayed under the "Purchase Info" header.

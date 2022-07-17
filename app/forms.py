@@ -129,7 +129,6 @@ class PassengerForm(FlaskForm):
 
 
 class PurchaseTransactionForm(FlaskForm):
-    departure_date = DateField(render_kw={'hidden': True})
     email = EmailField("Email", validators=[InputRequired()])
     country = SelectField("Country", choices=[(key, value) for key, value in pytz.country_names.items()], default="US")
     street_address = StringField("Street Address", validators=[InputRequired()])
@@ -141,4 +140,4 @@ class PurchaseTransactionForm(FlaskForm):
     card_expiration = StringField("MM/YYYY", validators=[InputRequired()])
     card_cvc = StringField("CVC", validators=[InputRequired()])
     passengers = FieldList(FormField(PassengerForm), min_entries=1)
-    flights = FieldList(HiddenField(validators=[InputRequired(), FlightValidator()]), min_entries=1)
+    itinerary = HiddenField()
