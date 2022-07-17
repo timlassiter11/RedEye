@@ -27,8 +27,16 @@
     hidden novalidate>
     {{ form.hidden_tag() }}
 </form>
-<div id="contentContainer" class="flex-grow-1 content-background">
-    <div class="mt-3 mx-auto container" style="max-width: 938px;">
+<div id="contentContainer" class="flex-grow-1 content-background overlay-parent">
+    <div id="successPage" class="overlay-content vstack justify-content-center fade px-3" style="display: none;">
+        <div class="content-card mx-auto text-center">
+            <h1>Your purchase is complete!</h1> 
+            <h1 class="text-success"><i class="bi bi-check-circle-fill"></i></h1>
+            <h6 class="mb-5">Confirmation Number: <span id="confirmationNumber"></span></h6>
+            <p>You will receive a confirmation email shortly with the details of your trip.</p>
+        </div>
+    </div>
+    <div id="checkoutPage" class="mt-3 mx-auto" style="max-width: 938px;">
         {% block message %}
         {{ render_messages(container_classes=['sticky-top', 'py-1']) }}
         {% endblock %}
@@ -365,6 +373,11 @@
                 return success;
             },
             onSuccess: function (response) {
+                window.sessionStorage.removeItem('itinerary');
+                $('#confirmationNumber').text(response.confirmation_number);
+                $('#checkoutPage').hide();
+                $('#successPage').show();
+                $('#successPage').addClass('show');
             },
             onError: function (response) {
             },
