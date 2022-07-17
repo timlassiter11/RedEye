@@ -1,0 +1,80 @@
+{% extends "main/layout.html" %}
+
+{% block styles %}
+{{ super() }}
+<link href="https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <table 
+        id="table"
+        data-toggle="table"
+        data-height="550"
+        data-ajax="getItems"
+        data-data-field="items"
+        data-total-field="total"
+        data-side-pagination="server"
+        data-query-params="queryParams"
+        data-pagination="true"
+        data-search="true">
+        <thead>
+            <tr>
+                <th data-field="number">Flight Number</th>
+                <th data-field="airplane.registration_number">Airplane Registration</th>
+                <th data-field="departure_airport.code">Departing Airport</th>
+                <th data-field="arrival_airport.code">Arriving Airport</th>
+                <th data-field="departure_time" data-formatter="timeFormatter">Departing Time</th>
+                <th data-field="arrival_time" data-formatter="timeFormatter">Arrival Time</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.js"></script>
+<script src="/static/scripts/luxon.min.js"></script>
+<script>    
+    // Formats arrival and departure times into their respective airports timezones.
+    function timeFormatter(value, row, index, field) {
+        // Create the initial DateTime in utc
+        let dt = luxon.DateTime.fromISO(value, { zone: "utc" })
+        // Convert to the timezone of the airport.
+        if (field === 'departure_time') {
+            dt = dt.setZone(row.departure_airport.timezone)
+        } else if (field === 'arrival_time') {
+            dt = dt.setZone(row.arrival_airport.timezone)
+        }
+        return dt.toFormat('HH:mm')
+    }
+
+    // Gets the items from the API and formats the data for Bootstrap Table
+    // https://examples.bootstrap-table.com/#options/table-ajax.html#view-source
+    function getItems(params) {
+        var url = "{{ url_for('api.flights', expand=True) }}"
+        $.get(url + '&' + $.param(params.data)).then(function (res) {
+            // Bootstrap Table expects a total number of items 
+            // so it can calculate how many pages and a list of items.
+            params.success({total: res._meta.total_items, items: res.items})
+        })
+    }
+
+    // Bootstrap Table uses limit and offset but our API uses pages and page size.
+    // Convert the limit and and offset to our pages and page size.
+    // https://examples.bootstrap-table.com/#options/query-params.html#view-source
+    function queryParams(params) {
+        page = params.offset / params.limit
+        return {
+            page: page + 1,
+            per_page: params.limit,
+            search: params.search
+        }
+    }
+
+    $(document).ready(function () {
+
+    })
+</script>
+{% endblock %}

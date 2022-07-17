@@ -1,11 +1,10 @@
 import datetime as dt
 
-from flask_login import current_user
-
 from app.api.helpers import code_to_airport, str_to_date
-from app.forms import PurchaseTransactionForm
+from app.forms import FlightForm, PurchaseTransactionForm
 from app.main import bp
 from flask import flash, redirect, render_template, request, url_for
+from flask_login import current_user
 
 
 @bp.route('/')
@@ -79,5 +78,18 @@ def checkout():
     return render_template(
         'main/checkout.html',
         title='Checkout',
+        form=form
+    )
+
+
+@bp.route('/contact')
+def contact():
+    return render_template('main/contact.html')
+
+@bp.route('/catalog')
+def catalog():
+    form = FlightForm()
+    return render_template('main/catalog.html',
+        title='Flights',
         form=form
     )
