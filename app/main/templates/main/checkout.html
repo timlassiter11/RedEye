@@ -386,7 +386,7 @@
             }
         });
 
-        {% if not current_user.is_anonymous and current_user.role != 'customer' %}
+        {% if not current_user.is_anonymous and current_user.role == 'agent' %}
         user_bloodhound = new Bloodhound({
             datumTokenizer: Bloodhound.tokenizers.whitespace,
             queryTokenizer: Bloodhound.tokenizers.whitespace,
