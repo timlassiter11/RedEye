@@ -1,0 +1,72 @@
+{% extends "agent/layout.html" %}
+
+{% block content %}
+{{ super() }}
+<div class="content-background flex-grow-1">
+    <div class="content-card">
+        <h4>Flight</h4>
+        <div class="col-4">
+            <div class="form-floating">
+                <input class="form-control" type="text" id="flightInput">
+                <label for="flightInput">Flight Number</label>
+            </div>
+        </div>
+        <hr>
+        <div class="d-table">
+            <div class="d-table-row">
+                <p class="d-table-cell">Flight Number</p>
+                <p class="d-table-cell" id="flightNumberCell"></p>
+            </div>
+            <div class="d-table-row">
+                <p class="d-table-cell">Service</p>
+                <p class="d-table-cell" id="flightServiceCell"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function () {
+        flight_bloodhound = new Bloodhound({
+            datumTokenizer: Bloodhound.tokenizers.whitespace,
+            queryTokenizer: Bloodhound.tokenizers.whitespace,
+            remote: {
+                url: "{{ url_for('api.flights', search='_QUERY', expand=true)|safe }}",
+                wildcard: '_QUERY',
+                transform: function (res) {
+                    return res.items;
+                }
+            },
+            identify: function (obj) { return obj.code; }
+        })
+
+        const $input = $('#flightInput');
+        const $label = $(`label[for="flightInput"]`)
+
+        $input.typeahead({
+            highlight: true
+        }, {
+            name: 'flights',
+            display: 'number',
+            limit: 10,
+            source: flight_bloodhound,
+            templates: {
+                suggestion: function (data) {
+                    return `<div class="tt-suggestion"><span class="me-3">${data.number}</span>${data.departure_airport.code} -> ${data.arrival_airport.code}</div>`
+                },
+            }
+        })
+
+        $input.after($label)
+
+        $input.on('typeahead:selected', function(event, item, dataset) {
+            $('#flightNumberCell').text(`RE${item.number}`);
+            $('#flightServiceCell').text(`${item.departure_airport.code} to ${item.arrival_airport.code}`)
+        })
+    });
+</script>
+{% endblock %}

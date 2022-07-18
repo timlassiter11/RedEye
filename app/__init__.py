@@ -34,6 +34,9 @@ def create_app(config_class=Config) -> "Flask":
     from app.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
+    from app.agent import bp as agent_bp
+    app.register_blueprint(agent_bp, url_prefix='/agent')
+
     from app.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/api')
 

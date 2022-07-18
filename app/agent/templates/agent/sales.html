@@ -1,0 +1,16 @@
+{% extends "agent/layout.html" %}
+
+{% block content %}
+{{ super() }}
+<canvas id="myChart" width="400" height="400"></canvas>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.8.0/dist/chart.min.js"></script>
+<script>
+    $(document).ready(function () {
+        
+    });
+</script>
+{% endblock %}
