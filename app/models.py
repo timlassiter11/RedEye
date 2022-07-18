@@ -593,7 +593,6 @@ class TripItinerary:
         query = query.filter(~Flight.arrival_id.in_(prev_ids))
 
         # Create a subquery which counts the total number of tickets sold for each flight
-        # TODO: Take into account refunded tickets
         subquery = (
             db.session.query(
                 PurchasedTicket.flight_id,
@@ -601,6 +600,7 @@ class TripItinerary:
                 func.count(PurchasedTicket.id).label("purchased_tickets"),
             )
             .filter(PurchasedTicket.departure_date == departure_date)
+            .filter(PurchasedTicket.refund_timestamp == None)
             .group_by(PurchasedTicket.flight_id)
             .group_by(PurchasedTicket.departure_date)
             .subquery()
