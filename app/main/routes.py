@@ -66,7 +66,7 @@ def checkout():
 
     # Agents can enter information for customers. If it's an agent we don't want
     # them to be forced to use their email. That wouldn't make sense.
-    if not current_user.is_anonymous and current_user.role != 'customer':
+    if not current_user.is_anonymous and current_user.role != 'agent':
         form.email.data = current_user.email
         if form.email.render_kw is None:
             form.email.render_kw = {}
