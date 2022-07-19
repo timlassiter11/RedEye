@@ -121,17 +121,37 @@ class Customer(User):
 
 class Agent(User):
     __endpoint__ = "api.agent"
-    
+
     id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
 
     __mapper_args__ = {
         "polymorphic_identity": "agent",
     }
 
+    def sales(self):
+        query = (
+            db.session.query(
+                PurchaseTransaction.id,
+                func.sum(PurchaseTransaction.base_fare).label("sales"),
+                func.month(PurchaseTransaction.purchase_timestamp).label("month"),
+                func.year(PurchaseTransaction.purchase_timestamp).label("year"),
+            )
+            .filter(PurchaseTransaction.assisted_by == self.id)
+            .group_by("year")
+            .group_by("month")
+            .order_by("year")
+            .order_by("month")
+        )
+
+        return [
+            {"month": row["month"], "year": row["year"], "sales": row["sales"]}
+            for row in query.all()
+        ]
+
 
 class Admin(User):
     __endpoint__ = "api.admin"
-    
+
     id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
 
     __mapper_args__ = {
@@ -192,7 +212,7 @@ class Flight(PaginatedAPIMixin, db.Model):
     __searchable__ = ["number"]
 
     id = db.Column(db.Integer, primary_key=True)
-    
+
     number = db.Column(db.String(4), index=True)
     airplane_id = db.Column(db.Integer, db.ForeignKey("airplane.id"))
     departure_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
@@ -229,8 +249,8 @@ class Flight(PaginatedAPIMixin, db.Model):
         return arrival_dt.time()
 
     def cost(self, date: dt.date) -> float:
-        # TODO: Figure out better pricing model. 
-        # Maybe base it on date? 
+        # TODO: Figure out better pricing model.
+        # Maybe base it on date?
         # Weekends more expenive?
         # Have the ability to put surge charges in the DB?
         return round(self.distance * 0.2, 2)
@@ -313,23 +333,27 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
 
     email = db.Column(db.String(120), nullable=False, index=True)
     confirmation_number = db.Column(db.String(6), index=True, nullable=False)
-    purchase_timestamp = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    purchase_timestamp = db.Column(
+        db.DateTime, nullable=False, server_default=func.now()
+    )
     base_fare = db.Column(db.Float, nullable=False)
     purchase_price = db.Column(db.Float, nullable=False)
     assisted_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
 
-    __table_args__ = (UniqueConstraint('email', 'confirmation_number', name='_pnr'), )
+    __table_args__ = (UniqueConstraint("email", "confirmation_number", name="_pnr"),)
 
     def to_dict(self, expand=False) -> Dict[str, Any]:
         data = super().to_dict(expand)
-        data['tickets'] = [ticket.to_dict(expand) for ticket in self.tickets]
+        data["tickets"] = [ticket.to_dict(expand) for ticket in self.tickets]
         return data
 
 
 class PurchasedTicket(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    transaction_id = db.Column(db.Integer, db.ForeignKey("purchase_transaction.id"), nullable=False)
+    transaction_id = db.Column(
+        db.Integer, db.ForeignKey("purchase_transaction.id"), nullable=False
+    )
     flight_id = db.Column(db.Integer, db.ForeignKey("flight.id"), nullable=False)
     departure_date = db.Column(db.Date, nullable=False)
     first_name = db.Column(db.String(120), nullable=False)
@@ -346,17 +370,19 @@ class PurchasedTicket(db.Model):
 
     def to_dict(self, expand=False):
         return {
-            'self': url_for('api.purchase', id=self.id),
-            'flight': self.flight.to_dict(expand) if expand else url_for('api.flight', id=self.flight_id),
-            'departure_date': self.departure_date.strftime("%Y-%m-%d"),
-            'first_name': self.first_name,
-            'middle_name': self.middle_name,
-            'last_name': self.last_name,
-            'date_of_birth': self.date_of_birth.strftime("%Y-%m-%d"),
-            'gender': self.gender,
-            'purchase_price': self.purchase_price,
-            'refund_timestamp': self.refund_timestamp,
-            'refunded_by': self.refunded_by
+            "self": url_for("api.purchase", id=self.id),
+            "flight": self.flight.to_dict(expand)
+            if expand
+            else url_for("api.flight", id=self.flight_id),
+            "departure_date": self.departure_date.strftime("%Y-%m-%d"),
+            "first_name": self.first_name,
+            "middle_name": self.middle_name,
+            "last_name": self.last_name,
+            "date_of_birth": self.date_of_birth.strftime("%Y-%m-%d"),
+            "gender": self.gender,
+            "purchase_price": self.purchase_price,
+            "refund_timestamp": self.refund_timestamp,
+            "refunded_by": self.refunded_by,
         }
 
 
