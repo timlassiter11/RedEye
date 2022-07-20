@@ -1,10 +1,13 @@
 import datetime as dt
+from typing import List
 
 from app.api.helpers import code_to_airport, str_to_date
 from app.forms import FlightForm, PurchaseTransactionForm
 from app.main import bp
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+
+from app.models import PurchaseTransaction, TripItinerary
 
 
 @bp.route("/")
@@ -87,11 +90,17 @@ def checkout():
 @bp.route("/mytrips")
 @login_required
 def my_trips():
-    purchases = current_user.purchases(dt.date.today())
+    purchases: List[PurchaseTransaction] = current_user.purchases(dt.date.today())
+
+    upcoming_trips = [
+        TripItinerary(purchase.departure_date, [ticket.flight for ticket in purchase.tickets])
+        for purchase in purchases
+    ]
+
     return render_template(
         "main/mytrips.html",
-        upcoming_purchases=purchases,
-        past_purchases=[],
+        upcoming_trips=upcoming_trips,
+        past_trips=[]
     )
 
 

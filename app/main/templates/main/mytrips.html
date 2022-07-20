@@ -2,36 +2,42 @@
 
 {% block content %}
 <div class="content-background flex-grow-1">
-    {% if upcoming_purchases or past_purchases %}
-    {% if upcoming_purchases %}
-    {% for trip in upcoming_purchases %}
+    {% if upcoming_trips or past_trips %}
+    {% if upcoming_trips %}
+    {% for trip in upcoming_trips %}
     <div class="content-card">
-        <h5>{{ trip.departure_date.strftime('%A, %B %d, %Y') }}</h5>
+        <h5>{{ trip.departure_datetime.strftime('%A, %B %d, %Y') }}</h5>
         <hr>
-        <h4>
-            {{ trip.departure_airport.code }}
-            <i class="bi bi-arrow-right-short"></i>
-            {{ trip.destination_airport.code }}
-        </h4>
+        <div class="hstack text-center">
+            <div class="d-inline-flex flex-column">
+                <h4>{{ trip.departure_airport.code }}</h4>
+                <h6>{{ trip.departure_datetime.strftime('%I:%M %p') }}</h6>
+            </div>
+            <h4><i class="bi bi-arrow-right-short"></i></h4>
+            <div class="d-inline-flex flex-column">
+                <h4>{{ trip.arrival_airport.code }}</h4>
+                <h6>{{ trip.arrival_datetime.strftime('%I:%M %p') }}</h6>
+            </div>
+        </div>
         <div class="col px-3">
-            {% for ticket in trip.tickets %}
+            {% for flight in trip.flights %}
             <div class="hstack">
                 <h6>
-                    {{ ticket.flight.departure_airport.code }}
+                    {{ flight.flight.departure_airport.code }}
                     <i class="bi bi-arrow-right-short"></i>
-                    {{ ticket.flight.arrival_airport.code }}
+                    {{ flight.flight.arrival_airport.code }}
                 </h6>
-                <h6 class="ms-auto">RE{{ ticket.flight.number }}</h6>
+                <h6 class="ms-auto">RE{{ flight.flight.number }}</h6>
             </div>
             {% endfor %}
         </div>
     </div>
     {% endfor %}
     {% endif %}
-    {% if past_purchases %}
+    {% if past_trips %}
     <div class="content-card">
         <h5>Past Trips</h5>
-        {% for trip in past_purchases %}
+        {% for trip in past_trips %}
         <hr>
         <h4>
             {{ trip.departure_airport.code }}

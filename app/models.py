@@ -437,11 +437,33 @@ class PurchasedTicket(db.Model):
         }
 
 
+class TripFlight:
+    '''Holds a flight with it's accompanying departure date.
+    This is needed for itineraries as they could span into the next day.
+    '''
+    def __init__(self, flight: Flight, date: dt.date):
+        self.flight = flight
+        self.date = date
+
+    @property
+    def departure_datetime(self) -> dt.datetime:
+        return dt.datetime.combine(self.date, self.flight.departure_time, pytz.utc)
+
+    @property
+    def arrival_datetime(self) -> dt.datetime:
+        return self.departure_datetime + self.flight.flight_time
+
+    def to_dict(self, expand=False):
+        data = self.flight.to_dict(expand)
+        data["departure_datetime"] = self.departure_datetime.isoformat()
+        data["arrival_datetime"] = self.arrival_datetime.isoformat()
+        return data
+
 class TripItinerary:
     def __init__(self, date: dt.date, flights: List[Flight] = None) -> None:
         self.id = uuid.uuid4().hex
         self._total_time = dt.timedelta()
-        self._flights: List[Flight] = []
+        self._flights: List[TripFlight] = []
         self._date = date
 
         if flights:
@@ -452,7 +474,7 @@ class TripItinerary:
         return len(self._flights)
 
     @property
-    def flights(self) -> List[Flight]:
+    def flights(self) -> List[TripFlight]:
         return self._flights.copy()
 
     @property
@@ -467,22 +489,25 @@ class TripItinerary:
     def departure_airport(self) -> Airport:
         if not self._flights:
             return None
-        return self._flights[0].departure_airport
+        return self._flights[0].flight.departure_airport
 
     @property
     def arrival_airport(self) -> Airport:
         if not self._flights:
             return None
-        return self._flights[-1].arrival_airport
+        return self._flights[-1].flight.arrival_airport
 
     @property
     def departure_datetime(self) -> dt.datetime:
         if not self._flights:
             return None
-        departure_dt = dt.datetime.combine(
-            self._date, self.flights[0].departure_time, pytz.utc
+        
+        departure_flight = self._flights[0]
+        return dt.datetime.combine(
+            departure_flight.date,
+            departure_flight.flight.departure_time,
+            pytz.utc
         )
-        return departure_dt
 
     @property
     def arrival_datetime(self) -> dt.datetime:
@@ -496,8 +521,8 @@ class TripItinerary:
         # total distance of all flights? It's ambiguous right now.
         if not self._flights:
             return None
-        start = self.flights[0]
-        end = self.flights[-1]
+        start = self._flights[0].flight
+        end = self._flights[-1].flight
         return start.departure_airport.distance_to(end.arrival_airport)
 
     @property
@@ -508,7 +533,7 @@ class TripItinerary:
     def base_fare(self):
         cost = 0
         for flight in self._flights:
-            cost += flight.cost(self._date)
+            cost += flight.flight.cost(self._date)
         return cost
 
     @property
@@ -538,14 +563,19 @@ class TripItinerary:
 
             # Add the layover to the total time
             self._total_time += departure_dt - last_arrival
+        else:
+            departure_dt = dt.datetime.combine(
+                self._date, flight.departure_time, pytz.utc
+            )
+
         # Add the flight time
         self._total_time += flight.flight_time
         # Add the flight
-        self._flights.append(flight)
+        self._flights.append(TripFlight(flight, departure_dt.date()))
 
     def pop_flight(self) -> Flight:
         # Remove flight
-        flight = self._flights.pop()
+        flight = self._flights.pop().flight
         # If there are still more flights it means
         # we also need to remove the layover time.
         if self._flights:
@@ -555,7 +585,7 @@ class TripItinerary:
             # This brings us back to right after the layover
             last_arrival -= flight.flight_time
             # This will be the new last flight.
-            last_flight = self._flights[-1]
+            last_flight = self._flights[-1].flight
             new_arrival = dt.datetime.combine(
                 last_arrival.date(), last_flight.arrival_time, pytz.utc
             )
@@ -591,13 +621,13 @@ class TripItinerary:
             "cost": self.cost,
             "base_fare": self.base_fare,
             "taxes": self.taxes,
-            "departure_airport": self._flights[0].departure_airport.to_dict(),
-            "arrival_airport": self._flights[-1].arrival_airport.to_dict(),
+            "departure_airport": self._flights[0].flight.departure_airport.to_dict(),
+            "arrival_airport": self._flights[-1].flight.arrival_airport.to_dict(),
             "departure_datetime": departure_dt.isoformat(),
             "arrival_datetime": arrival_dt.isoformat(),
             "total_time": str(self.total_time),
             "layovers": self.layovers,
-            "flights": [flight.to_dict(expand=expand) for flight in self.flights],
+            "flights": [flight.to_dict(expand=expand) for flight in self._flights],
         }
 
     @staticmethod
@@ -666,7 +696,7 @@ class TripItinerary:
             query = query.filter_by(arrival_id=final_airport)
 
         # Make sure this flight doesn't backtrack to an airport we've already been to.
-        prev_ids = [flight.departure_id for flight in current_itinerary.flights]
+        prev_ids = [flight.flight.departure_id for flight in current_itinerary._flights]
         query = query.filter(~Flight.arrival_id.in_(prev_ids))
 
         # Create a subquery which counts the total number of tickets sold for each flight
