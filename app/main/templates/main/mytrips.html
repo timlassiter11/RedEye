@@ -15,18 +15,8 @@
                         aria-expanded="{% if loop.first %}true{% else %}false{% endif %}"
                         aria-controls="upcoming-collapse-{{ loop.index }}">
                         <div class="d-inline-flex flex-column justify-content-center">
-                            <h6 class="mx-auto">{{ trip.departure_datetime.strftime('%a, %b %d, %Y') }}</h6>
-                            <div class="hstack text-center mx-auto">
-                                <div class="d-inline-flex flex-column">
-                                    <h4>{{ trip.departure_airport.code }}</h4>
-                                    <h6>{{ trip.departure_datetime.strftime('%I:%M %p') }}</h6>
-                                </div>
-                                <h4><i class="bi bi-arrow-right-short"></i></h4>
-                                <div class="d-inline-flex flex-column">
-                                    <h4>{{ trip.arrival_airport.code }}</h4>
-                                    <h6>{{ trip.arrival_datetime.strftime('%I:%M %p') }}</h6>
-                                </div>
-                            </div>
+                            <h4>{{ trip.arrival_airport.city }}, {{ trip.arrival_airport.state }}</h4>
+                            <h6>{{ trip.departure_datetime.strftime('%a, %b %d, %Y') }}</h6>
                         </div>
                     </button>
                 </h2>
@@ -36,58 +26,53 @@
                     <div class="accordion-body">
                         <div class="row">
                             <div class="col-md">
-                                {% for flight in trip.flights %}
-                                <div class="hstack">
-                                    <h6>
-                                        {{ flight.flight.departure_airport.code }}
-                                        <i class="bi bi-arrow-right-short"></i>
-                                        {{ flight.flight.arrival_airport.code }}
-                                    </h6>
-                                    <h6 class="ms-auto">RE{{ flight.flight.number }}</h6>
+                                <div class="vstack justify-content-between h-100">
+                                    <div class="hstack text-center mx-auto mb-3">
+                                        <div class="d-inline-flex flex-column">
+                                            <h4>{{ trip.departure_airport.code }}</h4>
+                                            <h6>{{ trip.departure_datetime.strftime('%I:%M %p') }}</h6>
+                                        </div>
+                                        <h4><i class="bi bi-arrow-right-short"></i></h4>
+                                        <div class="d-inline-flex flex-column">
+                                            <h4>{{ trip.arrival_airport.code }}</h4>
+                                            <h6>{{ trip.arrival_datetime.strftime('%I:%M %p') }}</h6>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {% for flight in trip.flights %}
+                                        <div class="hstack">
+                                            <h6>
+                                                {{ flight.flight.departure_airport.code }}
+                                                <i class="bi bi-arrow-right-short"></i>
+                                                {{ flight.flight.arrival_airport.code }}
+                                            </h6>
+                                            <h6 class="ms-auto">RE{{ flight.flight.number }}</h6>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
                                 </div>
-                                {% endfor %}
                             </div>
                             <hr class="d-block d-md-none my-3">
                             <div class="col-md">
-                                <div class="row">
-                                    <div class="col-8">
-                                        <p class="mb-1">Fare Per Passenger</p>
+                                <div class="vstack h-100">
+                                    <div class="hstack">
+                                        <p class="flex-grow-1 mb-1">Fare Per Passenger</p>
+                                        <p class="mb-1">${{ trip.base_fare }}</p>
                                     </div>
-                                    <div class="col">
-                                        <p class="mb-1 text-end">{{ trip.base_fare }}</p>
+                                    <div class="hstack">
+                                        <p class="flex-grow-1 mb-1">Taxes & Fees</p>
+                                        <p class="mb-1">${{ trip.taxes }}</p>
                                     </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-8">
-                                        <p class="mb-1">Taxes & Fees</p>
+                                    <div class="hstack">
+                                        <p class="flex-grow-1 mb-1">Passengers</p>
+                                        <p class="mb-1">x{{ trip.passengers }}</p>
                                     </div>
-                                    <div class="col">
-                                        <p class="mb-1 text-end">{{ trip.taxes }}</p>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-8">
-                                        <p class="mb-1">Passengers</p>
-                                    </div>
-                                    <div class="col">
-                                        <div class="hstack ms-auto">
-                                            <p class="mb-1 ms-auto">x</p>
-                                            <p class="mb-1 text-end">{{ trip.passengers }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row mt-auto pt-3">
-                                    <div class="col">
-                                        <h4>Total</h4>
-                                    </div>
-                                    <div class="col">
-                                        <h3 class="text-end">{{ trip.cost * trip.passengers }}</h3>
+                                    <div class="hstack mt-auto">
+                                        <h4 class="flex-grow-1">Total</h4>
+                                        <h3>${{ trip.cost * trip.passengers }}</h3>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="d-flex justify-content-end">
-                            <button type="button" class="btn btn-redeye flex-grow-1 flex-md-grow-0">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -108,18 +93,8 @@
                         aria-expanded="false"
                         aria-controls="past-collapse-{{ loop.index }}">
                         <div class="d-inline-flex flex-column justify-content-center">
-                            <h6 class="mx-auto">{{ trip.departure_datetime.strftime('%a, %b %d, %Y') }}</h6>
-                            <div class="hstack text-center mx-auto">
-                                <div class="d-inline-flex flex-column">
-                                    <h4>{{ trip.departure_airport.code }}</h4>
-                                    <h6>{{ trip.departure_datetime.strftime('%I:%M %p') }}</h6>
-                                </div>
-                                <h4><i class="bi bi-arrow-right-short"></i></h4>
-                                <div class="d-inline-flex flex-column">
-                                    <h4>{{ trip.arrival_airport.code }}</h4>
-                                    <h6>{{ trip.arrival_datetime.strftime('%I:%M %p') }}</h6>
-                                </div>
-                            </div>
+                            <h4>{{ trip.arrival_airport.city }}, {{ trip.arrival_airport.state }}</h4>
+                            <h6>{{ trip.departure_datetime.strftime('%a, %b %d, %Y') }}</h6>
                         </div>
                     </button>
                 </h2>
@@ -129,52 +104,50 @@
                     <div class="accordion-body">
                         <div class="row">
                             <div class="col-md">
-                                {% for flight in trip.flights %}
-                                <div class="hstack">
-                                    <h6>
-                                        {{ flight.flight.departure_airport.code }}
-                                        <i class="bi bi-arrow-right-short"></i>
-                                        {{ flight.flight.arrival_airport.code }}
-                                    </h6>
-                                    <h6 class="ms-auto">RE{{ flight.flight.number }}</h6>
+                                <div class="vstack justify-content-between h-100">
+                                    <div class="hstack text-center mx-auto">
+                                        <div class="d-inline-flex flex-column">
+                                            <h4>{{ trip.departure_airport.code }}</h4>
+                                            <h6>{{ trip.departure_datetime.strftime('%I:%M %p') }}</h6>
+                                        </div>
+                                        <h4><i class="bi bi-arrow-right-short"></i></h4>
+                                        <div class="d-inline-flex flex-column">
+                                            <h4>{{ trip.arrival_airport.code }}</h4>
+                                            <h6>{{ trip.arrival_datetime.strftime('%I:%M %p') }}</h6>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {% for flight in trip.flights %}
+                                        <div class="hstack">
+                                            <h6>
+                                                {{ flight.flight.departure_airport.code }}
+                                                <i class="bi bi-arrow-right-short"></i>
+                                                {{ flight.flight.arrival_airport.code }}
+                                            </h6>
+                                            <h6 class="ms-auto">RE{{ flight.flight.number }}</h6>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
                                 </div>
-                                {% endfor %}
                             </div>
                             <hr class="d-block d-md-none my-3">
                             <div class="col-md">
-                                <div class="row">
-                                    <div class="col-8">
-                                        <p class="mb-1">Fare Per Passenger</p>
+                                <div class="vstack h-100">
+                                    <div class="hstack">
+                                        <p class="flex-grow-1 mb-1">Fare Per Passenger</p>
+                                        <p class="mb-1">${{ trip.base_fare }}</p>
                                     </div>
-                                    <div class="col">
-                                        <p class="mb-1 text-end">{{ trip.base_fare }}</p>
+                                    <div class="hstack">
+                                        <p class="flex-grow-1 mb-1">Taxes & Fees</p>
+                                        <p class="mb-1">${{ trip.taxes }}</p>
                                     </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-8">
-                                        <p class="mb-1">Taxes & Fees</p>
+                                    <div class="hstack">
+                                        <p class="flex-grow-1 mb-1">Passengers</p>
+                                        <p class="mb-1">x{{ trip.passengers }}</p>
                                     </div>
-                                    <div class="col">
-                                        <p class="mb-1 text-end">{{ trip.taxes }}</p>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-8">
-                                        <p class="mb-1">Passengers</p>
-                                    </div>
-                                    <div class="col">
-                                        <div class="hstack ms-auto">
-                                            <p class="mb-1 ms-auto">x</p>
-                                            <p class="mb-1 text-end">{{ trip.passengers }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row mt-auto pt-3">
-                                    <div class="col">
-                                        <h4>Total</h4>
-                                    </div>
-                                    <div class="col">
-                                        <h3 class="text-end">{{ trip.cost * trip.passengers }}</h3>
+                                    <div class="hstack mt-auto">
+                                        <h4 class="flex-grow-1">Total</h4>
+                                        <h3>${{ trip.cost * trip.passengers }}</h3>
                                     </div>
                                 </div>
                             </div>
