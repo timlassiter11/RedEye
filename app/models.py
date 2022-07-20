@@ -1,5 +1,7 @@
 import datetime as dt
 import math
+import random
+import string
 import time
 from typing import Any, Dict, List
 import uuid
@@ -10,7 +12,7 @@ import jwt
 import pytz
 from flask import current_app, url_for
 from flask_login import UserMixin
-from sqlalchemy import UniqueConstraint, desc, func, or_
+from sqlalchemy import UniqueConstraint, and_, desc, func, or_
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, login
@@ -363,6 +365,20 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
     destination_airport = db.relationship("Airport", foreign_keys=[destination_id])
 
     __table_args__ = (UniqueConstraint("email", "confirmation_number", name="_pnr"),)
+
+    @staticmethod
+    def generate_confirmation_number(email: str):
+        while True:
+            cn = "".join(
+                random.SystemRandom().choice(string.ascii_uppercase + string.digits)
+                for _ in range(6)
+            )
+            exists = PurchaseTransaction.query.filter(
+                and_(PurchaseTransaction.email == email),
+                PurchaseTransaction.confirmation_number == cn,
+            ).count()
+            if not exists:
+                return cn
 
     def to_dict(self, expand=False) -> Dict[str, Any]:
         data = super().to_dict(expand)

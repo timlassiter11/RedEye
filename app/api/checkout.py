@@ -1,5 +1,3 @@
-import random
-import string
 from flask import session
 from flask_login import current_user
 from app import db, models
@@ -7,21 +5,6 @@ from app.api import api
 from app.api.helpers import get_or_404, json_abort, str_to_date
 from app.forms import PurchaseTransactionForm
 from flask_restful import Resource, request
-from sqlalchemy import and_
-
-
-def generate_confirmation_number(email: str):
-    while True:
-        cn = "".join(
-            random.SystemRandom().choice(string.ascii_uppercase + string.digits)
-            for _ in range(6)
-        )
-        exists = models.PurchaseTransaction.query.filter(
-            and_(models.PurchaseTransaction.email == email),
-            models.PurchaseTransaction.confirmation_number == cn,
-        ).count()
-        if not exists:
-            return cn
 
 
 @api.resource("/checkout")
@@ -48,7 +31,7 @@ class Checkout(Resource):
             transaction = models.PurchaseTransaction()
             # TODO: What if the user is logged in? Should we use their email instead?
             transaction.email = form.email.data
-            transaction.confirmation_number = generate_confirmation_number(
+            transaction.confirmation_number = transaction.generate_confirmation_number(
                 form.email.data
             )
             transaction.departure_date = departure_date
