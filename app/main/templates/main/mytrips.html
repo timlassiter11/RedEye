@@ -1,0 +1,50 @@
+{% extends "main/layout.html" %}
+
+{% block content %}
+<div class="content-background flex-grow-1">
+    {% if upcoming_purchases or past_purchases %}
+    {% if upcoming_purchases %}
+    {% for trip in upcoming_purchases %}
+    <div class="content-card">
+        <h5>{{ trip.departure_date.strftime('%A, %B %d, %Y') }}</h5>
+        <hr>
+        <h4>
+            {{ trip.departure_airport.code }}
+            <i class="bi bi-arrow-right-short"></i>
+            {{ trip.destination_airport.code }}
+        </h4>
+        <div class="col px-3">
+            {% for ticket in trip.tickets %}
+            <div class="hstack">
+                <h6>
+                    {{ ticket.flight.departure_airport.code }}
+                    <i class="bi bi-arrow-right-short"></i>
+                    {{ ticket.flight.arrival_airport.code }}
+                </h6>
+                <h6 class="ms-auto">RE{{ ticket.flight.number }}</h6>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% if past_purchases %}
+    <div class="content-card">
+        <h5>Past Trips</h5>
+        {% for trip in past_purchases %}
+        <hr>
+        <h4>
+            {{ trip.departure_airport.code }}
+            <i class="bi bi-arrow-right-short"></i>
+            {{ trip.destination_airport.code }}
+        </h4>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="content-card">
+        <h5>You don't have any trips...</h5>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

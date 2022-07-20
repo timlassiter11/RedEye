@@ -51,6 +51,9 @@ class Checkout(Resource):
             transaction.confirmation_number = generate_confirmation_number(
                 form.email.data
             )
+            transaction.departure_date = departure_date
+            transaction.departure_id = itinerary['departure_airport']
+            transaction.destination_id = itinerary['destination_airport']
 
             form_user = -1
             if user is not None:
@@ -86,7 +89,6 @@ class Checkout(Resource):
                     ticket.last_name = passenger.last_name.data
                     ticket.date_of_birth = passenger.date_of_birth.data
                     ticket.gender = passenger.gender.data
-                    ticket.departure_date = departure_date
                     ticket.flight_id = flight.id
                     ticket.purchase_price = price
                     transaction.tickets.append(ticket)

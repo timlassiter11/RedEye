@@ -80,6 +80,18 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
     def __repr__(self):
         return f"<User {self.first_name} {self.last_name}>"
 
+    def purchases(self, start: dt.date = None, end: dt.date = None):
+        query = PurchaseTransaction.query.filter_by(email=self.email)
+
+        if start is not None:
+            query = query.filter(PurchaseTransaction.departure_date >= start)
+
+        if end is not None:
+            query = query.filter(PurchaseTransaction.departure_date <= end)
+
+        query = query.order_by(PurchaseTransaction.departure_date)
+        return list(query.all())
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -283,7 +295,11 @@ class Flight(PaginatedAPIMixin, db.Model):
         capacity = self.airplane.capacity
         used = (
             PurchasedTicket.query.filter_by(flight_id=self.id)
-            .filter_by(departure_date=date)
+            .outerjoin(
+                PurchaseTransaction,
+                PurchaseTransaction.id == PurchasedTicket.transaction_id,
+            )
+            .filter(PurchaseTransaction.departure_date == date)
             .count()
         )
         return capacity - used
@@ -310,7 +326,7 @@ class Flight(PaginatedAPIMixin, db.Model):
                 self.departure_airport.__endpoint__, id=self.departure_id
             )
             data["arrival_airport"] = url_for(
-                self.departure_airport.__endpoint__, id=self.arrival_id
+                self.arrival_airport.__endpoint__, id=self.arrival_id
             )
 
         return data
@@ -333,6 +349,9 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
 
     email = db.Column(db.String(120), nullable=False, index=True)
     confirmation_number = db.Column(db.String(6), index=True, nullable=False)
+    departure_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
+    destination_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
+    departure_date = db.Column(db.Date, nullable=False)
     purchase_timestamp = db.Column(
         db.DateTime, nullable=False, server_default=func.now()
     )
@@ -340,10 +359,28 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
     purchase_price = db.Column(db.Float, nullable=False)
     assisted_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
 
+    departure_airport = db.relationship("Airport", foreign_keys=[departure_id])
+    destination_airport = db.relationship("Airport", foreign_keys=[destination_id])
+
     __table_args__ = (UniqueConstraint("email", "confirmation_number", name="_pnr"),)
 
     def to_dict(self, expand=False) -> Dict[str, Any]:
         data = super().to_dict(expand)
+
+        del data["departure_id"]
+        del data["destination_id"]
+
+        if expand:
+            data["departure_airport"] = self.departure_airport.to_dict()
+            data["destination_airport"] = self.destination_airport.to_dict()
+        else:
+            data["departure_airport"] = url_for(
+                self.departure_airport.__endpoint__, id=self.departure_id
+            )
+            data["destination_airport"] = url_for(
+                self.destination_airport.__endpoint__, id=self.destination_id
+            )
+
         data["tickets"] = [ticket.to_dict(expand) for ticket in self.tickets]
         return data
 
@@ -355,7 +392,6 @@ class PurchasedTicket(db.Model):
         db.Integer, db.ForeignKey("purchase_transaction.id"), nullable=False
     )
     flight_id = db.Column(db.Integer, db.ForeignKey("flight.id"), nullable=False)
-    departure_date = db.Column(db.Date, nullable=False)
     first_name = db.Column(db.String(120), nullable=False)
     middle_name = db.Column(db.String(120))
     last_name = db.Column(db.String(120), nullable=False)
@@ -374,7 +410,6 @@ class PurchasedTicket(db.Model):
             "flight": self.flight.to_dict(expand)
             if expand
             else url_for("api.flight", id=self.flight_id),
-            "departure_date": self.departure_date.strftime("%Y-%m-%d"),
             "first_name": self.first_name,
             "middle_name": self.middle_name,
             "last_name": self.last_name,
@@ -622,13 +657,17 @@ class TripItinerary:
         subquery = (
             db.session.query(
                 PurchasedTicket.flight_id,
-                PurchasedTicket.departure_date,
+                PurchaseTransaction.departure_date,
                 func.count(PurchasedTicket.id).label("purchased_tickets"),
             )
-            .filter(PurchasedTicket.departure_date == departure_date)
+            .join(
+                PurchaseTransaction,
+                PurchasedTicket.transaction_id == PurchaseTransaction.id,
+            )
+            .filter(PurchaseTransaction.departure_date == departure_date)
             .filter(PurchasedTicket.refund_timestamp == None)
             .group_by(PurchasedTicket.flight_id)
-            .group_by(PurchasedTicket.departure_date)
+            .group_by(PurchaseTransaction.departure_date)
             .subquery()
         )
         # Outer join ensures that results without purchased tickets are still retrieved
