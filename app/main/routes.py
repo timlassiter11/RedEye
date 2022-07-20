@@ -76,7 +76,7 @@ def checkout():
         form.email.data = current_user.email
         if form.email.render_kw is None:
             form.email.render_kw = {}
-        form.email.render_kw["disabled"] = "disabled"
+        form.email.render_kw["readonly"] = "readonly"
 
         form.passengers[0].first_name.data = current_user.first_name
         form.passengers[0].last_name.data = current_user.last_name
