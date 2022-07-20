@@ -146,6 +146,7 @@
     box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
     padding: 1.5rem;
     margin-bottom: 1rem;
+    border-radius: 5px;
 }
 
 @media (min-width: 768px) {

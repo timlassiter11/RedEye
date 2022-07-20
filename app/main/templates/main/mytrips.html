@@ -4,47 +4,186 @@
 <div class="content-background flex-grow-1">
     {% if upcoming_trips or past_trips %}
     {% if upcoming_trips %}
-    {% for trip in upcoming_trips %}
-    <div class="content-card">
-        <h5>{{ trip.departure_datetime.strftime('%A, %B %d, %Y') }}</h5>
-        <hr>
-        <div class="hstack text-center">
-            <div class="d-inline-flex flex-column">
-                <h4>{{ trip.departure_airport.code }}</h4>
-                <h6>{{ trip.departure_datetime.strftime('%I:%M %p') }}</h6>
-            </div>
-            <h4><i class="bi bi-arrow-right-short"></i></h4>
-            <div class="d-inline-flex flex-column">
-                <h4>{{ trip.arrival_airport.code }}</h4>
-                <h6>{{ trip.arrival_datetime.strftime('%I:%M %p') }}</h6>
-            </div>
-        </div>
-        <div class="col px-3">
-            {% for flight in trip.flights %}
-            <div class="hstack">
-                <h6>
-                    {{ flight.flight.departure_airport.code }}
-                    <i class="bi bi-arrow-right-short"></i>
-                    {{ flight.flight.arrival_airport.code }}
-                </h6>
-                <h6 class="ms-auto">RE{{ flight.flight.number }}</h6>
+    <div class="content-card mx-auto" style="max-width: 938px;">
+        <h5>Upcoming Trips</h5>
+        <div class="accordion" id="upcomingTripsAccordian">
+            {% for trip in upcoming_trips %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="upcoming-header-{{ loop.index }}">
+                    <button class="accordion-button{% if not loop.first %} collapsed{% endif %}" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#upcoming-collapse-{{ loop.index }}"
+                        aria-expanded="{% if loop.first %}true{% else %}false{% endif %}"
+                        aria-controls="upcoming-collapse-{{ loop.index }}">
+                        <div class="d-inline-flex flex-column justify-content-center">
+                            <h6 class="mx-auto">{{ trip.departure_datetime.strftime('%A, %B %d, %Y') }}</h6>
+                            <div class="hstack text-center mx-auto">
+                                <div class="d-inline-flex flex-column">
+                                    <h4>{{ trip.departure_airport.code }}</h4>
+                                    <h6>{{ trip.departure_datetime.strftime('%I:%M %p') }}</h6>
+                                </div>
+                                <h4><i class="bi bi-arrow-right-short"></i></h4>
+                                <div class="d-inline-flex flex-column">
+                                    <h4>{{ trip.arrival_airport.code }}</h4>
+                                    <h6>{{ trip.arrival_datetime.strftime('%I:%M %p') }}</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="upcoming-collapse-{{ loop.index }}"
+                    class="accordion-collapse collapse{% if loop.first %} show{% endif %}"
+                    aria-labelledby="upcoming-header-{{ loop.index }}" data-bs-parent="#upcomingTripsAccordian">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <div class="col-md">
+                                {% for flight in trip.flights %}
+                                <div class="hstack">
+                                    <h6>
+                                        {{ flight.flight.departure_airport.code }}
+                                        <i class="bi bi-arrow-right-short"></i>
+                                        {{ flight.flight.arrival_airport.code }}
+                                    </h6>
+                                    <h6 class="ms-auto">RE{{ flight.flight.number }}</h6>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <hr class="d-block d-md-none my-3">
+                            <div class="col-md">
+                                <div class="row">
+                                    <div class="col-8">
+                                        <p class="mb-1">Fare Per Passenger</p>
+                                    </div>
+                                    <div class="col">
+                                        <p class="mb-1 text-end">{{ trip.base_fare }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-8">
+                                        <p class="mb-1">Taxes & Fees</p>
+                                    </div>
+                                    <div class="col">
+                                        <p class="mb-1 text-end">{{ trip.taxes }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-8">
+                                        <p class="mb-1">Passengers</p>
+                                    </div>
+                                    <div class="col">
+                                        <div class="hstack ms-auto">
+                                            <p class="mb-1 ms-auto">x</p>
+                                            <p class="mb-1 text-end">{{ trip.passengers }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-auto pt-3">
+                                    <div class="col">
+                                        <h4>Total</h4>
+                                    </div>
+                                    <div class="col">
+                                        <h3 class="text-end">{{ trip.cost * trip.passengers }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-redeye flex-grow-1 flex-md-grow-0">Cancel</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             {% endfor %}
         </div>
     </div>
-    {% endfor %}
     {% endif %}
     {% if past_trips %}
-    <div class="content-card">
+    <div class="content-card mx-auto" style="max-width: 938px;">
         <h5>Past Trips</h5>
-        {% for trip in past_trips %}
-        <hr>
-        <h4>
-            {{ trip.departure_airport.code }}
-            <i class="bi bi-arrow-right-short"></i>
-            {{ trip.destination_airport.code }}
-        </h4>
-        {% endfor %}
+        <div class="accordion" id="pastTripsAccordian">
+            {% for trip in past_trips %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="past-header-{{ loop.index }}">
+                    <button class="accordion-button{% if not loop.first %} collapsed{% endif %}" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#past-collapse-{{ loop.index }}"
+                        aria-expanded="{% if loop.first %}true{% else %}false{% endif %}"
+                        aria-controls="past-collapse-{{ loop.index }}">
+                        <div class="d-inline-flex flex-column justify-content-center">
+                            <h6 class="mx-auto">{{ trip.departure_datetime.strftime('%A, %B %d, %Y') }}</h6>
+                            <div class="hstack text-center mx-auto">
+                                <div class="d-inline-flex flex-column">
+                                    <h4>{{ trip.departure_airport.code }}</h4>
+                                    <h6>{{ trip.departure_datetime.strftime('%I:%M %p') }}</h6>
+                                </div>
+                                <h4><i class="bi bi-arrow-right-short"></i></h4>
+                                <div class="d-inline-flex flex-column">
+                                    <h4>{{ trip.arrival_airport.code }}</h4>
+                                    <h6>{{ trip.arrival_datetime.strftime('%I:%M %p') }}</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="past-collapse-{{ loop.index }}"
+                    class="accordion-collapse collapse{% if loop.first %} show{% endif %}"
+                    aria-labelledby="past-header-{{ loop.index }}" data-bs-parent="#pastTripsAccordian">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <div class="col-md">
+                                {% for flight in trip.flights %}
+                                <div class="hstack">
+                                    <h6>
+                                        {{ flight.flight.departure_airport.code }}
+                                        <i class="bi bi-arrow-right-short"></i>
+                                        {{ flight.flight.arrival_airport.code }}
+                                    </h6>
+                                    <h6 class="ms-auto">RE{{ flight.flight.number }}</h6>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <hr class="d-block d-md-none my-3">
+                            <div class="col-md">
+                                <div class="row">
+                                    <div class="col-8">
+                                        <p class="mb-1">Fare Per Passenger</p>
+                                    </div>
+                                    <div class="col">
+                                        <p class="mb-1 text-end">{{ trip.base_fare }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-8">
+                                        <p class="mb-1">Taxes & Fees</p>
+                                    </div>
+                                    <div class="col">
+                                        <p class="mb-1 text-end">{{ trip.taxes }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-8">
+                                        <p class="mb-1">Passengers</p>
+                                    </div>
+                                    <div class="col">
+                                        <div class="hstack ms-auto">
+                                            <p class="mb-1 ms-auto">x</p>
+                                            <p class="mb-1 text-end">{{ trip.passengers }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-auto pt-3">
+                                    <div class="col">
+                                        <h4>Total</h4>
+                                    </div>
+                                    <div class="col">
+                                        <h3 class="text-end">{{ trip.cost * trip.passengers }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
     {% else %}

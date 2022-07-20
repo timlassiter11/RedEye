@@ -380,6 +380,15 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
             if not exists:
                 return cn
 
+    @property
+    def num_of_passengers(self) -> int:
+        query = (
+            db.session.query(func.count(PurchasedTicket.id))
+            .filter(PurchasedTicket.transaction_id == self.id)
+            .group_by(PurchasedTicket.flight_id)
+        )
+        return query.first()[0]
+
     def to_dict(self, expand=False) -> Dict[str, Any]:
         data = super().to_dict(expand)
 
@@ -438,9 +447,10 @@ class PurchasedTicket(db.Model):
 
 
 class TripFlight:
-    '''Holds a flight with it's accompanying departure date.
+    """Holds a flight with it's accompanying departure date.
     This is needed for itineraries as they could span into the next day.
-    '''
+    """
+
     def __init__(self, flight: Flight, date: dt.date):
         self.flight = flight
         self.date = date
@@ -459,12 +469,22 @@ class TripFlight:
         data["arrival_datetime"] = self.arrival_datetime.isoformat()
         return data
 
+
 class TripItinerary:
-    def __init__(self, date: dt.date, flights: List[Flight] = None) -> None:
+    def __init__(
+        self,
+        date: dt.date,
+        passengers: int = 1,
+        flights: List[Flight] = None,
+        base_fare: float = None,
+    ) -> None:
         self.id = uuid.uuid4().hex
         self._total_time = dt.timedelta()
         self._flights: List[TripFlight] = []
         self._date = date
+        self.passengers = passengers
+
+        self._base_fare = base_fare
 
         if flights:
             for flight in flights:
@@ -501,12 +521,10 @@ class TripItinerary:
     def departure_datetime(self) -> dt.datetime:
         if not self._flights:
             return None
-        
+
         departure_flight = self._flights[0]
         return dt.datetime.combine(
-            departure_flight.date,
-            departure_flight.flight.departure_time,
-            pytz.utc
+            departure_flight.date, departure_flight.flight.departure_time, pytz.utc
         )
 
     @property
@@ -531,6 +549,9 @@ class TripItinerary:
 
     @property
     def base_fare(self):
+        if self._base_fare:
+            return self._base_fare
+
         cost = 0
         for flight in self._flights:
             cost += flight.flight.cost(self._date)
@@ -601,7 +622,7 @@ class TripItinerary:
         return flight
 
     def copy(self) -> "TripItinerary":
-        itinerary = TripItinerary(self._date)
+        itinerary = TripItinerary(self._date, self.passengers)
         itinerary._flights = self._flights.copy()
         itinerary._total_time = self._total_time
         return itinerary
@@ -650,7 +671,7 @@ class TripItinerary:
         # If this is the first call to this function
         # we need to initialize the lists.
         if current_itinerary is None:
-            current_itinerary = TripItinerary(departure_date)
+            current_itinerary = TripItinerary(departure_date, num_of_passengers)
 
         if trip_itinerarys is None:
             trip_itinerarys = []

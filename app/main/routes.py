@@ -93,14 +93,29 @@ def my_trips():
     purchases: List[PurchaseTransaction] = current_user.purchases(dt.date.today())
 
     upcoming_trips = [
-        TripItinerary(purchase.departure_date, [ticket.flight for ticket in purchase.tickets])
+        TripItinerary(
+            purchase.departure_date,
+            purchase.num_of_passengers,
+            [ticket.flight for ticket in purchase.tickets],
+            purchase.base_fare,
+        )
+        for purchase in purchases
+    ]
+
+    purchases: List[PurchaseTransaction] = current_user.purchases(None, dt.date.today())
+
+    past_trips = [
+        TripItinerary(
+            purchase.departure_date,
+            purchase.num_of_passengers,
+            [ticket.flight for ticket in purchase.tickets],
+            purchase.base_fare,
+        )
         for purchase in purchases
     ]
 
     return render_template(
-        "main/mytrips.html",
-        upcoming_trips=upcoming_trips,
-        past_trips=[]
+        "main/mytrips.html", upcoming_trips=upcoming_trips, past_trips=past_trips
     )
 
 
