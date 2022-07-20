@@ -63,8 +63,10 @@ class FlightSearch(Resource):
         session["itineraries"] = {itinerary.id: {
             'base_fare': itinerary.base_fare,
             'total_price': itinerary.cost,
+            'departure_airport': itinerary.departure_airport.id,
+            'destination_airport': itinerary.arrival_airport.id,
             'departure_date': itinerary.departure_datetime.date().isoformat(),
-            'flights': [flight.id for flight in itinerary.flights],
+            'flights': [flight.flight.id for flight in itinerary.flights],
         } for itinerary in itineraries}
 
         return {

@@ -1,5 +1,7 @@
 import datetime as dt
 import math
+import random
+import string
 import time
 from typing import Any, Dict, List
 import uuid
@@ -10,7 +12,7 @@ import jwt
 import pytz
 from flask import current_app, url_for
 from flask_login import UserMixin
-from sqlalchemy import UniqueConstraint, desc, func, or_
+from sqlalchemy import UniqueConstraint, and_, desc, func, or_
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, login
@@ -79,6 +81,18 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
 
     def __repr__(self):
         return f"<User {self.first_name} {self.last_name}>"
+
+    def purchases(self, start: dt.date = None, end: dt.date = None):
+        query = PurchaseTransaction.query.filter_by(email=self.email)
+
+        if start is not None:
+            query = query.filter(PurchaseTransaction.departure_date >= start)
+
+        if end is not None:
+            query = query.filter(PurchaseTransaction.departure_date <= end)
+
+        query = query.order_by(PurchaseTransaction.departure_date)
+        return list(query.all())
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -283,7 +297,11 @@ class Flight(PaginatedAPIMixin, db.Model):
         capacity = self.airplane.capacity
         used = (
             PurchasedTicket.query.filter_by(flight_id=self.id)
-            .filter_by(departure_date=date)
+            .outerjoin(
+                PurchaseTransaction,
+                PurchaseTransaction.id == PurchasedTicket.transaction_id,
+            )
+            .filter(PurchaseTransaction.departure_date == date)
             .count()
         )
         return capacity - used
@@ -310,7 +328,7 @@ class Flight(PaginatedAPIMixin, db.Model):
                 self.departure_airport.__endpoint__, id=self.departure_id
             )
             data["arrival_airport"] = url_for(
-                self.departure_airport.__endpoint__, id=self.arrival_id
+                self.arrival_airport.__endpoint__, id=self.arrival_id
             )
 
         return data
@@ -333,6 +351,9 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
 
     email = db.Column(db.String(120), nullable=False, index=True)
     confirmation_number = db.Column(db.String(6), index=True, nullable=False)
+    departure_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
+    destination_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
+    departure_date = db.Column(db.Date, nullable=False)
     purchase_timestamp = db.Column(
         db.DateTime, nullable=False, server_default=func.now()
     )
@@ -340,10 +361,51 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
     purchase_price = db.Column(db.Float, nullable=False)
     assisted_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
 
+    departure_airport = db.relationship("Airport", foreign_keys=[departure_id])
+    destination_airport = db.relationship("Airport", foreign_keys=[destination_id])
+
     __table_args__ = (UniqueConstraint("email", "confirmation_number", name="_pnr"),)
+
+    @staticmethod
+    def generate_confirmation_number(email: str):
+        while True:
+            cn = "".join(
+                random.SystemRandom().choice(string.ascii_uppercase + string.digits)
+                for _ in range(6)
+            )
+            exists = PurchaseTransaction.query.filter(
+                and_(PurchaseTransaction.email == email),
+                PurchaseTransaction.confirmation_number == cn,
+            ).count()
+            if not exists:
+                return cn
+
+    @property
+    def num_of_passengers(self) -> int:
+        query = (
+            db.session.query(func.count(PurchasedTicket.id))
+            .filter(PurchasedTicket.transaction_id == self.id)
+            .group_by(PurchasedTicket.flight_id)
+        )
+        return query.first()[0]
 
     def to_dict(self, expand=False) -> Dict[str, Any]:
         data = super().to_dict(expand)
+
+        del data["departure_id"]
+        del data["destination_id"]
+
+        if expand:
+            data["departure_airport"] = self.departure_airport.to_dict()
+            data["destination_airport"] = self.destination_airport.to_dict()
+        else:
+            data["departure_airport"] = url_for(
+                self.departure_airport.__endpoint__, id=self.departure_id
+            )
+            data["destination_airport"] = url_for(
+                self.destination_airport.__endpoint__, id=self.destination_id
+            )
+
         data["tickets"] = [ticket.to_dict(expand) for ticket in self.tickets]
         return data
 
@@ -355,7 +417,6 @@ class PurchasedTicket(db.Model):
         db.Integer, db.ForeignKey("purchase_transaction.id"), nullable=False
     )
     flight_id = db.Column(db.Integer, db.ForeignKey("flight.id"), nullable=False)
-    departure_date = db.Column(db.Date, nullable=False)
     first_name = db.Column(db.String(120), nullable=False)
     middle_name = db.Column(db.String(120))
     last_name = db.Column(db.String(120), nullable=False)
@@ -374,7 +435,6 @@ class PurchasedTicket(db.Model):
             "flight": self.flight.to_dict(expand)
             if expand
             else url_for("api.flight", id=self.flight_id),
-            "departure_date": self.departure_date.strftime("%Y-%m-%d"),
             "first_name": self.first_name,
             "middle_name": self.middle_name,
             "last_name": self.last_name,
@@ -386,12 +446,45 @@ class PurchasedTicket(db.Model):
         }
 
 
+class TripFlight:
+    """Holds a flight with it's accompanying departure date.
+    This is needed for itineraries as they could span into the next day.
+    """
+
+    def __init__(self, flight: Flight, date: dt.date):
+        self.flight = flight
+        self.date = date
+
+    @property
+    def departure_datetime(self) -> dt.datetime:
+        return dt.datetime.combine(self.date, self.flight.departure_time, pytz.utc)
+
+    @property
+    def arrival_datetime(self) -> dt.datetime:
+        return self.departure_datetime + self.flight.flight_time
+
+    def to_dict(self, expand=False):
+        data = self.flight.to_dict(expand)
+        data["departure_datetime"] = self.departure_datetime.isoformat()
+        data["arrival_datetime"] = self.arrival_datetime.isoformat()
+        return data
+
+
 class TripItinerary:
-    def __init__(self, date: dt.date, flights: List[Flight] = None) -> None:
+    def __init__(
+        self,
+        date: dt.date,
+        passengers: int = 1,
+        flights: List[Flight] = None,
+        base_fare: float = None,
+    ) -> None:
         self.id = uuid.uuid4().hex
         self._total_time = dt.timedelta()
-        self._flights: List[Flight] = []
+        self._flights: List[TripFlight] = []
         self._date = date
+        self.passengers = passengers
+
+        self._base_fare = base_fare
 
         if flights:
             for flight in flights:
@@ -401,7 +494,7 @@ class TripItinerary:
         return len(self._flights)
 
     @property
-    def flights(self) -> List[Flight]:
+    def flights(self) -> List[TripFlight]:
         return self._flights.copy()
 
     @property
@@ -416,22 +509,23 @@ class TripItinerary:
     def departure_airport(self) -> Airport:
         if not self._flights:
             return None
-        return self._flights[0].departure_airport
+        return self._flights[0].flight.departure_airport
 
     @property
     def arrival_airport(self) -> Airport:
         if not self._flights:
             return None
-        return self._flights[-1].arrival_airport
+        return self._flights[-1].flight.arrival_airport
 
     @property
     def departure_datetime(self) -> dt.datetime:
         if not self._flights:
             return None
-        departure_dt = dt.datetime.combine(
-            self._date, self.flights[0].departure_time, pytz.utc
+
+        departure_flight = self._flights[0]
+        return dt.datetime.combine(
+            departure_flight.date, departure_flight.flight.departure_time, pytz.utc
         )
-        return departure_dt
 
     @property
     def arrival_datetime(self) -> dt.datetime:
@@ -445,8 +539,8 @@ class TripItinerary:
         # total distance of all flights? It's ambiguous right now.
         if not self._flights:
             return None
-        start = self.flights[0]
-        end = self.flights[-1]
+        start = self._flights[0].flight
+        end = self._flights[-1].flight
         return start.departure_airport.distance_to(end.arrival_airport)
 
     @property
@@ -455,9 +549,12 @@ class TripItinerary:
 
     @property
     def base_fare(self):
+        if self._base_fare:
+            return self._base_fare
+
         cost = 0
         for flight in self._flights:
-            cost += flight.cost(self._date)
+            cost += flight.flight.cost(self._date)
         return cost
 
     @property
@@ -487,14 +584,19 @@ class TripItinerary:
 
             # Add the layover to the total time
             self._total_time += departure_dt - last_arrival
+        else:
+            departure_dt = dt.datetime.combine(
+                self._date, flight.departure_time, pytz.utc
+            )
+
         # Add the flight time
         self._total_time += flight.flight_time
         # Add the flight
-        self._flights.append(flight)
+        self._flights.append(TripFlight(flight, departure_dt.date()))
 
     def pop_flight(self) -> Flight:
         # Remove flight
-        flight = self._flights.pop()
+        flight = self._flights.pop().flight
         # If there are still more flights it means
         # we also need to remove the layover time.
         if self._flights:
@@ -504,7 +606,7 @@ class TripItinerary:
             # This brings us back to right after the layover
             last_arrival -= flight.flight_time
             # This will be the new last flight.
-            last_flight = self._flights[-1]
+            last_flight = self._flights[-1].flight
             new_arrival = dt.datetime.combine(
                 last_arrival.date(), last_flight.arrival_time, pytz.utc
             )
@@ -520,7 +622,7 @@ class TripItinerary:
         return flight
 
     def copy(self) -> "TripItinerary":
-        itinerary = TripItinerary(self._date)
+        itinerary = TripItinerary(self._date, self.passengers)
         itinerary._flights = self._flights.copy()
         itinerary._total_time = self._total_time
         return itinerary
@@ -540,13 +642,13 @@ class TripItinerary:
             "cost": self.cost,
             "base_fare": self.base_fare,
             "taxes": self.taxes,
-            "departure_airport": self._flights[0].departure_airport.to_dict(),
-            "arrival_airport": self._flights[-1].arrival_airport.to_dict(),
+            "departure_airport": self._flights[0].flight.departure_airport.to_dict(),
+            "arrival_airport": self._flights[-1].flight.arrival_airport.to_dict(),
             "departure_datetime": departure_dt.isoformat(),
             "arrival_datetime": arrival_dt.isoformat(),
             "total_time": str(self.total_time),
             "layovers": self.layovers,
-            "flights": [flight.to_dict(expand=expand) for flight in self.flights],
+            "flights": [flight.to_dict(expand=expand) for flight in self._flights],
         }
 
     @staticmethod
@@ -569,7 +671,7 @@ class TripItinerary:
         # If this is the first call to this function
         # we need to initialize the lists.
         if current_itinerary is None:
-            current_itinerary = TripItinerary(departure_date)
+            current_itinerary = TripItinerary(departure_date, num_of_passengers)
 
         if trip_itinerarys is None:
             trip_itinerarys = []
@@ -615,20 +717,24 @@ class TripItinerary:
             query = query.filter_by(arrival_id=final_airport)
 
         # Make sure this flight doesn't backtrack to an airport we've already been to.
-        prev_ids = [flight.departure_id for flight in current_itinerary.flights]
+        prev_ids = [flight.flight.departure_id for flight in current_itinerary._flights]
         query = query.filter(~Flight.arrival_id.in_(prev_ids))
 
         # Create a subquery which counts the total number of tickets sold for each flight
         subquery = (
             db.session.query(
                 PurchasedTicket.flight_id,
-                PurchasedTicket.departure_date,
+                PurchaseTransaction.departure_date,
                 func.count(PurchasedTicket.id).label("purchased_tickets"),
             )
-            .filter(PurchasedTicket.departure_date == departure_date)
+            .join(
+                PurchaseTransaction,
+                PurchasedTicket.transaction_id == PurchaseTransaction.id,
+            )
+            .filter(PurchaseTransaction.departure_date == departure_date)
             .filter(PurchasedTicket.refund_timestamp == None)
             .group_by(PurchasedTicket.flight_id)
-            .group_by(PurchasedTicket.departure_date)
+            .group_by(PurchaseTransaction.departure_date)
             .subquery()
         )
         # Outer join ensures that results without purchased tickets are still retrieved
