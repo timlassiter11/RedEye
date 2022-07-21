@@ -148,7 +148,6 @@ class TestFlight(FlaskTestCase):
         self.assertEquals(plane.capacity, flight.available_seats(today))
 
         transaction = PurchaseTransaction(email=self.customer.email)
-        transaction.base_fare = 500
         transaction.purchase_price = 500
         transaction.departure_date = today
         transaction.confirmation_number = transaction.generate_confirmation_number(
