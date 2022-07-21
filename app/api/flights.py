@@ -1,3 +1,4 @@
+import datetime as dt
 from distutils.util import strtobool
 
 from app import db, models
@@ -21,40 +22,31 @@ class Flights(Resource):
         parser.add_argument("page", type=int, default=1, location="args")
         parser.add_argument("search", location="args")
         parser.add_argument("expand", type=strtobool, default=False, location="args")
-        parser.add_argument("departure_code", type=code_to_airport, location="args")
-        parser.add_argument("arrival_code", type=code_to_airport, location="args")
-        parser.add_argument("date", type=str_to_date, location="args")
+        parser.add_argument("active", type=strtobool, default=False, location="args")
 
         args = parser.parse_args()
         items_per_page = args["per_page"]
         page = args["page"]
         search = args["search"]
         expand = args["expand"]
-        departure = args["departure_code"]
-        arrival = args["arrival_code"]
-        date = args["date"]
+        active = args["active"]
 
         query = models.Flight.query
+
+        # Only get active flights
+        if active:
+            query = query.filter(models.Flight.start <= dt.date.today())
+            query = query.filter(models.Flight.end > dt.date.today())
+
         if search:
             query = query.msearch(f"{search}*")
-
-        if departure:
-            query = query.filter_by(departure_id=departure.id)
-
-        if arrival:
-            query = query.filter_by(arrival_id=arrival.id)
-
-        if date:
-            query = query.filter(models.Flight.start <= date).filter(
-                date <= models.Flight.end
-            )
 
         data = models.Flight.to_collection_dict(
             query, page, items_per_page, "api.flights", expand=expand, search=search
         )
         return data
 
-    @role_required('admin')
+    @role_required("admin")
     def post(self):
         form = FlightForm(data=request.json)
         if form.validate():
@@ -79,14 +71,14 @@ class Flight(Resource):
         flight = get_or_404(models.Flight, id)
         return flight.to_dict(expand=expand)
 
-    @role_required('admin')
+    @role_required("admin")
     def delete(self, id):
         flight = get_or_404(models.Flight, id)
         db.session.delete(flight)
         db.session.commit()
         return "", 204
 
-    @role_required('admin')
+    @role_required("admin")
     def patch(self, id):
         flight = get_or_404(models.Flight, id)
         form = FlightForm(data=request.json)
@@ -96,3 +88,30 @@ class Flight(Resource):
             db.session.refresh(flight)
             return flight.to_dict(), 200
         json_abort(400, message=form.errors)
+
+
+@api.resource("/flights/<id>/tickets")
+class FlightTickets(Resource):
+    @role_required(["agent", "admin"])
+    def get(self, id):
+        parser = reqparse.RequestParser()
+        parser.add_argument("expand", type=strtobool, default=False, location="args")
+        parser.add_argument("date", type=str_to_date, location="args")
+
+        args = parser.parse_args()
+        expand = args["expand"]
+        date = args["date"]
+
+        flight = get_or_404(models.Flight, id)
+        items = [
+            ticket.to_dict(expand)
+            for ticket in flight.tickets
+            if ticket.transaction.departure_date == date
+        ]
+        
+        return {
+            "items": items,
+            "_meta": {
+                "total_items": len(items),
+            },
+        }

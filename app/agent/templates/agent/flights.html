@@ -3,39 +3,126 @@
 {% block content %}
 {{ super() }}
 <div class="content-background flex-grow-1">
-    <div class="content-card">
-        <h4>Flight</h4>
-        <div class="col-4">
-            <div class="form-floating">
+    <div class="row mx-auto">
+        <div class="content-card mx-3 col-md position-relative">
+            <h4>Flight Search</h4>
+            <div class="form-floating mb-3">
                 <input class="form-control" type="text" id="flightInput">
                 <label for="flightInput">Flight Number</label>
             </div>
+            <hr>
+            <h3 class="mb-3">Flight No. <span id="flightNumberCell">N/A</span></h3>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Departing</h6>
+                <h6 id="departureAirportCell" data-bs-toggle="tooltip" data-bs-placement="top" style="cursor: default;"
+                    title="N/A">N/A</h6>
+            </div>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Departure Time</h6>
+                <h6 id="departureTimeCell">N/A</h6>
+            </div>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Arriving</h6>
+                <h6 id="arrivalAirportCell" data-bs-toggle="tooltip" data-bs-placement="top" style="cursor: default;">
+                    N/A</h6>
+            </div>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Arival Time</h6>
+                <h6 id="arrivalTimeCell">N/A</h6>
+            </div>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Start</h6>
+                <h6 id="flightStartCell">N/A</h6>
+            </div>
+            <div class="hstack">
+                <h6 class="flex-grow-1">End</h6>
+                <h6 id="flightEndCell">N/A</h6>
+            </div>
+            <hr class="my-3">
+            <h4 class="mb-3">Aircraft Details</h4>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Registration No.</h6>
+                <h6 id="aircraftNumberCell">N/A</h6>
+            </div>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Model</h6>
+                <h6 id="aircraftModelCell">N/A</h6>
+            </div>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Capacity</h6>
+                <h6 id="aircraftCapacityCell">N/A</h6>
+            </div>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Range</h6>
+                <h6 id="aircraftRangeCell">N/A</h6>
+            </div>
         </div>
-        <hr>
-        <div class="d-table">
-            <div class="d-table-row">
-                <p class="d-table-cell">Flight Number</p>
-                <p class="d-table-cell" id="flightNumberCell"></p>
+        <div class="content-card mx-3 col-md">
+            <h4>Passengers</h4>
+            <div class="form-floating mb-3">
+                <input class="form-control" type="date" id="dateInput" disabled>
+                <label for="dateInput">Date</label>
             </div>
-            <div class="d-table-row">
-                <p class="d-table-cell">Service</p>
-                <p class="d-table-cell" id="flightServiceCell"></p>
-            </div>
+            <hr>
+            <div id="passengerContainer" class="list-group"></div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
+<script src="/static/scripts/luxon.min.js"></script>
 <script>
+    function updatePassengers(item, date) {
+        $('#passengerContainer').html('');
+        $.ajax({
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            url: item.tickets,
+            type: 'get',
+            data: { date: date },
+            success: function (response, textStatus, jqXhr) {
+                for (let i in response.items) {
+                    const item = response.items[i];
+                    $('#passengerContainer').append(`<a href="#" class="list-group-item list-group-item-action">${item.last_name}, ${item.first_name}`);
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                const response = jqXHR.responseJSON
+                if ('message' in response) {
+                    const message = response.message
+                    if (typeof message === "string") {
+                        const alertHtml = `<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        ${message}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>`;
+                        $('#messageContainer').append(alertHtml)
+                    }
+                }
+            },
+            complete: function () {
+            }
+        });
+    }
+
     $(document).ready(function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            const tooltip = new bootstrap.Tooltip(tooltipTriggerEl, {
+                container: 'body'
+            });
+
+            $(tooltipTriggerEl).data('tooltip', tooltip);
+        });
+
         flight_bloodhound = new Bloodhound({
             datumTokenizer: Bloodhound.tokenizers.whitespace,
             queryTokenizer: Bloodhound.tokenizers.whitespace,
             remote: {
-                url: "{{ url_for('api.flights', search='_QUERY', expand=true)|safe }}",
+                url: "{{ url_for('api.flights', search='_QUERY', expand=true, active=true)|safe }}",
                 wildcard: '_QUERY',
                 transform: function (res) {
                     return res.items;
@@ -44,11 +131,13 @@
             identify: function (obj) { return obj.code; }
         })
 
-        const $input = $('#flightInput');
+        const $flightInput = $('#flightInput');
+        const $dateInput = $('#dateInput');
         const $label = $(`label[for="flightInput"]`)
 
-        $input.typeahead({
-            highlight: true
+        $flightInput.typeahead({
+            highlight: true,
+            autoselect: true,
         }, {
             name: 'flights',
             display: 'number',
@@ -61,12 +150,45 @@
             }
         })
 
-        $input.after($label)
+        $flightInput.after($label)
 
-        $input.on('typeahead:selected', function(event, item, dataset) {
+        let selectedItem = null;
+        $flightInput.on('typeahead:selected', function (event, item, dataset) {
+            $flightInput.blur();
+
+            selectedItem = item;
+
+            let departure_dt = luxon.DateTime.fromISO(item.departure_time, { zone: 'utc' });
+            departure_dt = departure_dt.setZone(item.departure_airport.timezone);
+            let arrival_dt = luxon.DateTime.fromISO(item.arrival_time, { zone: 'utc' });
+            arrival_dt = arrival_dt.setZone(item.arrival_airport.timezone);
+
+            $('#flightStartCell').text(item.start);
+            $('#flightEndCell').text(item.end);
+
             $('#flightNumberCell').text(`RE${item.number}`);
-            $('#flightServiceCell').text(`${item.departure_airport.code} to ${item.arrival_airport.code}`)
-        })
+            $('#departureAirportCell').text(item.departure_airport.code).attr('data-bs-original-title', item.departure_airport.name);
+            $('#departureTimeCell').text(departure_dt.toFormat('HH:mm'));
+            $('#arrivalAirportCell').text(item.arrival_airport.code).attr('data-bs-original-title', item.arrival_airport.name);
+            $('#arrivalTimeCell').text(arrival_dt.toFormat('HH:mm'));
+
+            $('#aircraftNumberCell').text(item.airplane.registration_number);
+            $('#aircraftModelCell').text(item.airplane.model_code);
+            $('#aircraftRangeCell').text(item.airplane.range);
+            $('#aircraftCapacityCell').text(item.airplane.capacity);
+
+            $dateInput.removeAttr('disabled');
+
+            if ($dateInput.val() != '') {
+                updatePassengers(selectedItem, $dateInput.val())
+            }
+        });
+
+        $('#dateInput').on('change', function (event) {
+            if (selectedItem != null) {
+                updatePassengers(selectedItem, this.value);
+            }
+        });
     });
 </script>
 {% endblock %}

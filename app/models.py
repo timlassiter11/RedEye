@@ -319,6 +319,7 @@ class Flight(PaginatedAPIMixin, db.Model):
 
         data["flight_time"] = str(self.flight_time)
         data["arrival_time"] = self.arrival_time.strftime("%H:%M")
+        data["tickets"] = url_for("api.flighttickets", id=self.id)
 
         if expand:
             data["airplane"] = self.airplane.to_dict()
@@ -472,7 +473,7 @@ class PurchasedTicket(db.Model):
     refunded_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
 
     transaction = db.relationship("PurchaseTransaction", backref="tickets")
-    flight = db.relationship("Flight", backref="purchases")
+    flight = db.relationship("Flight", backref="tickets")
 
     def to_dict(self, expand=False):
         return {
@@ -480,6 +481,7 @@ class PurchasedTicket(db.Model):
             "flight": self.flight.to_dict(expand)
             if expand
             else url_for("api.flight", id=self.flight_id),
+            "transaction": url_for("api.purchases", id=self.transaction_id),
             "first_name": self.first_name,
             "middle_name": self.middle_name,
             "last_name": self.last_name,
