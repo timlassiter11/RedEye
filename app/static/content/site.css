@@ -83,6 +83,11 @@
     border-color: var(--redeye);
 }
 
+.bg-redeye {
+    color: #FFF;
+    background-color: var(--redeye);
+}
+
 .feedback {
     font-size: 0.875rem !important;
 }

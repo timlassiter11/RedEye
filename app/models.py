@@ -83,13 +83,15 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
         return f"<User {self.first_name} {self.last_name}>"
 
     def purchases(self, start: dt.date = None, end: dt.date = None):
+        """Get all of the users purchases starting from start (inclusive) and ending with end (exclusive)."""
+
         query = PurchaseTransaction.query.filter_by(email=self.email)
 
         if start is not None:
             query = query.filter(PurchaseTransaction.departure_date >= start)
 
         if end is not None:
-            query = query.filter(PurchaseTransaction.departure_date <= end)
+            query = query.filter(PurchaseTransaction.departure_date < end)
 
         query = query.order_by(PurchaseTransaction.departure_date)
         return list(query.all())
@@ -365,6 +367,24 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
     destination_airport = db.relationship("Airport", foreign_keys=[destination_id])
 
     __table_args__ = (UniqueConstraint("email", "confirmation_number", name="_pnr"),)
+
+    @property
+    def refund_amount(self) -> float:
+        amount = 0
+        segments = 0
+        for ticket in self.tickets:
+            if ticket.refund_timestamp:
+                amount += ticket.purchase_price
+                segments += 1
+        if amount:
+            return amount + calculate_taxes(amount, segments)
+        return 0
+
+    @property
+    def refunded(self) -> bool:
+        """Returns true if all of the tickets for this purchase have been refunded"""
+        return all(ticket.refund_timestamp is not None for ticket in self.tickets)
+
 
     @staticmethod
     def generate_confirmation_number(email: str):

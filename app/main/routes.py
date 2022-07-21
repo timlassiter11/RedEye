@@ -90,32 +90,36 @@ def checkout():
 @bp.route("/mytrips")
 @login_required
 def my_trips():
-    purchases: List[PurchaseTransaction] = current_user.purchases(dt.date.today())
 
-    upcoming_trips = [
-        TripItinerary(
-            purchase.departure_date,
-            purchase.num_of_passengers,
-            [ticket.flight for ticket in purchase.tickets],
-            purchase.base_fare,
+    upcoming_trips = []
+    purchase_history = []
+
+    purchases: List[PurchaseTransaction] = current_user.purchases(dt.date.today())
+    for trip in purchases:
+        itinerary = TripItinerary(
+            trip.departure_date,
+            trip.num_of_passengers,
+            [ticket.flight for ticket in trip.tickets],
+            trip.base_fare,
         )
-        for purchase in purchases
-    ]
+
+        if not trip.refunded:
+            upcoming_trips.append((itinerary, trip))
+        else:
+            purchase_history.append((itinerary, trip))
 
     purchases: List[PurchaseTransaction] = current_user.purchases(None, dt.date.today())
-
-    past_trips = [
-        TripItinerary(
-            purchase.departure_date,
-            purchase.num_of_passengers,
-            [ticket.flight for ticket in purchase.tickets],
-            purchase.base_fare,
+    for trip in purchases:
+        itinerary = TripItinerary(
+            trip.departure_date,
+            trip.num_of_passengers,
+            [ticket.flight for ticket in trip.tickets],
+            trip.base_fare,
         )
-        for purchase in purchases
-    ]
+        purchase_history.append((itinerary, trip))
 
     return render_template(
-        "main/mytrips.html", upcoming_trips=upcoming_trips, past_trips=past_trips
+        "main/mytrips.html", upcoming_trips=upcoming_trips, purchase_history=purchase_history
     )
 
 

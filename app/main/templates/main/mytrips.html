@@ -2,12 +2,13 @@
 
 {% block content %}
 <div class="content-background flex-grow-1">
-    {% if upcoming_trips or past_trips %}
+    {% if upcoming_trips or purchase_history %}
     {% if upcoming_trips %}
     <div class="content-card mx-auto" style="max-width: 938px;">
         <h5>Upcoming Trips</h5>
         <div class="accordion" id="upcomingTripsAccordian">
-            {% for trip in upcoming_trips %}
+            {% for trip, purchase in upcoming_trips %}
+            {% set refund_amount = purchase.refund_amount %}
             <div class="accordion-item">
                 <h2 class="accordion-header" id="upcoming-header-{{ loop.index }}">
                     <button class="accordion-button{% if not loop.first %} collapsed{% endif %}" type="button"
@@ -57,19 +58,25 @@
                                 <div class="vstack h-100">
                                     <div class="hstack">
                                         <p class="flex-grow-1 mb-1">Fare Per Passenger</p>
-                                        <p class="mb-1">${{ trip.base_fare }}</p>
+                                        <p class="mb-1">{{ "$%.2f"|format(trip.base_fare) }}</p>
                                     </div>
                                     <div class="hstack">
                                         <p class="flex-grow-1 mb-1">Taxes & Fees</p>
-                                        <p class="mb-1">${{ trip.taxes }}</p>
+                                        <p class="mb-1">{{ "$%.2f"|format(trip.taxes) }}</p>
                                     </div>
                                     <div class="hstack">
                                         <p class="flex-grow-1 mb-1">Passengers</p>
                                         <p class="mb-1">x{{ trip.passengers }}</p>
                                     </div>
+                                    {% if refund_amount > 0 %}
+                                    <div class="hstack mt-auto pt-4">
+                                        <h6 class="flex-grow-1">Refund</h6>
+                                        <h6>{{ "$%.2f"|format(refund_amount) }}</h6>
+                                    </div>
+                                    {% endif %}
                                     <div class="hstack mt-auto">
                                         <h4 class="flex-grow-1">Total</h4>
-                                        <h3>${{ trip.cost * trip.passengers }}</h3>
+                                        <h3>{{ "$%.2f"|format((trip.cost * trip.passengers) - refund_amount) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -81,11 +88,12 @@
         </div>
     </div>
     {% endif %}
-    {% if past_trips %}
+    {% if purchase_history %}
     <div class="content-card mx-auto" style="max-width: 938px;">
         <h5>Past Trips</h5>
         <div class="accordion" id="pastTripsAccordian">
-            {% for trip in past_trips %}
+            {% for trip, purchase in purchase_history %}
+            {% set refund_amount = purchase.refund_amount %}
             <div class="accordion-item">
                 <h2 class="accordion-header" id="past-header-{{ loop.index }}">
                     <button class="accordion-button collapsed" type="button"
@@ -93,7 +101,11 @@
                         aria-expanded="false"
                         aria-controls="past-collapse-{{ loop.index }}">
                         <div class="d-inline-flex flex-column justify-content-center">
-                            <h4>{{ trip.arrival_airport.city }}, {{ trip.arrival_airport.state }}</h4>
+                            <h4>{{ trip.arrival_airport.city }}, {{ trip.arrival_airport.state }}
+                                {% if purchase.refunded %}
+                                <span class="badge bg-redeye">Refunded</span>
+                                {% endif %}
+                            </h4>
                             <h6>{{ trip.departure_datetime.strftime('%a, %b %d, %Y') }}</h6>
                         </div>
                     </button>
@@ -135,19 +147,25 @@
                                 <div class="vstack h-100">
                                     <div class="hstack">
                                         <p class="flex-grow-1 mb-1">Fare Per Passenger</p>
-                                        <p class="mb-1">${{ trip.base_fare }}</p>
+                                        <p class="mb-1">{{ "$%.2f"|format(trip.base_fare) }}</p>
                                     </div>
                                     <div class="hstack">
                                         <p class="flex-grow-1 mb-1">Taxes & Fees</p>
-                                        <p class="mb-1">${{ trip.taxes }}</p>
+                                        <p class="mb-1">{{ "$%.2f"|format(trip.taxes) }}</p>
                                     </div>
                                     <div class="hstack">
                                         <p class="flex-grow-1 mb-1">Passengers</p>
                                         <p class="mb-1">x{{ trip.passengers }}</p>
                                     </div>
+                                    {% if refund_amount > 0 %}
+                                    <div class="hstack mt-auto pt-4">
+                                        <h6 class="flex-grow-1">Refund</h6>
+                                        <h6>{{ "$%.2f"|format(refund_amount) }}</h6>
+                                    </div>
+                                    {% endif %}
                                     <div class="hstack mt-auto">
                                         <h4 class="flex-grow-1">Total</h4>
-                                        <h3>${{ trip.cost * trip.passengers }}</h3>
+                                        <h3>{{ "$%.2f"|format((trip.cost * trip.passengers) - refund_amount) }}</h3>
                                     </div>
                                 </div>
                             </div>
