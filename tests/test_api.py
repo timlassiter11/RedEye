@@ -5,6 +5,7 @@ from app.api.helpers import (
     get_or_404,
     json_abort,
     login_required,
+    owner_or_role_required,
     role_required,
 )
 from app.models import Airplane, Airport, User, Flight
@@ -195,6 +196,42 @@ class TestHelpers(ApiTestCase):
             login_user(self.admin_user)
             self.admin_user.authenticated = True
             self.assertTrue(f())
+
+    def test_owner_or_role_required(self):
+        f = owner_or_role_required([])(lambda **kwargs: True)
+        # Make sure we get a 401 with no user
+        with self.app.test_client():
+            with self.assertRaises(HTTPException) as cm:
+                f(id=1)
+
+            ex = cm.exception
+            self.assertApiResponse(ex.response, 401)
+            self.assertIn("message", ex.response.json)
+
+        # Make sure we got a 403 incorrect id
+        with self.app.test_request_context():
+            login_user(self.customer_user)
+            self.customer_user.authenticated = True
+            # Make sure we got a 403 incorrect id
+            with self.assertRaises(HTTPException) as cm:
+                f(id=218712)
+            ex = cm.exception
+            self.assertApiResponse(ex.response, 403)
+            # Make sure we don't get any exceptions with correct user id
+            self.assertTrue(f(id=self.customer_user.id))
+
+            # Always return false
+            f = owner_or_role_required([], lambda **kwargs: False)(lambda **kwargs: True)
+            # Make sure we got a 403 incorrect id
+            with self.assertRaises(HTTPException) as cm:
+                f()
+            ex = cm.exception
+            self.assertApiResponse(ex.response, 403)
+
+            # Always return true
+            f = owner_or_role_required([], lambda **kwargs: True)(lambda **kwargs: True)
+            self.assertTrue(f())
+
 
     def test_get_or_404(self):
         with self.assertRaises(HTTPException) as cm:

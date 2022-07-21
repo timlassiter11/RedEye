@@ -2,7 +2,7 @@ import datetime as dt
 from typing import List
 
 from app.api.helpers import code_to_airport, str_to_date
-from app.forms import FlightForm, PurchaseTransactionForm
+from app.forms import PurchaseTransactionForm, TransactionRefundForm
 from app.main import bp
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -102,7 +102,8 @@ def my_trips():
         )
 
         if not trip.refunded:
-            upcoming_trips.append((itinerary, trip))
+            form = TransactionRefundForm(tickets=[ticket.id for ticket in trip.tickets])
+            upcoming_trips.append((itinerary, trip, form))
         else:
             purchase_history.append((itinerary, trip))
 

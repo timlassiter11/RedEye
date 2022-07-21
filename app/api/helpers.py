@@ -40,13 +40,17 @@ def role_required(roles: Union[str, List[str]]):
     return decorator
 
 
-def owner_or_role_required(roles: Union[str, List[str]]):
+def _is_owner(**kwargs):
+    id = kwargs.get("id")
+    return current_user.id == int(id)
+
+
+def owner_or_role_required(roles: Union[str, List[str]], is_owner = _is_owner):
     def decorator(func):
         @login_required
         @wraps(func)
         def wrapper(*args, **kwargs):
-            id = kwargs.get("id")
-            if current_user.id == int(id):
+            if is_owner(**kwargs):
                 return func(*args, **kwargs)
             return role_required(roles)(func)(*args, **kwargs)
 

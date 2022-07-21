@@ -2,17 +2,17 @@ import pytz
 from flask_wtf import FlaskForm
 from wtforms import (
     BooleanField,
+    DateField,
     EmailField,
+    FieldList,
     FloatField,
+    FormField,
+    HiddenField,
     IntegerField,
     PasswordField,
     SelectField,
     StringField,
     TimeField,
-    DateField,
-    FieldList,
-    FormField,
-    HiddenField
 )
 from wtforms.validators import (
     EqualTo,
@@ -21,9 +21,15 @@ from wtforms.validators import (
     NumberRange,
     ValidationError,
 )
+from wtforms.widgets import HiddenInput
 
 from app.fields import TypeaheadField
-from app.validators import AirplaneValidator, AirportValidator, FlightValidator, UniqueEmailValidator, UserValidator
+from app.validators import (
+    AirplaneValidator,
+    AirportValidator,
+    UniqueEmailValidator,
+    UserValidator,
+)
 
 
 class LoginForm(FlaskForm):
@@ -47,7 +53,9 @@ class RegistrationForm(FlaskForm):
 
 
 class ResetPasswordRequestForm(FlaskForm):
-    email = EmailField("Email", validators=[InputRequired(), UserValidator(populate_field=False)])
+    email = EmailField(
+        "Email", validators=[InputRequired(), UserValidator(populate_field=False)]
+    )
 
 
 class ResetPasswordForm(FlaskForm):
@@ -66,15 +74,18 @@ class UserEditForm(FlaskForm):
     first_name = StringField("First Name", validators=[InputRequired()])
     last_name = StringField("Last Name", validators=[InputRequired()])
     password = PasswordField("Password")
-    password2 = PasswordField("Confirm Password", validators=[EqualTo("password", message="Passwords do not match")])
+    password2 = PasswordField(
+        "Confirm Password",
+        validators=[EqualTo("password", message="Passwords do not match")],
+    )
 
     def populate_obj(self, obj):
         pass1 = self.password.data
-        
+
         del self.password
         del self.password2
 
-        if pass1 and hasattr(obj, 'set_password'):
+        if pass1 and hasattr(obj, "set_password"):
             obj.set_password(pass1)
 
         return super().populate_obj(obj)
@@ -108,9 +119,15 @@ class FlightForm(FlaskForm):
     number = StringField(
         "Flight Number", validators=[InputRequired(), Length(min=1, max=4)]
     )
-    airplane = TypeaheadField("Plane", validators=[InputRequired(), AirplaneValidator()])
-    departure_airport = TypeaheadField("Departing From", validators=[InputRequired(), AirportValidator()])
-    arrival_airport = TypeaheadField("Arriving To", validators=[InputRequired(), AirportValidator()])
+    airplane = TypeaheadField(
+        "Plane", validators=[InputRequired(), AirplaneValidator()]
+    )
+    departure_airport = TypeaheadField(
+        "Departing From", validators=[InputRequired(), AirportValidator()]
+    )
+    arrival_airport = TypeaheadField(
+        "Arriving To", validators=[InputRequired(), AirportValidator()]
+    )
     departure_time = TimeField("Departing Time", validators=[InputRequired()])
     start = DateField("Start", validators=[InputRequired()])
     end = DateField("End", validators=[InputRequired()])
@@ -125,12 +142,16 @@ class PassengerForm(FlaskForm):
     middle_name = StringField("Middle Name")
     last_name = StringField("Last Name", validators=[InputRequired()])
     date_of_birth = DateField("Date of Birth", validators=[InputRequired()])
-    gender = SelectField("Gender", choices=[('male', 'Male'), ('female', 'Female')])
+    gender = SelectField("Gender", choices=[("male", "Male"), ("female", "Female")])
 
 
 class PurchaseTransactionForm(FlaskForm):
     email = EmailField("Email", validators=[InputRequired()])
-    country = SelectField("Country", choices=[(key, value) for key, value in pytz.country_names.items()], default="US")
+    country = SelectField(
+        "Country",
+        choices=[(key, value) for key, value in pytz.country_names.items()],
+        default="US",
+    )
     street_address = StringField("Street Address", validators=[InputRequired()])
     street_address2 = StringField("Street Address 2")
     city = StringField("City/Town", validators=[InputRequired()])
@@ -141,3 +162,7 @@ class PurchaseTransactionForm(FlaskForm):
     card_cvc = StringField("CVC", validators=[InputRequired()])
     passengers = FieldList(FormField(PassengerForm), min_entries=1)
     itinerary = HiddenField()
+
+
+class TransactionRefundForm(FlaskForm):
+    tickets = FieldList(IntegerField(widget=HiddenInput()), min_entries=1)

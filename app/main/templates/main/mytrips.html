@@ -1,13 +1,34 @@
 {% extends "main/layout.html" %}
 
 {% block content %}
+<div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">Cancel Trip</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel this trip? This includes all passengers and will refund the entire purchase price.</p>
+                <p class="lead fs-6">For individual passenger or flight cancellations, please call one of our agents at <a href="tel:1-800-123-4567">1-800-123-4567</a></p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="$(this).trigger('rejected.bs.modal')" type="button" class="btn btn-secondary"
+                    data-bs-dismiss="modal">No</button>
+                <button onclick="$(this).trigger('accepted.bs.modal')" type="button" class="btn btn-redeye"
+                    data-bs-dismiss="modal">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="content-background flex-grow-1">
     {% if upcoming_trips or purchase_history %}
     {% if upcoming_trips %}
     <div class="content-card mx-auto" style="max-width: 938px;">
         <h5>Upcoming Trips</h5>
         <div class="accordion" id="upcomingTripsAccordian">
-            {% for trip, purchase in upcoming_trips %}
+            {% for trip, purchase, form in upcoming_trips %}
             {% set refund_amount = purchase.refund_amount %}
             <div class="accordion-item">
                 <h2 class="accordion-header" id="upcoming-header-{{ loop.index }}">
@@ -80,6 +101,13 @@
                                     </div>
                                 </div>
                             </div>
+                            <form id="cancelForm-{{ purchase.id }}" class="api-form" method="post" action="{{ url_for('api.purchaserefund', id=purchase.id) }}">
+                                {{ form.hidden_tag() }}
+                                {% for field in form.tickets %}
+                                {{ field() }}
+                                {% endfor %}
+                            </form>
+                            <button type="button" class="btn btn-redeye cancel-button col-md-3 ms-auto" data-form-id="cancelForm-{{ purchase.id }}">Cancel Trip</button>
                         </div>
                     </div>
                 </div>
@@ -179,4 +207,30 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="/static/scripts/apiform.js"></script>
+<script>
+    $(document).ready(function () {
+        $('.api-form').apiform({
+            onSuccess: function(response) {
+                window.location.reload();
+            }
+        });
+
+        const $confirmationModal = $('#confirmationModal');
+        const confirmationModal = bootstrap.Modal.getOrCreateInstance($confirmationModal[0]);
+
+        $('.cancel-button').click(function(event) {
+            const button = $(this);
+            const form = $(`#${button.data('form-id')}`);
+            confirmationModal.show();
+            $confirmationModal.one("accepted.bs.modal", function(event) {
+                form.submit();
+            });
+        });
+    });
+</script>
 {% endblock %}

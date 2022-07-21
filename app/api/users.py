@@ -1,5 +1,7 @@
 import uuid
 
+from sqlalchemy import update
+
 from app import db, models
 from app.api import api
 from app.api.helpers import (
@@ -10,6 +12,7 @@ from app.api.helpers import (
 )
 from app.forms import UserEditForm
 from flask_restful import Resource, reqparse, request
+
 
 class UsersResource(Resource):
     __model__ = models.User
@@ -63,12 +66,20 @@ class UserResource(Resource):
     def patch(self, id):
         user = self.__model__ = get_or_404(self.__model__, id)
         form = UserEditForm(data=request.json)
-        
+
+        email_changed = False
         # Fix duplicate email error message
         if form.email.data == user.email:
             del form.email
+        else:
+            email_changed = True
 
         if form.validate():
+            if email_changed:
+                update(models.PurchaseTransaction).where(
+                    models.PurchaseTransaction.email == user.email
+                ).values(email=form.email.data)
+
             form.populate_obj(user)
             db.session.commit()
             db.session.refresh(user)
@@ -80,7 +91,6 @@ class UserResource(Resource):
 class Customers(UsersResource):
     __model__ = models.Customer
     __endpoint__ = "api.customers"
-
 
     @role_required(["agent", "admin"])
     def get(self):
@@ -175,6 +185,7 @@ class Users(UsersResource):
     @role_required("admin")
     def get(self):
         return super().get()
+
 
 @api.resource("/users/<id>")
 class User(UserResource):

@@ -1,10 +1,12 @@
 from distutils.util import strtobool
 from flask_login import current_user
-from app import models
+from sqlalchemy import func
+from app import models, db
 from app.api import api
-from flask_restful import Resource, reqparse
+from flask_restful import Resource, reqparse, request
 
-from app.api.helpers import get_or_404, owner_or_role_required
+from app.api.helpers import get_or_404, json_abort, owner_or_role_required
+from app.forms import TransactionRefundForm
 
 @api.resource("/users/<id>/purchases")
 class Purchases(Resource):
@@ -40,3 +42,33 @@ class Purchase(Resource):
 
         purchase: models.PurchaseTransaction = get_or_404(models.PurchaseTransaction, id)
         return purchase.to_dict(expand)
+
+
+def _test_owner(**kwargs):
+    id = kwargs.get("id")
+    purchase: models.PurchaseTransaction = get_or_404(models.PurchaseTransaction, id)
+    return purchase.email == current_user.email
+
+
+@api.resource("/ticket/<id>/refund")
+class PurchaseRefund(Resource):
+    @owner_or_role_required(['agent', 'admin'], _test_owner)
+    def post(self, id):
+        purchase: models.PurchaseTransaction = get_or_404(models.PurchaseTransaction, id)
+        form = TransactionRefundForm(data=request.json)
+        if form.validate():
+            for ticket_field in form.tickets:
+                found = False
+                for ticket in purchase.tickets:
+                    if ticket.id == ticket_field.data:
+                        found = True
+                        ticket.refund_timestamp = func.now()
+                        # TODO: What happens if the agent is refunding their own ticket?
+                        # Should that be logged as "refunded by"?
+                        if current_user.role == 'agent':
+                            ticket.refunded_by = current_user.id
+                if not found:
+                    db.session.rollback()
+                    json_abort(400, message=f"Ticket {ticket_field.data} does not belong to transaction {purchase.id}")
+            db.session.commit()
+            return "", 204
