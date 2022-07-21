@@ -359,7 +359,6 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
     purchase_timestamp = db.Column(
         db.DateTime, nullable=False, server_default=func.now()
     )
-    base_fare = db.Column(db.Float, nullable=False)
     purchase_price = db.Column(db.Float, nullable=False)
     assisted_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
 
@@ -369,22 +368,37 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
     __table_args__ = (UniqueConstraint("email", "confirmation_number", name="_pnr"),)
 
     @property
+    def base_fare(self) -> float:
+        total = 0
+        for ticket in self.tickets:
+            total += ticket.purchase_price
+        return round(total, 2)
+
+    @property
+    def taxes(self) -> float:
+        return round(self.purchase_price - self.base_fare, 2)
+
+    @property
     def refund_amount(self) -> float:
         amount = 0
-        segments = 0
+        taxes = self.taxes
         for ticket in self.tickets:
             if ticket.refund_timestamp:
                 amount += ticket.purchase_price
-                segments += 1
-        if amount:
-            return amount + calculate_taxes(amount, segments)
-        return 0
+                # Return a percentage of the taxes
+                amount += (taxes * 1/len(self.tickets))
+        
+        return amount
 
     @property
     def refunded(self) -> bool:
         """Returns true if all of the tickets for this purchase have been refunded"""
         return all(ticket.refund_timestamp is not None for ticket in self.tickets)
 
+    @property
+    def flights(self) -> List[Flight]:
+        query = PurchasedTicket.query.filter_by(transaction_id=self.id).group_by(PurchasedTicket.flight_id)
+        return [ticket.flight for ticket in query.all()]
 
     @staticmethod
     def generate_confirmation_number(email: str):
@@ -494,17 +508,12 @@ class TripItinerary:
     def __init__(
         self,
         date: dt.date,
-        passengers: int = 1,
         flights: List[Flight] = None,
-        base_fare: float = None,
     ) -> None:
         self.id = uuid.uuid4().hex
         self._total_time = dt.timedelta()
         self._flights: List[TripFlight] = []
         self._date = date
-        self.passengers = passengers
-
-        self._base_fare = base_fare
 
         if flights:
             for flight in flights:
@@ -569,9 +578,6 @@ class TripItinerary:
 
     @property
     def base_fare(self):
-        if self._base_fare:
-            return self._base_fare
-
         cost = 0
         for flight in self._flights:
             cost += flight.flight.cost(self._date)
@@ -642,7 +648,7 @@ class TripItinerary:
         return flight
 
     def copy(self) -> "TripItinerary":
-        itinerary = TripItinerary(self._date, self.passengers)
+        itinerary = TripItinerary(self._date)
         itinerary._flights = self._flights.copy()
         itinerary._total_time = self._total_time
         return itinerary
@@ -691,7 +697,7 @@ class TripItinerary:
         # If this is the first call to this function
         # we need to initialize the lists.
         if current_itinerary is None:
-            current_itinerary = TripItinerary(departure_date, num_of_passengers)
+            current_itinerary = TripItinerary(departure_date)
 
         if trip_itinerarys is None:
             trip_itinerarys = []

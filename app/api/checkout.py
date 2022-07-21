@@ -6,6 +6,8 @@ from app.api.helpers import get_or_404, json_abort, str_to_date
 from app.forms import PurchaseTransactionForm
 from flask_restful import Resource, request
 
+from app.helpers import calculate_taxes
+
 
 @api.resource("/checkout")
 class Checkout(Resource):
@@ -35,8 +37,8 @@ class Checkout(Resource):
                 form.email.data
             )
             transaction.departure_date = departure_date
-            transaction.departure_id = itinerary['departure_airport']
-            transaction.destination_id = itinerary['destination_airport']
+            transaction.departure_id = itinerary["departure_airport"]
+            transaction.destination_id = itinerary["destination_airport"]
 
             form_user = -1
             if user is not None:
@@ -57,6 +59,7 @@ class Checkout(Resource):
 
             num_of_passengers = len(form.passengers)
 
+            base_fare = 0
             for flight in flights:
                 if not flight.available_seats(departure_date) >= num_of_passengers:
                     json_abort(
@@ -76,8 +79,11 @@ class Checkout(Resource):
                     ticket.purchase_price = price
                     transaction.tickets.append(ticket)
 
-            transaction.base_fare = itinerary["base_fare"]
-            transaction.purchase_price = itinerary["total_price"]
+                    base_fare += price
+
+            transaction.purchase_price = base_fare + calculate_taxes(
+                base_fare, len(flights)
+            )
 
             db.session.add(transaction)
             db.session.commit()

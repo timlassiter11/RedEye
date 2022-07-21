@@ -57,26 +57,26 @@
                             <div class="col-md">
                                 <div class="vstack h-100">
                                     <div class="hstack">
-                                        <p class="flex-grow-1 mb-1">Fare Per Passenger</p>
-                                        <p class="mb-1">{{ "$%.2f"|format(trip.base_fare) }}</p>
+                                        <p class="flex-grow-1 mb-1">Base Fare</p>
+                                        <p class="mb-1">{{ "$%.2f"|format(purchase.base_fare) }}</p>
                                     </div>
                                     <div class="hstack">
                                         <p class="flex-grow-1 mb-1">Taxes & Fees</p>
-                                        <p class="mb-1">{{ "$%.2f"|format(trip.taxes) }}</p>
-                                    </div>
-                                    <div class="hstack">
-                                        <p class="flex-grow-1 mb-1">Passengers</p>
-                                        <p class="mb-1">x{{ trip.passengers }}</p>
+                                        <p class="mb-1">{{ "$%.2f"|format(purchase.taxes) }}</p>
                                     </div>
                                     {% if refund_amount > 0 %}
+                                    <div class="hstack">
+                                        <h6 class="flex-grow-1">Subtotal</h6>
+                                        <h6>{{ "$%.2f"|format(purchase.purchase_price) }}</h6>
+                                    </div>
                                     <div class="hstack mt-auto pt-4">
                                         <h6 class="flex-grow-1">Refund</h6>
-                                        <h6>{{ "$%.2f"|format(refund_amount) }}</h6>
+                                        <h6 class="text-redeye">{{ "-$%.2f"|format(refund_amount) }}</h6>
                                     </div>
                                     {% endif %}
                                     <div class="hstack mt-auto">
                                         <h4 class="flex-grow-1">Total</h4>
-                                        <h3>{{ "$%.2f"|format((trip.cost * trip.passengers) - refund_amount) }}</h3>
+                                        <h3>{{ "$%.2f"|format(purchase.purchase_price - refund_amount) }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -90,16 +90,16 @@
     {% endif %}
     {% if purchase_history %}
     <div class="content-card mx-auto" style="max-width: 938px;">
-        <h5>Past Trips</h5>
-        <div class="accordion" id="pastTripsAccordian">
+        <h5>Purchase History</h5>
+        <div class="accordion" id="purchaseHistoryAccordion">
             {% for trip, purchase in purchase_history %}
             {% set refund_amount = purchase.refund_amount %}
             <div class="accordion-item">
-                <h2 class="accordion-header" id="past-header-{{ loop.index }}">
+                <h2 class="accordion-header" id="history-header-{{ loop.index }}">
                     <button class="accordion-button collapsed" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#past-collapse-{{ loop.index }}"
+                        data-bs-toggle="collapse" data-bs-target="#history-collapse-{{ loop.index }}"
                         aria-expanded="false"
-                        aria-controls="past-collapse-{{ loop.index }}">
+                        aria-controls="history-collapse-{{ loop.index }}">
                         <div class="d-inline-flex flex-column justify-content-center">
                             <h4>{{ trip.arrival_airport.city }}, {{ trip.arrival_airport.state }}
                                 {% if purchase.refunded %}
@@ -110,23 +110,19 @@
                         </div>
                     </button>
                 </h2>
-                <div id="past-collapse-{{ loop.index }}"
+                <div id="history-collapse-{{ loop.index }}"
                     class="accordion-collapse collapse"
-                    aria-labelledby="past-header-{{ loop.index }}" data-bs-parent="#pastTripsAccordian">
+                    aria-labelledby="history-header-{{ loop.index }}" data-bs-parent="#purchaseHistoryAccordion">
                     <div class="accordion-body">
                         <div class="row">
                             <div class="col-md">
                                 <div class="vstack justify-content-between h-100">
                                     <div class="hstack text-center mx-auto">
-                                        <div class="d-inline-flex flex-column">
-                                            <h4>{{ trip.departure_airport.code }}</h4>
-                                            <h6>{{ trip.departure_datetime.strftime('%I:%M %p') }}</h6>
-                                        </div>
-                                        <h4><i class="bi bi-arrow-right-short"></i></h4>
-                                        <div class="d-inline-flex flex-column">
-                                            <h4>{{ trip.arrival_airport.code }}</h4>
-                                            <h6>{{ trip.arrival_datetime.strftime('%I:%M %p') }}</h6>
-                                        </div>
+                                        <h4>
+                                            {{ trip.departure_airport.code }}
+                                            <i class="bi bi-arrow-right-short"></i>
+                                            {{ trip.arrival_airport.code }}
+                                        </h4>
                                     </div>
                                     <div>
                                         {% for flight in trip.flights %}
@@ -146,26 +142,26 @@
                             <div class="col-md">
                                 <div class="vstack h-100">
                                     <div class="hstack">
-                                        <p class="flex-grow-1 mb-1">Fare Per Passenger</p>
-                                        <p class="mb-1">{{ "$%.2f"|format(trip.base_fare) }}</p>
+                                        <p class="flex-grow-1 mb-1">Base Fare</p>
+                                        <p class="mb-1">{{ "$%.2f"|format(purchase.base_fare) }}</p>
                                     </div>
                                     <div class="hstack">
                                         <p class="flex-grow-1 mb-1">Taxes & Fees</p>
-                                        <p class="mb-1">{{ "$%.2f"|format(trip.taxes) }}</p>
-                                    </div>
-                                    <div class="hstack">
-                                        <p class="flex-grow-1 mb-1">Passengers</p>
-                                        <p class="mb-1">x{{ trip.passengers }}</p>
+                                        <p class="mb-1">{{ "$%.2f"|format(purchase.taxes) }}</p>
                                     </div>
                                     {% if refund_amount > 0 %}
+                                    <div class="hstack">
+                                        <h6 class="flex-grow-1">Subtotal</h6>
+                                        <h6>{{ "$%.2f"|format(purchase.purchase_price) }}</h6>
+                                    </div>
                                     <div class="hstack mt-auto pt-4">
                                         <h6 class="flex-grow-1">Refund</h6>
-                                        <h6>{{ "$%.2f"|format(refund_amount) }}</h6>
+                                        <h6 class="text-redeye">{{ "-$%.2f"|format(refund_amount) }}</h6>
                                     </div>
                                     {% endif %}
                                     <div class="hstack mt-auto">
                                         <h4 class="flex-grow-1">Total</h4>
-                                        <h3>{{ "$%.2f"|format((trip.cost * trip.passengers) - refund_amount) }}</h3>
+                                        <h3>{{ "$%.2f"|format(purchase.purchase_price - refund_amount) }}</h3>
                                     </div>
                                 </div>
                             </div>

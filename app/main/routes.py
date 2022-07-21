@@ -98,9 +98,7 @@ def my_trips():
     for trip in purchases:
         itinerary = TripItinerary(
             trip.departure_date,
-            trip.num_of_passengers,
-            [ticket.flight for ticket in trip.tickets],
-            trip.base_fare,
+            trip.flights
         )
 
         if not trip.refunded:
@@ -112,9 +110,7 @@ def my_trips():
     for trip in purchases:
         itinerary = TripItinerary(
             trip.departure_date,
-            trip.num_of_passengers,
-            [ticket.flight for ticket in trip.tickets],
-            trip.base_fare,
+            trip.flights
         )
         purchase_history.append((itinerary, trip))
 
