@@ -221,6 +221,7 @@
             $form.find('[name="passengerHeader"]').text(`Passenger ${i + 1}`);
 
             $form.find('input, select').each(function (index, element) {
+                element.value = '';
                 const original_name = element.getAttribute('name');
                 const new_name = original_name.replace("-0-", `-${i}-`);
                 element.setAttribute('name', new_name);
