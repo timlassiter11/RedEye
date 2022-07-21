@@ -386,8 +386,8 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
             if ticket.refund_timestamp:
                 amount += ticket.purchase_price
                 # Return a percentage of the taxes
-                amount += (taxes * 1/len(self.tickets))
-        
+                amount += taxes * 1 / len(self.tickets)
+
         return amount
 
     @property
@@ -397,8 +397,19 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
 
     @property
     def flights(self) -> List[Flight]:
-        query = PurchasedTicket.query.filter_by(transaction_id=self.id).group_by(PurchasedTicket.flight_id)
+        query = PurchasedTicket.query.filter_by(transaction_id=self.id).group_by(
+            PurchasedTicket.flight_id
+        )
         return [ticket.flight for ticket in query.all()]
+
+    @property
+    def total_passengers(self) -> int:
+        query = PurchasedTicket.query.filter_by(transaction_id=self.id).group_by(
+            PurchasedTicket.first_name,
+            PurchasedTicket.middle_name,
+            PurchasedTicket.last_name,
+        )
+        return query.count()
 
     @staticmethod
     def generate_confirmation_number(email: str):

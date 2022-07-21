@@ -1,6 +1,8 @@
 import datetime as dt
 from typing import List
 
+import pytz
+
 from app.api.helpers import code_to_airport, str_to_date
 from app.forms import PurchaseTransactionForm, TransactionRefundForm
 from app.main import bp
@@ -94,6 +96,9 @@ def my_trips():
     upcoming_trips = []
     purchase_history = []
 
+    now = dt.datetime.utcnow()
+    now = now.replace(tzinfo=pytz.utc)
+
     purchases: List[PurchaseTransaction] = current_user.purchases(dt.date.today())
     for trip in purchases:
         itinerary = TripItinerary(
@@ -101,7 +106,8 @@ def my_trips():
             trip.flights
         )
 
-        if not trip.refunded:
+        # Refunded trips and trips that have already taken off shouldn't be under the "upcoming trips" section.
+        if not trip.refunded and itinerary.departure_datetime > now:
             form = TransactionRefundForm(tickets=[ticket.id for ticket in trip.tickets])
             upcoming_trips.append((itinerary, trip, form))
         else:

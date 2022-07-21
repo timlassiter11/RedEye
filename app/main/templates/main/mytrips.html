@@ -79,6 +79,14 @@
                                 <div class="vstack h-100">
                                     <div class="hstack">
                                         <p class="flex-grow-1 mb-1">Base Fare</p>
+                                        <p class="mb-1">{{ "$%.2f"|format(purchase.base_fare / purchase.total_passengers) }}</p>
+                                    </div>
+                                    <div class="hstack">
+                                        <p class="flex-grow-1 mb-1">Passengers</p>
+                                        <p class="mb-1">x{{ purchase.total_passengers }}</p>
+                                    </div>
+                                    <div class="hstack">
+                                        <p class="flex-grow-1 mb-1">Total Fare</p>
                                         <p class="mb-1">{{ "$%.2f"|format(purchase.base_fare) }}</p>
                                     </div>
                                     <div class="hstack">
@@ -107,6 +115,8 @@
                                 {{ field() }}
                                 {% endfor %}
                             </form>
+                        </div>
+                        <div class="row">
                             <button type="button" class="btn btn-redeye cancel-button col-md-3 ms-auto" data-form-id="cancelForm-{{ purchase.id }}">Cancel Trip</button>
                         </div>
                     </div>
@@ -171,6 +181,14 @@
                                 <div class="vstack h-100">
                                     <div class="hstack">
                                         <p class="flex-grow-1 mb-1">Base Fare</p>
+                                        <p class="mb-1">{{ "$%.2f"|format(purchase.base_fare / purchase.total_passengers) }}</p>
+                                    </div>
+                                    <div class="hstack">
+                                        <p class="flex-grow-1 mb-1">Passengers</p>
+                                        <p class="mb-1">x{{ purchase.total_passengers }}</p>
+                                    </div>
+                                    <div class="hstack">
+                                        <p class="flex-grow-1 mb-1">Total Fare</p>
                                         <p class="mb-1">{{ "$%.2f"|format(purchase.base_fare) }}</p>
                                     </div>
                                     <div class="hstack">
