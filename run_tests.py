@@ -16,5 +16,5 @@ if __name__ == "__main__":
     with open(args.output, "wb") as output:
         runner = xmlrunner.XMLTestRunner(output=output)
         results = runner.run(suite)
-        if len(results.failures) > 0:
+        if not results.wasSuccessful():
             exit(1)
