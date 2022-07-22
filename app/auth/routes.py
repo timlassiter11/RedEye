@@ -129,6 +129,5 @@ def send_password_reset_email(user: "User"):
         sender=current_app.config['EMAIL_ADDR'],
         recipients=[user.email],
         text_body=text_body,
-        html_body=html_body,
-        sync=True
+        html_body=html_body
     )
