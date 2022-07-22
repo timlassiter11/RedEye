@@ -89,9 +89,10 @@
             <h4>Departure Date</h4>
             <form id="flightCancellationForm" method="post">
                 {{ form.hidden_tag() }}
-                {{ render_field(form.date) }}
+                {{ render_field(form.date, wrapper_classes='') }}
             </form>
             <hr>
+            <h4 class="mb-3">Flight Status</h4>
             <div class="hstack">
                 <h6 class="flex-grow-1">Status</h6>
                 <h6 id="flightStatusCell">N/A</h6>
