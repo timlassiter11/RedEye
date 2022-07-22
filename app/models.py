@@ -16,6 +16,7 @@ from sqlalchemy import UniqueConstraint, and_, desc, func, or_
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, login
+from app.email import send_bulk_email
 from app.helpers import calculate_taxes
 
 
@@ -295,15 +296,20 @@ class Flight(PaginatedAPIMixin, db.Model):
             .all()
         )
 
-        emails = set()
+        emails = []
+        data = []
         for ticket in tickets:
             ticket.refund_timestamp = func.now()
             ticket.refunded_by = user_id
-            emails.add(ticket.transaction.email)
+
+            email = ticket.transaction.email
+            if email not in emails:
+                emails.append(email)
+                data.append({'transaction': ticket.transaction})
+
 
         # TODO: Send emails out to all of the transaction emails
-        for email in emails:
-            pass
+        #send_bulk_email('Flight Cancellation', ('RedEye', current_app.config['EMAIL_ADDR']), email, data, )
 
         db.session.commit()
         db.session.refresh(cancellation)
@@ -369,11 +375,12 @@ class FlightCancellation(db.Model):
 
 
 class PurchaseTransaction(PaginatedAPIMixin, db.Model):
-    __endpoint__ = "api.purchases"
+    __endpoint__ = "api.purchase"
+    __searchable__ = ["email", "confirmation_number"]
 
     id = db.Column(db.Integer, primary_key=True)
 
-    email = db.Column(db.String(120), nullable=False, index=True)
+    email = db.Column(db.String(120), index=True, nullable=False)
     confirmation_number = db.Column(db.String(6), index=True, nullable=False)
     departure_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
     destination_id = db.Column(db.Integer, db.ForeignKey("airport.id"))
@@ -384,6 +391,7 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
     purchase_price = db.Column(db.Float, nullable=False)
     assisted_by = db.Column(db.Integer, db.ForeignKey("agent.id"))
 
+    agent = db.relationship("Agent", backref="sales")
     departure_airport = db.relationship("Airport", foreign_keys=[departure_id])
     destination_airport = db.relationship("Airport", foreign_keys=[destination_id])
 
@@ -461,10 +469,13 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
 
         del data["departure_id"]
         del data["destination_id"]
+        del data["assisted_by"]
 
         if expand:
             data["departure_airport"] = self.departure_airport.to_dict()
             data["destination_airport"] = self.destination_airport.to_dict()
+            if self.agent:
+                data["agent"] = f"{self.agent.first_name} {self.agent.last_name}"
         else:
             data["departure_airport"] = url_for(
                 self.departure_airport.__endpoint__, id=self.departure_id
@@ -472,6 +483,8 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
             data["destination_airport"] = url_for(
                 self.destination_airport.__endpoint__, id=self.destination_id
             )
+            if self.agent:
+                data["agent"] = url_for("api.agents", id=self.assisted_by)
 
         data["tickets"] = [ticket.to_dict(expand) for ticket in self.tickets]
         return data
@@ -506,7 +519,7 @@ class PurchasedTicket(db.Model):
             "flight": self.flight.to_dict(expand)
             if expand
             else url_for("api.flight", id=self.flight_id),
-            "transaction": url_for("api.purchases", id=self.transaction_id),
+            "transaction": url_for("api.purchase", id=self.transaction_id),
             "first_name": self.first_name,
             "middle_name": self.middle_name,
             "last_name": self.last_name,

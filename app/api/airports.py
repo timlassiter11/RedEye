@@ -4,6 +4,7 @@ from app.api.helpers import code_to_airport, get_or_404, json_abort, role_requir
 from app.forms import AirportForm
 from flask_restful import Resource, reqparse, request
 from sqlalchemy.exc import IntegrityError
+from werkzeug.exceptions import HTTPException
 
 
 @api.resource("/airports")
@@ -28,7 +29,7 @@ class Airports(Resource):
         )
         return data
 
-    @role_required('admin')
+    @role_required("admin")
     def post(self):
         form = AirportForm(data=request.json)
         if form.validate():
@@ -54,7 +55,7 @@ class Airport(Resource):
             id = int(id)
             airport = get_or_404(models.Airport, id)
             return airport.to_dict()
-        except ValueError:
+        except HTTPException:
             pass
 
         try:
@@ -63,14 +64,14 @@ class Airport(Resource):
         except ValueError:
             json_abort(404, message="Resource not found")
 
-    @role_required('admin')
+    @role_required("admin")
     def delete(self, id):
         airport = get_or_404(models.Airport, id)
         db.session.delete(airport)
         db.session.commit()
         return "", 204
 
-    @role_required('admin')
+    @role_required("admin")
     def patch(self, id):
         airport: models.Airport = get_or_404(models.Airport, id)
 

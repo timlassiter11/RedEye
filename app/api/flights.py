@@ -76,12 +76,11 @@ class Flight(Resource):
         except HTTPException:
             pass
 
-        try:
-            flight = models.Flight.query.filter_by(number=id).first()
-            if flight:
-                return flight.to_dict(expand)
-        except ValueError:
-            json_abort(404, message="Resource not found")
+        flight = models.Flight.query.filter_by(number=id).first()
+        if flight:
+            return flight.to_dict(expand)
+
+        json_abort(404, message="Resource not found")
 
     @role_required("admin")
     def delete(self, id):

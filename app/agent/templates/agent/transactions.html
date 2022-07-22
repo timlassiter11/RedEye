@@ -1,0 +1,87 @@
+{% extends "agent/layout.html" %}
+
+{% block content %}
+{{ super() }}
+<div class="content-background flex-grow-1">
+    <div class="content-card">
+        <h4>Transaction Search</h4>
+        <div class="form-floating mb-3">
+            <input class="form-control" id="confirmationInput" type="text" placeholder="Confirmation or Email">
+            <label for="confirmationInput">Confirmation or Email</label>
+        </div>
+        <hr>
+        <h4 class="mb-3">Transaction Details</h4>
+        <div class="hstack">
+            <h6 class="flex-grow-1">Confirmation No.</h6>
+            <h6 id="confirmationNumberCell">N/A</h6>
+        </div>
+        <div class="hstack">
+            <h6 class="flex-grow-1">Email</h6>
+            <h6 id="emailCell">N/A</h6>
+        </div>
+        <div class="hstack">
+            <h6 class="flex-grow-1">Departing</h6>
+            <h6 id="departingCell">N/A</h6>
+        </div>
+        <div class="hstack">
+            <h6 class="flex-grow-1">Destination</h6>
+            <h6 id="destinationCell">N/A</h6>
+        </div>
+        <div class="hstack">
+            <h6 class="flex-grow-1">Assisted By</h6>
+            <h6 id="agentCell">N/A</h6>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function() {
+        const $confirmationInput = $('#confirmationInput')
+        
+        const transaction_bloodhound = new Bloodhound({
+            datumTokenizer: Bloodhound.tokenizers.whitespace,
+            queryTokenizer: Bloodhound.tokenizers.whitespace,
+            remote: {
+                url: "{{ url_for('api.purchases', search='_QUERY', expand=true)|safe }}",
+                wildcard: '_QUERY',
+                transform: function (res) {
+                    return res.items;
+                }
+            },
+            identify: function (obj) { return obj.self; }
+        });
+
+        $confirmationInput.typeahead({
+            highlight: true,
+            autoselect: true,
+        }, {
+            name: 'transactions',
+            display: 'confirmation_number',
+            limit: 10,
+            source: transaction_bloodhound,
+            templates: {
+                suggestion: function (data) {
+                    return `<div class="tt-suggestion"><span class="me-3">${data.confirmation_number}</span>${data.email}</div>`
+                },
+            }
+        });
+
+        // Typeahed moves the input into a new span.
+        // We need to move the label to right after the
+        // input in order for bootstraps floating form to work.
+        $confirmationInput.after($(`label[for="confirmationInput"]`));
+
+
+        $confirmationInput.on('typeahead:selected', function (event, item, dataset) {
+            $('#confirmationNumberCell').text(item.confirmation_number);
+            $('#emailCell').text(item.email);
+            $('#departingCell').text(item.departure_airport.code);
+            $('#destinationCell').text(item.destination_airport.code);
+            $('#agentCell').text(item.agent);
+        });
+    });
+</script>
+{% endblock %}
