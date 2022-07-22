@@ -1,7 +1,5 @@
 import uuid
 
-from sqlalchemy import update
-
 from app import db, models
 from app.api import api
 from app.api.helpers import (
@@ -75,10 +73,12 @@ class UserResource(Resource):
             email_changed = True
 
         if form.validate():
+            # If a user's email changes, we need to make sure 
+            # all of the transactions tied to that email get updated.
             if email_changed:
-                update(models.PurchaseTransaction).where(
-                    models.PurchaseTransaction.email == user.email
-                ).values(email=form.email.data)
+                models.PurchaseTransaction.query.filter_by(email=user.email).update(
+                    {"email": form.email.data}
+                )
 
             form.populate_obj(user)
             db.session.commit()

@@ -166,3 +166,7 @@ class PurchaseTransactionForm(FlaskForm):
 
 class TransactionRefundForm(FlaskForm):
     tickets = FieldList(IntegerField(widget=HiddenInput()), min_entries=1)
+
+
+class FlightCancellationForm(FlaskForm):
+    date = DateField("Departure Date", validators=[InputRequired()])

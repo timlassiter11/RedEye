@@ -1,7 +1,29 @@
+{% from 'bootstrap/forms.html' import render_field %}
 {% extends "agent/layout.html" %}
 
 {% block content %}
 {{ super() }}
+<div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">Cancel Flight</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel this flight? This will automatically refund all <span
+                        id="modalPassengerCount"></span>passengers and <b>cannot</b> be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="$(this).trigger('rejected.bs.modal')" type="button" class="btn btn-secondary"
+                    data-bs-dismiss="modal">No</button>
+                <button onclick="$(this).trigger('accepted.bs.modal')" type="button" class="btn btn-redeye"
+                    data-bs-dismiss="modal">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="content-background flex-grow-1">
     <div class="row mx-auto">
         <div class="content-card mx-3 col-md position-relative">
@@ -11,15 +33,20 @@
                 <label for="flightInput">Flight Number</label>
             </div>
             <hr>
-            <h3 class="mb-3">Flight No. <span id="flightNumberCell">N/A</span></h3>
+            <h4 class="mb-3">Flight Details</h4>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Flight No.</h6>
+                <h6 id="flightNumberCell">N/A</h6>
+            </div>
             <div class="hstack">
                 <h6 class="flex-grow-1">Departing</h6>
-                <h6 id="departureAirportCell" data-bs-toggle="tooltip" data-bs-placement="top" style="cursor: default;"
-                    title="N/A">N/A</h6>
+                <h6 id="departureAirportCell" data-bs-toggle="tooltip" data-bs-placement="top" style="cursor: default;">
+                    N/A</h6>
             </div>
             <div class="hstack">
                 <h6 class="flex-grow-1">Departure Time</h6>
-                <h6 id="departureTimeCell">N/A</h6>
+                <h6 id="departureTimeCell" data-bs-toggle="tooltip" data-bs-placement="top" style="cursor: default;">N/A
+                </h6>
             </div>
             <div class="hstack">
                 <h6 class="flex-grow-1">Arriving</h6>
@@ -28,7 +55,8 @@
             </div>
             <div class="hstack">
                 <h6 class="flex-grow-1">Arival Time</h6>
-                <h6 id="arrivalTimeCell">N/A</h6>
+                <h6 id="arrivalTimeCell" data-bs-toggle="tooltip" data-bs-placement="top" style="cursor: default;">N/A
+                </h6>
             </div>
             <div class="hstack">
                 <h6 class="flex-grow-1">Start</h6>
@@ -57,14 +85,30 @@
                 <h6 id="aircraftRangeCell">N/A</h6>
             </div>
         </div>
-        <div class="content-card mx-3 col-md">
-            <h4>Passengers</h4>
-            <div class="form-floating mb-3">
-                <input class="form-control" type="date" id="dateInput" disabled>
-                <label for="dateInput">Date</label>
-            </div>
+        <div class="content-card mx-3 col-md d-flex flex-column">
+            <h4>Departure Date</h4>
+            <form id="flightCancellationForm" method="post">
+                {{ form.hidden_tag() }}
+                {{ render_field(form.date) }}
+            </form>
             <hr>
-            <div id="passengerContainer" class="list-group"></div>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Status</h6>
+                <h6 id="flightStatusCell">N/A</h6>
+            </div>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Seats Sold</h6>
+                <h6 id="flightSoldCell">N/A</h6>
+            </div>
+            <div class="hstack">
+                <h6 class="flex-grow-1">Seats Remaining</h6>
+                <h6 id="flightAvailableCell">N/A</h6>
+            </div>
+            <!--<div id="passengerContainer" class="list-group"></div>-->
+            <div class="hstack mt-auto pt-3 ms-auto">
+                <button id="flightCancellationButton" type="button" class="btn btn-redeye" data-bs-toggle="modal"
+                    data-bs-target="#confirmationModal" disabled>Cancel Flight</button>
+            </div>
         </div>
     </div>
 </div>
@@ -72,23 +116,73 @@
 
 {% block scripts %}
 {{ super() }}
+<script src="/static/scripts/apiform.js"></script>
 <script src="/static/scripts/luxon.min.js"></script>
 <script>
-    function updatePassengers(item, date) {
+    let $flightInput = null;
+    let $dateInput = null;
+    let $flightCancellationForm = null;
+    let $flightCancellationButton = null;
+    let selectedItem = null;
+
+    function updateFlightInfo(item) {
+        $flightCancellationForm.attr('action', item.cancel);
+
+        selectedItem = item;
+        let departure_dt = luxon.DateTime.fromISO(item.departure_time, { zone: 'utc' });
+        departure_dt = departure_dt.setZone(item.departure_airport.timezone);
+        let arrival_dt = luxon.DateTime.fromISO(item.arrival_time, { zone: 'utc' });
+        arrival_dt = arrival_dt.setZone(item.arrival_airport.timezone);
+
+        $('#flightStartCell').text(item.start);
+        $('#flightEndCell').text(item.end);
+
+        $('#flightNumberCell').text(`RE${item.number}`);
+        $('#departureAirportCell').text(item.departure_airport.code).attr('data-bs-original-title', item.departure_airport.name);
+        $('#departureTimeCell').text(departure_dt.toFormat('HH:mm')).attr('data-bs-original-title', item.departure_airport.timezone);
+        $('#arrivalAirportCell').text(item.arrival_airport.code).attr('data-bs-original-title', item.arrival_airport.name);
+        $('#arrivalTimeCell').text(arrival_dt.toFormat('HH:mm')).attr('data-bs-original-title', item.arrival_airport.timezone);
+
+        $('#aircraftNumberCell').text(item.airplane.registration_number);
+        $('#aircraftModelCell').text(item.airplane.model_code);
+        $('#aircraftRangeCell').text(item.airplane.range + ' nmi');
+        $('#aircraftCapacityCell').text(item.airplane.capacity);
+
+        if ($dateInput.val() != '') {
+            updateStatusInfo(selectedItem, $dateInput.val());
+        }
+    }
+
+    function updateStatusInfo(item, date) {
         $('#passengerContainer').html('');
         $.ajax({
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            url: item.tickets,
+            url: item.status,
             type: 'get',
             data: { date: date },
             success: function (response, textStatus, jqXhr) {
-                for (let i in response.items) {
-                    const item = response.items[i];
-                    $('#passengerContainer').append(`<a href="#" class="list-group-item list-group-item-action">${item.last_name}, ${item.first_name}`);
+                const ticketsSold = response.tickets.length;
+                const ticketsRemaining = item.airplane.capacity - ticketsSold;
+
+                $('#flightStatusCell').text(response.status);
+                $('#flightSoldCell').text(ticketsSold);
+                $('#flightAvailableCell').text(ticketsRemaining);
+
+                if (response.status === 'active') {
+                    $flightCancellationButton.prop('disabled', false);
+                } else {
+                    $flightCancellationButton.prop('disabled', true);
                 }
+
+                /*
+                for (let i in response.tickets) {
+                    const ticket = response.tickets[i];
+                    $('#passengerContainer').append(`<a href="#" class="list-group-item list-group-item-action">${ticket.last_name}, ${ticket.first_name}`);
+                }
+                */
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 const response = jqXHR.responseJSON
@@ -108,9 +202,48 @@
         });
     }
 
+    function updateSearchParams(key, value) {
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set(key, value);
+        const newRelativePathQuery = window.location.pathname + '?' + urlParams.toString();
+        history.pushState(null, '', newRelativePathQuery);
+    }
+
     $(document).ready(function () {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        $flightInput = $('#flightInput');
+        $dateInput = $('#date');
+        $flightCancellationForm = $('#flightCancellationForm');
+        $flightCancellationButton = $('#flightCancellationButton');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('date')) {
+            $dateInput.val(urlParams.get('date'));
+        } else {
+            // Set date picker to today.
+            // Can't do this server side as timezones
+            // could make it a different day.
+            const today = luxon.DateTime.now();
+            $dateInput.val(today.toISODate());
+        }
+
+        if (urlParams.has('flight')) {
+            const flight = urlParams.get('flight');
+            $.ajax({
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                data: { expand: true },
+                url: `/api/flights/${flight}`,
+                type: 'get',
+                success: function (response, textStatus, jqXhr) {
+                    updateFlightInfo(response);
+                },
+            });
+        }
+
+        let tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        let tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             const tooltip = new bootstrap.Tooltip(tooltipTriggerEl, {
                 container: 'body'
             });
@@ -118,7 +251,7 @@
             $(tooltipTriggerEl).data('tooltip', tooltip);
         });
 
-        flight_bloodhound = new Bloodhound({
+        const flight_bloodhound = new Bloodhound({
             datumTokenizer: Bloodhound.tokenizers.whitespace,
             queryTokenizer: Bloodhound.tokenizers.whitespace,
             remote: {
@@ -131,9 +264,20 @@
             identify: function (obj) { return obj.code; }
         })
 
-        const $flightInput = $('#flightInput');
-        const $dateInput = $('#dateInput');
-        const $label = $(`label[for="flightInput"]`)
+        $flightCancellationForm.apiform({
+            onSubmit: function (event) {
+                $flightCancellationButton.prop('disabled', true);
+                return true;
+            },
+            onSuccess: function (response) {
+                $('#flightStatusCell').text('cancelled');
+                $('#flightSoldCell').text('0');
+                $('#flightAvailableCell').text(selectedItem.airplane.capacity);
+            },
+            onError: function (response) {
+                $flightCancellationButton.prop('disabled', false);
+            }
+        });
 
         $flightInput.typeahead({
             highlight: true,
@@ -150,44 +294,27 @@
             }
         })
 
-        $flightInput.after($label)
+        // Typeahed moves the input into a new span.
+        // We need to move the label to right after the
+        // input in order for bootstraps floating form to work.
+        $flightInput.after($(`label[for="flightInput"]`))
 
-        let selectedItem = null;
         $flightInput.on('typeahead:selected', function (event, item, dataset) {
             $flightInput.blur();
+            updateSearchParams('flight', item.number);
+            updateFlightInfo(item);
+        });
 
-            selectedItem = item;
-
-            let departure_dt = luxon.DateTime.fromISO(item.departure_time, { zone: 'utc' });
-            departure_dt = departure_dt.setZone(item.departure_airport.timezone);
-            let arrival_dt = luxon.DateTime.fromISO(item.arrival_time, { zone: 'utc' });
-            arrival_dt = arrival_dt.setZone(item.arrival_airport.timezone);
-
-            $('#flightStartCell').text(item.start);
-            $('#flightEndCell').text(item.end);
-
-            $('#flightNumberCell').text(`RE${item.number}`);
-            $('#departureAirportCell').text(item.departure_airport.code).attr('data-bs-original-title', item.departure_airport.name);
-            $('#departureTimeCell').text(departure_dt.toFormat('HH:mm'));
-            $('#arrivalAirportCell').text(item.arrival_airport.code).attr('data-bs-original-title', item.arrival_airport.name);
-            $('#arrivalTimeCell').text(arrival_dt.toFormat('HH:mm'));
-
-            $('#aircraftNumberCell').text(item.airplane.registration_number);
-            $('#aircraftModelCell').text(item.airplane.model_code);
-            $('#aircraftRangeCell').text(item.airplane.range);
-            $('#aircraftCapacityCell').text(item.airplane.capacity);
-
-            $dateInput.removeAttr('disabled');
-
-            if ($dateInput.val() != '') {
-                updatePassengers(selectedItem, $dateInput.val())
+        $dateInput.on('change', function (event) {
+            $dateInput.blur();
+            updateSearchParams('date', this.value);
+            if (selectedItem != null) {
+                updateStatusInfo(selectedItem, this.value);
             }
         });
 
-        $('#dateInput').on('change', function (event) {
-            if (selectedItem != null) {
-                updatePassengers(selectedItem, this.value);
-            }
+        $('#confirmationModal').on('accepted.bs.modal', function (event) {
+            $flightCancellationForm.submit();
         });
     });
 </script>

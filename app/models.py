@@ -285,6 +285,26 @@ class Flight(PaginatedAPIMixin, db.Model):
             date=date, cancelled_by=user_id, flight_id=self.id
         )
         db.session.add(cancellation)
+
+        # Refund all of the tickets
+        tickets = (
+            PurchasedTicket.query.filter_by(flight_id=self.id)
+            .join(PurchaseTransaction)
+            .filter(PurchaseTransaction.departure_date == date)
+            .filter(PurchasedTicket.refund_timestamp == None)
+            .all()
+        )
+
+        emails = set()
+        for ticket in tickets:
+            ticket.refund_timestamp = func.now()
+            ticket.refunded_by = user_id
+            emails.add(ticket.transaction.email)
+
+        # TODO: Send emails out to all of the transaction emails
+        for email in emails:
+            pass
+
         db.session.commit()
         db.session.refresh(cancellation)
         return cancellation
@@ -319,7 +339,8 @@ class Flight(PaginatedAPIMixin, db.Model):
 
         data["flight_time"] = str(self.flight_time)
         data["arrival_time"] = self.arrival_time.strftime("%H:%M")
-        data["tickets"] = url_for("api.flighttickets", id=self.id)
+        data["status"] = url_for("api.flightstatus", id=self.id)
+        data["cancel"] = url_for("api.flightcancellation", id=self.id)
 
         if expand:
             data["airplane"] = self.airplane.to_dict()
@@ -476,6 +497,10 @@ class PurchasedTicket(db.Model):
     flight = db.relationship("Flight", backref="tickets")
 
     def to_dict(self, expand=False):
+        refund = self.refund_timestamp
+        if refund:
+            refund = refund.isoformat()
+
         return {
             "self": url_for("api.purchase", id=self.id),
             "flight": self.flight.to_dict(expand)
@@ -488,7 +513,7 @@ class PurchasedTicket(db.Model):
             "date_of_birth": self.date_of_birth.strftime("%Y-%m-%d"),
             "gender": self.gender,
             "purchase_price": self.purchase_price,
-            "refund_timestamp": self.refund_timestamp,
+            "refund_timestamp": refund,
             "refunded_by": self.refunded_by,
         }
 

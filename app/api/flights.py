@@ -1,16 +1,18 @@
 import datetime as dt
 from distutils.util import strtobool
 
+from werkzeug.exceptions import HTTPException
+from flask_login import current_user
+
 from app import db, models
 from app.api import api
 from app.api.helpers import (
-    code_to_airport,
     get_or_404,
     json_abort,
     role_required,
     str_to_date,
 )
-from app.forms import FlightForm
+from app.forms import FlightCancellationForm, FlightForm
 from flask_restful import Resource, reqparse, request
 
 
@@ -68,8 +70,18 @@ class Flight(Resource):
         args = parser.parse_args()
         expand = args["expand"]
 
-        flight = get_or_404(models.Flight, id)
-        return flight.to_dict(expand=expand)
+        try:
+            flight = get_or_404(models.Flight, id)
+            return flight.to_dict(expand)
+        except HTTPException:
+            pass
+
+        try:
+            flight = models.Flight.query.filter_by(number=id).first()
+            if flight:
+                return flight.to_dict(expand)
+        except ValueError:
+            json_abort(404, message="Resource not found")
 
     @role_required("admin")
     def delete(self, id):
@@ -90,8 +102,8 @@ class Flight(Resource):
         json_abort(400, message=form.errors)
 
 
-@api.resource("/flights/<id>/tickets")
-class FlightTickets(Resource):
+@api.resource("/flights/<id>/status")
+class FlightStatus(Resource):
     @role_required(["agent", "admin"])
     def get(self, id):
         parser = reqparse.RequestParser()
@@ -103,15 +115,34 @@ class FlightTickets(Resource):
         date = args["date"]
 
         flight = get_or_404(models.Flight, id)
-        items = [
-            ticket.to_dict(expand)
-            for ticket in flight.tickets
-            if ticket.transaction.departure_date == date
-        ]
-        
-        return {
-            "items": items,
-            "_meta": {
-                "total_items": len(items),
-            },
-        }
+        cancellation = (
+            models.FlightCancellation.query.filter_by(flight_id=flight.id)
+            .filter_by(date=date)
+            .first()
+        )
+
+        status = "active"
+        if cancellation:
+            status = "cancelled"
+
+        query = (
+            models.PurchasedTicket.query.filter_by(flight_id=flight.id)
+            .join(models.PurchaseTransaction)
+            .filter(models.PurchaseTransaction.departure_date == date)
+            .filter(models.PurchasedTicket.refund_timestamp == None)
+        )
+
+        tickets = [ticket.to_dict(expand) for ticket in query.all()]
+
+        return {"status": status, "tickets": tickets}
+
+
+@api.resource("/flights/<id>/cancel")
+class FlightCancellation(Resource):
+    @role_required(["agent", "admin"])
+    def post(self, id):
+        flight: models.Flight = get_or_404(models.Flight, id)
+        form = FlightCancellationForm(data=request.json)
+        if form.validate():
+            flight.cancel(form.date.data, current_user.id)
+            return "", 204
