@@ -1,0 +1,16 @@
+
+Dear {{ user.first_name }},
+
+Your flight has been cancelled. For assistance please call 1-800-123-4567, email info@redeye.com or cantact your sales agent.</p>
+
+Details
+Flight Number: {{ flight.flight.number }}
+Departure Airport: {{ flight.flight.departure_airport.code }}
+Departure Time: {{ trip.departure_datetime.strftime('%a, %b %d, %Y') }}
+Arival Airport: {{ flight.flight.arrival_airport.code }}
+Arrival City: {{ trip.arrival_airport.city }}
+Arrival State: {{ trip.arrival_airport.state }}
+
+Click on the following link to see your reservations:
+{{ url_for('main.mytrips', token=token, _external=True) }}
+

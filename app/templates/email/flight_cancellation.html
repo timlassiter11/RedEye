@@ -1,0 +1,31 @@
+{% extends "email/base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="column">
+          <img src="/static/images/logo.png" style="width:100%">
+        </div>
+<br>
+<p>Dear {{ user.first_name }},</p>
+<br>
+<p>Your flight has been cancelled. For assistance please call 1-800-123-4567, email info@redeye.com or cantact your sales agent.</p>
+<br>
+<p>Details</p>
+<p>Flight Number: {{ flight.flight.number }}</p>
+<p>Departure Airport: {{ flight.flight.departure_airport.code }}</p>
+<P>Departure Time: {{ trip.departure_datetime.strftime('%a, %b %d, %Y') }}</P>
+<p>Arival Airport: {{ flight.flight.arrival_airport.code }}</p>
+<p>Arrival City: {{ trip.arrival_airport.city }}</p>
+<p>Arrival State: {{ trip.arrival_airport.state }}</p>
+<br>
+<p>
+    <a href="{{ url_for('main.mytrips', token=token, _external=True) }}">
+        Click here to view your trips.
+    </a>.
+</p>
+<br>
+<p>Alternatively, you can paste the following link in your browser's address bar:</p>
+<p>{{ url_for('main.mytrips', token=token, _external=True) }}</p>
+
+{% endblock %}

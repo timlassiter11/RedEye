@@ -1,0 +1,19 @@
+
+Dear {{ user.first_name }},
+
+Thank you for booking your flight with Red Eye!
+
+Details
+Flight Number: {{ flight.flight.number }}
+Number of Passengers: {{ purchase.total_passengers }}
+Departure Airport: {{ flight.flight.departure_airport.code }}
+Departure Time: {{ trip.departure_datetime.strftime('%a, %b %d, %Y') }}
+Arival Airport: {{ flight.flight.arrival_airport.code }}
+Arrival City: {{ trip.arrival_airport.city }}
+Arrival State: {{ trip.arrival_airport.state }}
+
+Total: {{ "$%.2f"|format(purchase.base_fare) }}
+Taxes: {{ "$%.2f"|format(purchase.taxes) }}
+
+Click on the following link to see your reservations:
+{{ url_for('main.mytrips', token=token, _external=True) }}
