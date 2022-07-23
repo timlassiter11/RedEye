@@ -471,6 +471,9 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
         del data["destination_id"]
         del data["assisted_by"]
 
+        data["taxes"] = self.taxes
+        data["base_fare"] = self.base_fare
+
         if expand:
             data["departure_airport"] = self.departure_airport.to_dict()
             data["destination_airport"] = self.destination_airport.to_dict()
@@ -508,11 +511,16 @@ class PurchasedTicket(db.Model):
 
     transaction = db.relationship("PurchaseTransaction", backref="tickets")
     flight = db.relationship("Flight", backref="tickets")
+    agent = db.relationship("Agent", backref="refunds")
 
     def to_dict(self, expand=False):
         refund = self.refund_timestamp
         if refund:
             refund = refund.isoformat()
+
+        agent = None
+        if self.agent:
+            agent = f"{self.agent.first_name} {self.agent.last_name}"
 
         return {
             "self": url_for("api.purchase", id=self.id),
@@ -527,7 +535,7 @@ class PurchasedTicket(db.Model):
             "gender": self.gender,
             "purchase_price": self.purchase_price,
             "refund_timestamp": refund,
-            "refunded_by": self.refunded_by,
+            "refunded_by": agent,
         }
 
 

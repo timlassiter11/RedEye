@@ -76,7 +76,7 @@ def _test_owner(**kwargs):
     return purchase.email == current_user.email
 
 
-@api.resource("/ticket/<id>/refund")
+@api.resource("/purchases/<id>/refund")
 class PurchaseRefund(Resource):
     @owner_or_role_required(['agent', 'admin'], _test_owner)
     def post(self, id):

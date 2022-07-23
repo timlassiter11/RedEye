@@ -158,3 +158,15 @@
         padding: 3rem;
     }
 }
+
+.table-borderless>*>* {
+    border: none !important; 
+}
+
+.table-sm>*>* {
+    padding: 0 !important;
+}
+
+.table-hover>tbody.no-hover>tr:hover {
+    --bs-table-accent-bg: var(--bs-table-bg);
+}

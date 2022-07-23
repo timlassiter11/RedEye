@@ -1,5 +1,5 @@
 from app.agent import bp
-from app.forms import FlightCancellationForm
+from app.forms import FlightCancellationForm, TransactionRefundForm
 from flask import abort, redirect, render_template, request, url_for
 from flask_login import current_user
 
@@ -27,4 +27,5 @@ def flights():
 
 @bp.route("/transactions")
 def transactions():
-    return render_template("agent/transactions.html")
+    form = TransactionRefundForm()
+    return render_template("agent/transactions.html", form=form)
