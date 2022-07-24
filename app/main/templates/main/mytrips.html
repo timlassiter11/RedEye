@@ -62,14 +62,21 @@
                                     </div>
                                     <div>
                                         {% for flight in trip.flights %}
+                                        {% set cancelled = flight.is_cancelled %}
+                                        {% if cancelled %}
+                                        <s class="text-redeye">
+                                        {% endif %}
                                         <div class="hstack">
-                                            <h6>
+                                            <h6>    
                                                 {{ flight.flight.departure_airport.code }}
                                                 <i class="bi bi-arrow-right-short"></i>
                                                 {{ flight.flight.arrival_airport.code }}
                                             </h6>
                                             <h6 class="ms-auto">RE{{ flight.flight.number }}</h6>
                                         </div>
+                                        {% if cancelled %}
+                                        </s>
+                                        {% endif %}
                                         {% endfor %}
                                     </div>
                                 </div>
