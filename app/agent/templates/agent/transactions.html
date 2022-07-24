@@ -104,7 +104,7 @@
 </form>
 <template id="ticketRowTemplate">
     <tr onclick="rowClicked(this)">
-        <td name="flightNumberCell"></td>
+        <td><a name="flightNumberCell"></a></td>
         <td name="departureCell"></td>
         <td name="arrivalCell"></td>
         <td name="passengerCell"></td>
@@ -121,11 +121,18 @@
     let currentTransaction = null;
     let $confirmationInput = null;
     let $transactionRefundForm = null;
+    const flightUrl = "{{ url_for('agent.flights') }}";
 
     function rowClicked(row) {
         const $checkbox = $(row).find('input:checkbox:enabled');
         $checkbox.prop('checked', !$checkbox.prop("checked"));
         updateTotals();
+    }
+
+    function flightNumberClicked(element) {
+        const flightNumber = element.textContent;
+        let href = `{{ url_for('agent.flights') }}?flight=${flightNumber}`;
+        window.location.href = href;
     }
 
     function setTransaction(transaction) {
@@ -140,7 +147,7 @@
         $('#departingCell').text(transaction.departure_airport.code);
         $('#destinationCell').text(transaction.destination_airport.code);
         $('#agentCell').text(transaction.agent);
-        $('#purchasePriceCell').text('$' + transaction.purchase_price)
+        $('#purchasePriceCell').text('$' + transaction.purchase_price);
 
         $('#ticketTableBody').html('')
         for (let i in transaction.tickets) {
@@ -155,7 +162,7 @@
             }
             passengerName += ' ' + ticket.last_name;
 
-            $row.find('[name="flightNumberCell"]').text(ticket.flight.number);
+            $row.find('[name="flightNumberCell"]').text(ticket.flight.number).prop("href", `${flightUrl}?flight=${ticket.flight.number}&date=${transaction.departure_date}`);
             $row.find('[name="departureCell"]').text(ticket.flight.departure_airport.code);
             $row.find('[name="arrivalCell"]').text(ticket.flight.arrival_airport.code);
             $row.find('[name="passengerCell"]').text(passengerName);
