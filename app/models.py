@@ -147,7 +147,7 @@ class Agent(User):
 
     def _sales_from_query(self, query) -> List[Dict]:
         return [
-            {'date': row['date'], 'sales': round(row['sales'], 2)}
+            {"date": row["date"], "sales": round(row["sales"], 2)}
             for row in query.all()
         ]
 
@@ -172,7 +172,9 @@ class Agent(User):
     def sales_by_month(self, start: dt.date, end: dt.date) -> List[Dict]:
         month_col = func.month(PurchaseTransaction.purchase_timestamp).label("month")
         year_col = func.year(PurchaseTransaction.purchase_timestamp).label("year")
-        date_col = func.str_to_date(func.concat(year_col, '-', month_col, '-', '01'), '%Y-%m-%d').label("date")
+        date_col = func.str_to_date(
+            func.concat(year_col, "-", month_col, "-", "01"), "%Y-%m-%d"
+        ).label("date")
 
         query = (
             db.session.query(
@@ -451,8 +453,10 @@ class PurchaseTransaction(PaginatedAPIMixin, db.Model):
 
     @property
     def flights(self) -> List[Flight]:
-        query = PurchasedTicket.query.filter_by(transaction_id=self.id).group_by(
-            PurchasedTicket.flight_id
+        query = (
+            PurchasedTicket.query.filter_by(transaction_id=self.id)
+            .group_by(PurchasedTicket.flight_id)
+            .order_by(PurchasedTicket.id)
         )
         return [ticket.flight for ticket in query.all()]
 
