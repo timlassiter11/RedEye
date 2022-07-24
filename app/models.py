@@ -332,10 +332,10 @@ class Flight(PaginatedAPIMixin, db.Model):
             email = transaction.email
             if email not in emails:
                 refund_amount = ticket.purchase_price + (
-                    transaction.purchase_price / len(transaction.tickets)
+                    transaction.taxes / len(transaction.tickets)
                 )
                 emails.append(
-                    (email, {"transaction": transaction, "flight": self, "date": date, refund_amount: refund_amount})
+                    (email, {"transaction": transaction, "flight": self, "date": date, 'refund_amount': refund_amount})
                 )
 
         send_bulk_email(

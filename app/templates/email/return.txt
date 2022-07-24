@@ -18,5 +18,5 @@ Taxes: {{ "$%.2f"|format(purchase.taxes) }}
 Refund: {{ "-$%.2f"|format(refund_amount) }}
 
 Click on the following link to see your reservations:
-{{ url_for('main.mytrips', token=token, _external=True) }}
+{{ url_for('main.my_trips', token=token, _external=True) }}
 

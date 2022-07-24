@@ -2,9 +2,9 @@
 
 {% block content %}
 <br>
-<p>Dear {{ user.first_name }},</p>
+<p>Dear Customer,</p>
 <br>
-<p>One of the flights for your upcoming trip to {{ trip.destination_airport.city }}, {{ trip.destination_airport.state }} has been cancelled.</p>
+<p>One of the flights for your upcoming trip to {{ transaction.destination_airport.city }}, {{ transaction.destination_airport.state }} has been cancelled.</p>
 <p>A refund of {{ "$%.2f"|format(refund_amount) }} has already been issued.</p>
 <p>For assistance please call us at 1-800-123-4567</p>
 <p>We apologize for the inconvenience.</p>
@@ -18,7 +18,7 @@
 <p>Arrival Time: {{ flight.arrival_time.strftime('%I:%M %p') }}</p>
 <br>
 <p>
-    <a href="{{ url_for('main.mytrips', _external=True) }}">
+    <a href="{{ url_for('main.my_trips', _external=True) }}">
         Click here to view your trips.
     </a>.
 </p>

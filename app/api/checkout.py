@@ -95,7 +95,7 @@ class Checkout(Resource):
 
             send_email(
                 "Your Purchase Confirmation",
-                transaction.email,
+                [transaction.email],
                 render_template(
                     "email/purchase_confirmation.txt",
                     transaction=transaction,

@@ -26,12 +26,12 @@
 <p>Refund: {{ "-$%.2f"|format(refund_amount) }}</p>
 <br>
 <p>
-    <a href="{{ url_for('main.mytrips', token=token, _external=True) }}">
+    <a href="{{ url_for('main.my_trips', token=token, _external=True) }}">
         Click here to view your trips.
     </a>.
 </p>
 <br>
 <p>Alternatively, you can paste the following link in your browser's address bar:</p>
-<p>{{ url_for('main.mytrips', token=token, _external=True) }}</p>
+<p>{{ url_for('main.my_trips', token=token, _external=True) }}</p>
 
 {% endblock %}
