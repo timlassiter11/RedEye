@@ -32,21 +32,7 @@
                 </li>
             </ul>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link{% if endpoint == 'main.home' %} active {% endif %}" aria-current="page"
-                            href="{{ url_for('main.home') }}">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link{% if endpoint == 'main.catalog' %} active {% endif %}" aria-current="page"
-                            href="{{ url_for('main.catalog') }}">Catalog</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link{% if endpoint == 'main.contact' %} active {% endif %}" aria-current="page"
-                            href="{{ url_for('main.contact') }}">Contact</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav d-none d-md-flex">
+                <ul class="navbar-nav ms-auto d-none d-md-flex">
                     <li class="position-relative">
                         <a class="nav-link p-2 collapse-button collapse-button-light" name="searchButton" data-bs-toggle="collapse" href="#searchCollapse" role="button" aria-expanded="false" aria-controls="searchCollapse">
                             <i class="bi bi-search"></i>
@@ -79,6 +65,11 @@
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu">
                             {% if current_user.role == 'admin' %}
                             <li><a class="dropdown-item" href="{{ url_for('admin.home') }}">Admin</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            {% elif current_user.role == 'agent' %}
+                            <li><a class="dropdown-item" href="{{ url_for('agent.sales') }}">Agent</a></li>
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
