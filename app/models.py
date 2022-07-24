@@ -313,7 +313,7 @@ class Flight(PaginatedAPIMixin, db.Model):
 
         send_bulk_email(
             "Flight Cancellation",
-            email,
+            emails,
             "email/flight_cancellation.txt",
             "email/flight_cancellation.html",
         )
