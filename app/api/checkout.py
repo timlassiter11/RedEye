@@ -1,12 +1,12 @@
-from flask import session
-from flask_login import current_user
 from app import db, models
 from app.api import api
 from app.api.helpers import get_or_404, json_abort, str_to_date
+from app.email import send_email
 from app.forms import PurchaseTransactionForm
-from flask_restful import Resource, request
-
 from app.helpers import calculate_taxes
+from flask import render_template, session
+from flask_login import current_user
+from flask_restful import Resource, request
 
 
 @api.resource("/checkout")
@@ -89,7 +89,25 @@ class Checkout(Resource):
             db.session.commit()
             db.session.refresh(transaction)
 
-            # TODO: Send confirmation email
+            itinerary = models.TripItinerary(
+                transaction.departure_date, transaction.flights
+            )
+
+            send_email(
+                "Your Purchase Confirmation",
+                transaction.email,
+                render_template(
+                    "email/purchase_confirmation.txt",
+                    transaction=transaction,
+                    itinerary=itinerary,
+                ),
+                render_template(
+                    "email/purchase_confirmation.html",
+                    transaction=transaction,
+                    itinerary=itinerary,
+                ),
+            )
+
             return transaction.to_dict(expand=True)
 
         json_abort(400, message=form.errors)

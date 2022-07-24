@@ -1,0 +1,18 @@
+Dear {{ user.first_name }},
+
+Thank you for booking your trip with Red Eye!
+Your flight confirmation number is {{ transaction.confirmation_number }}
+
+Trip Details
+Departure Date: {{ itinerary.departure_datetime.strftime('%a, %b %d, %Y') }}
+Departing From: {{ itinerary.departure_airport.code }}
+Departure Time: {{ itinerary.departure_datetime.strftime('%I:%M %p') }}
+Arival Airport: {{ itinerary.arrival_airport.code }}
+Arival Time: {{ itinerary.arrival_datetime.strftime('%I:%M %p') }}
+
+Fare: {{ "$%.2f"|format(transaction.base_fare) }}
+Taxes: {{ "$%.2f"|format(transaction.taxes) }}
+Total: {{ "$%.2f"|format(transaction.purchase_price) }}
+
+Click the below link to view your trips
+{{ url_for('main.mytrips', _external=True) }}

@@ -324,18 +324,26 @@ class Flight(PaginatedAPIMixin, db.Model):
         )
 
         emails = []
-        data = []
         for ticket in tickets:
             ticket.refund_timestamp = func.now()
             ticket.refunded_by = user_id
 
-            email = ticket.transaction.email
+            transaction = ticket.transaction
+            email = transaction.email
             if email not in emails:
-                emails.append(email)
-                data.append({"transaction": ticket.transaction})
+                refund_amount = ticket.purchase_price + (
+                    transaction.purchase_price / len(transaction.tickets)
+                )
+                emails.append(
+                    (email, {"transaction": transaction, "flight": self, "date": date, refund_amount: refund_amount})
+                )
 
-        # TODO: Send emails out to all of the transaction emails
-        # send_bulk_email('Flight Cancellation', ('RedEye', current_app.config['EMAIL_ADDR']), email, data, )
+        send_bulk_email(
+            "Flight Cancellation",
+            emails,
+            "email/flight_cancellation.txt",
+            "email/flight_cancellation.html",
+        )
 
         db.session.commit()
         db.session.refresh(cancellation)

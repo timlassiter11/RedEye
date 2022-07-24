@@ -1,0 +1,26 @@
+{% extends "email/base.html" %}
+
+{% block content %}
+<br>
+<p>Dear {{ user.first_name }},</p>
+<br>
+<p>Thank you for booking your trip with Red Eye!</p>
+<p>Your flight confirmation number is <b>{{ transaction.confirmation_number }}</b></p>
+<br>
+<h6>Trip Details</h6>
+<p>Departure Date: {{ itinerary.departure_datetime.strftime('%a, %b %d, %Y') }}</p>
+<p>Departing From: {{ itinerary.departure_airport.code }}</p>
+<P>Departure Time: {{ itinerary.departure_datetime.strftime('%I:%M %p') }}</P>
+<p>Arival Airport: {{ itinerary.arrival_airport.code }}</p>
+<P>Arival Time: {{ itinerary.arrival_datetime.strftime('%I:%M %p') }}</P>
+<br>
+<p>Fare: {{ "$%.2f"|format(transaction.base_fare) }}</p>
+<p>Taxes: {{ "$%.2f"|format(transaction.taxes) }}</p>
+<p>Total: <b>{{ "$%.2f"|format(transaction.purchase_price) }}</b></p>
+<br>
+<p>
+    <a href="{{ url_for('main.mytrips', _external=True) }}">
+        Click here to view your trips.
+    </a>.
+</p>
+{% endblock %}
