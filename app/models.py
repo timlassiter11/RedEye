@@ -273,10 +273,12 @@ class Flight(PaginatedAPIMixin, db.Model):
         return round(self.distance * 0.2, 2)
 
     def is_cancelled(self, date: dt.date) -> bool:
-        query = Flight.query.filter(
-            Flight.cancellations.any(FlightCancellation.date == date)
+        cancellation = (
+            FlightCancellation.query.filter_by(flight_id=self.id)
+            .filter_by(date=date)
+            .first()
         )
-        return query.count() > 0
+        return cancellation is not None
 
     def cancel(self, date: dt.date, user_id: int) -> "FlightCancellation":
         if date < self.start or date > self.end:
@@ -305,11 +307,10 @@ class Flight(PaginatedAPIMixin, db.Model):
             email = ticket.transaction.email
             if email not in emails:
                 emails.append(email)
-                data.append({'transaction': ticket.transaction})
-
+                data.append({"transaction": ticket.transaction})
 
         # TODO: Send emails out to all of the transaction emails
-        #send_bulk_email('Flight Cancellation', ('RedEye', current_app.config['EMAIL_ADDR']), email, data, )
+        # send_bulk_email('Flight Cancellation', ('RedEye', current_app.config['EMAIL_ADDR']), email, data, )
 
         db.session.commit()
         db.session.refresh(cancellation)
