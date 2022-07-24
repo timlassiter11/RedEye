@@ -2,6 +2,7 @@
 
 <!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -15,22 +16,27 @@
     <meta name="msapplication-config" content="/static/icons/browserconfig.xml">
     <meta name="theme-color" content="#ffffff">
     {% block styles %}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.0/font/bootstrap-icons.css">
     <link href="/static/content/site.css" rel="stylesheet">
     {% endblock %}
     {% block head_scripts %}{% endblock %}
     <title>{{ title }}</title>
 </head>
+
 <body>
     {% block body required %}{% endblock %}
     {% block scripts %}
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj"
+        crossorigin="anonymous"></script>
     <script>
         var airport_bloodhound = null;
         var airplane_bloodhound = null;
-        
+
         function setupAirplaneTypeahead(selector) {
             if (airplane_bloodhound == null) {
                 airplane_bloodhound = new Bloodhound({
@@ -39,7 +45,7 @@
                     remote: {
                         url: "{{ url_for('api.airplanes', search='_QUERY') }}",
                         wildcard: '_QUERY',
-                        transform: function(res) {
+                        transform: function (res) {
                             return res.items;
                         }
                     },
@@ -57,7 +63,7 @@
                 display: 'registration_number',
                 source: airplane_bloodhound,
                 templates: {
-                    suggestion: function(data) {
+                    suggestion: function (data) {
                         return `<div class="tt-suggestion">${data.registration_number}</div>`
                     }
                 }
@@ -74,7 +80,7 @@
                     queryTokenizer: Bloodhound.tokenizers.whitespace,
                     prefetch: {
                         url: "{{ url_for('api.airports', per_page=9999) }}",
-                        transform: function(res) {
+                        transform: function (res) {
                             return res.items;
                         }
                     },
@@ -89,14 +95,14 @@
 
             $input.typeahead({
                 minLength: 0,
-                highlight: true    
+                highlight: true
             }, {
                 name: 'airports',
                 display: 'code',
                 limit: 10,
                 source: airport_bloodhound,
                 templates: {
-                    suggestion: function(data) {
+                    suggestion: function (data) {
                         return `<div class="tt-suggestion"><span class="me-3">${data.code}</span>${data.city}, ${data.state}</div>`
                     },
                 }
@@ -107,7 +113,7 @@
         }
 
         function logout(next) {
-            $.post("{{ url_for('api.logout') }}", function(data) {
+            $.post("{{ url_for('api.logout') }}", function (data) {
                 if (typeof next === "string") {
                     window.location = next;
                 } else {
@@ -115,7 +121,15 @@
                 }
             })
         }
+
+        function updateSearchParams(key, value) {
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set(key, value);
+            const newRelativePathQuery = window.location.pathname + '?' + urlParams.toString();
+            history.pushState(null, '', newRelativePathQuery);
+        }
     </script>
     {% endblock %}
 </body>
+
 </html>

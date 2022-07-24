@@ -2,8 +2,29 @@
 
 {% block content %}
 {{ super() }}
-<div class="content-background flex-grow-1">
-    <div class="content-card">
+<div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">Refund Tickets</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to refund these tickets?</p>
+                <p>Total refund will be <span name="refundTotal"></span>.</p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="$(this).trigger('rejected.bs.modal')" type="button" class="btn btn-secondary"
+                    data-bs-dismiss="modal">No</button>
+                <button onclick="$(this).trigger('accepted.bs.modal')" type="button" class="btn btn-redeye"
+                    data-bs-dismiss="modal">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="content-background flex-grow-1 vstack">
+    <div class="content-card container">
         <h4>Transaction Search</h4>
         <div class="form-floating mb-3">
             <input class="form-control" id="confirmationInput" type="text" placeholder="Confirmation or Email">
@@ -31,16 +52,152 @@
             <h6 class="flex-grow-1">Assisted By</h6>
             <h6 id="agentCell">N/A</h6>
         </div>
+        <div class="hstack">
+            <h6 class="flex-grow-1">Purchase Price</h6>
+            <h6 id="purchasePriceCell">N/A</h6>
+        </div>
+    </div>
+    <div class="content-card flex-grow-1 vstack container">
+        <h4>Tickets</h4>
+        <hr>
+        <table class="table table-hover mb-auto" style="overflow-y: auto; min-height: 0px;">
+            <thead>
+                <tr>
+                    <th scope="col">Flight Number</th>
+                    <th scope="col">Departure</th>
+                    <th scope="col">Arrival</th>
+                    <th scope="col">Passenger</th>
+                    <th scope="col">Purchase Price</th>
+                    <th scope="col">Refunded</th>
+                </tr>
+            </thead>
+            <tbody id="ticketTableBody"></tbody>
+            <tbody class="table-borderless table-sm no-hover">
+                <tr>
+                    <td colspan="3"></td>
+                    <th scope="row">Base Fare</td>
+                    <td id="refundFare">$0.00</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td colspan="3"></td>
+                    <th scope="row">Taxes</td>
+                    <td id="refundTaxes">$0.00</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td colspan="3"></td>
+                    <th scope="row">Total</td>
+                    <td name="refundTotal">$0.00</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="hstack pt-3 ms-auto">
+            <button id="ticketRefundButton" type="button" class="btn btn-redeye" data-bs-toggle="modal"
+                data-bs-target="#confirmationModal" disabled>Refund Tickets</button>
+        </div>
     </div>
 </div>
+<form id="transaction_refund_form" method="post">
+    {{ form.hidden_tag() }}
+</form>
+<template id="ticketRowTemplate">
+    <tr onclick="rowClicked(this)">
+        <td><a name="flightNumberCell"></a></td>
+        <td name="departureCell"></td>
+        <td name="arrivalCell"></td>
+        <td name="passengerCell"></td>
+        <td name="purchasePriceCell"></td>
+        <td name="refundedCell"><input name="refundedInput" class="form-check-input" type="checkbox" value=""></th>
+    </tr>
+</template>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
+<script src="/static/scripts/apiform.js"></script>
 <script>
-    $(document).ready(function() {
-        const $confirmationInput = $('#confirmationInput')
-        
+    let currentTransaction = null;
+    let $confirmationInput = null;
+    let $transactionRefundForm = null;
+    const flightUrl = "{{ url_for('agent.flights') }}";
+
+    function rowClicked(row) {
+        const $checkbox = $(row).find('input:checkbox:enabled');
+        $checkbox.prop('checked', !$checkbox.prop("checked"));
+        updateTotals();
+    }
+
+    function setTransaction(transaction) {
+        currentTransaction = transaction;
+
+        // Remove all the previous inputs
+        $transactionRefundForm.html('');
+        $transactionRefundForm.prop('action', `${transaction.self}/refund`);
+
+        $('#confirmationNumberCell').text(transaction.confirmation_number);
+        $('#emailCell').text(transaction.email);
+        $('#departingCell').text(transaction.departure_airport.code);
+        $('#destinationCell').text(transaction.destination_airport.code);
+        $('#agentCell').text(transaction.agent);
+        $('#purchasePriceCell').text('$' + transaction.purchase_price);
+
+        $('#ticketTableBody').html('')
+        for (let i in transaction.tickets) {
+            const ticket = transaction.tickets[i];
+            const template = document.querySelector('#ticketRowTemplate');
+            const row = template.content.cloneNode(true);
+            const $row = $(row);
+
+            let passengerName = ticket.first_name;
+            if (ticket.middle_name != null && ticket.middle_name != '') {
+                passengerName += ' ' + ticket.middle_name;
+            }
+            passengerName += ' ' + ticket.last_name;
+
+            $row.find('[name="flightNumberCell"]').text(ticket.flight.number).prop("href", `${flightUrl}?flight=${ticket.flight.number}&date=${transaction.departure_date}`);
+            $row.find('[name="departureCell"]').text(ticket.flight.departure_airport.code);
+            $row.find('[name="arrivalCell"]').text(ticket.flight.arrival_airport.code);
+            $row.find('[name="passengerCell"]').text(passengerName);
+            $row.find('[name="purchasePriceCell"]').text('$' + ticket.purchase_price);
+
+            const $checkbox = $row.find('input:checkbox');
+            if (ticket.refund_timestamp != null) {
+                $checkbox.prop('checked', true);
+                $checkbox.prop('disabled', true);
+            }
+
+            $checkbox.data('ticket', ticket);
+            $checkbox.click(function (event) {
+                event.stopPropagation();
+                updateTotals();
+            });
+
+            $('#ticketTableBody').append($row);
+        }
+    }
+
+    function updateTotals() {
+        let fare = 0;
+        let taxes = 0;
+        $('#ticketTableBody').find('input:checked:enabled').each(function (index) {
+            fare += $(this).data('ticket').purchase_price;
+            taxes += currentTransaction.taxes / currentTransaction.tickets.length;
+        });
+
+        let total = fare + taxes;
+        $('#refundFare').text('$' + fare.toFixed(2));
+        $('#refundTaxes').text('$' + taxes.toFixed(2));
+        $('[name="refundTotal"]').text('$' + total.toFixed(2));
+
+        $('#ticketRefundButton').prop('disabled', (total <= 0));
+    }
+
+    $(document).ready(function () {
+        $confirmationInput = $('#confirmationInput');
+        $transactionRefundForm = $('#transaction_refund_form');
+
         const transaction_bloodhound = new Bloodhound({
             datumTokenizer: Bloodhound.tokenizers.whitespace,
             queryTokenizer: Bloodhound.tokenizers.whitespace,
@@ -74,13 +231,26 @@
         // input in order for bootstraps floating form to work.
         $confirmationInput.after($(`label[for="confirmationInput"]`));
 
-
         $confirmationInput.on('typeahead:selected', function (event, item, dataset) {
-            $('#confirmationNumberCell').text(item.confirmation_number);
-            $('#emailCell').text(item.email);
-            $('#departingCell').text(item.departure_airport.code);
-            $('#destinationCell').text(item.destination_airport.code);
-            $('#agentCell').text(item.agent);
+            setTransaction(item);
+        });
+
+        $('#transaction_refund_form').apiform({
+            onSuccess: function (response) {
+                $transactionRefundForm.html();
+                $('#ticketTableBody').find('input:checked').prop('disabled', true);
+                updateTotals();
+            }
+        });
+
+        $('#confirmationModal').on('accepted.bs.modal', function (event) {
+            $('#ticketTableBody').find('input:checked:enabled').each(function (index) {
+                const ticket = $(this).data('ticket');
+                const parts = ticket.self.split('/');
+                const ticketId = parts[parts.length - 1];
+                $('#transaction_refund_form').append(`<input type="hidden" name="tickets-${index}" value="${ticketId}">`);
+            });
+            $('#transaction_refund_form').submit();
         });
     });
 </script>

@@ -203,13 +203,6 @@
         });
     }
 
-    function updateSearchParams(key, value) {
-        const urlParams = new URLSearchParams(window.location.search);
-        urlParams.set(key, value);
-        const newRelativePathQuery = window.location.pathname + '?' + urlParams.toString();
-        history.pushState(null, '', newRelativePathQuery);
-    }
-
     $(document).ready(function () {
         $flightInput = $('#flightInput');
         $dateInput = $('#date');
