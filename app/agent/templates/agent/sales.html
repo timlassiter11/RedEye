@@ -2,7 +2,12 @@
 
 {% block content %}
 {{ super() }}
-<canvas id="myChart" width="400" height="400"></canvas>
+<div class="content-background flex-grow-1">
+    <div class="content-card position-relaive flex-grow-1">
+        <canvas id="myChart"></canvas>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -10,7 +15,36 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.8.0/dist/chart.min.js"></script>
 <script>
     $(document).ready(function () {
-        
+        const salesData = [
+            {% for data in sales -%}
+            {x: "{{ data['date'] }}", y: {{ data['sales'] }}},
+            {% endfor %}
+        ];
+
+        const canvas = document.getElementById('myChart');
+        const myChart = new Chart(canvas, {
+            type: 'line',
+            responsive: true,
+            responsiveAnimationDuration: 100,
+            data: {
+                datasets: [{
+                    label: 'Sales',
+                    data: salesData,
+                    borderWidth: 1,
+                    fill: false,
+                    borderColor: '#DB2B30',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
     });
 </script>
+
 {% endblock %}

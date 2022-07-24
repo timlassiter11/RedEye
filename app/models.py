@@ -3,8 +3,8 @@ import math
 import random
 import string
 import time
-from typing import Any, Dict, List
 import uuid
+from typing import Any, Dict, List
 from zoneinfo import ZoneInfo
 
 import geopy.distance
@@ -145,25 +145,48 @@ class Agent(User):
         "polymorphic_identity": "agent",
     }
 
-    def sales(self):
+    def _sales_from_query(self, query) -> List[Dict]:
+        return [
+            {'date': row['date'], 'sales': round(row['sales'], 2)}
+            for row in query.all()
+        ]
+
+    def sales_by_date(self, start: dt.date, end: dt.date) -> List[Dict]:
+
+        date_col = func.date(PurchaseTransaction.purchase_timestamp).label("date")
+
         query = (
             db.session.query(
                 PurchaseTransaction.id,
                 func.sum(PurchaseTransaction.base_fare).label("sales"),
-                func.month(PurchaseTransaction.purchase_timestamp).label("month"),
-                func.year(PurchaseTransaction.purchase_timestamp).label("year"),
+                date_col,
             )
-            .filter(PurchaseTransaction.assisted_by == self.id)
-            .group_by("year")
-            .group_by("month")
-            .order_by("year")
-            .order_by("month")
+            .filter(date_col >= start)
+            .filter(date_col <= end)
+            .group_by("date")
+            .order_by("date")
         )
 
-        return [
-            {"month": row["month"], "year": row["year"], "sales": row["sales"]}
-            for row in query.all()
-        ]
+        return self._sales_from_query(query)
+
+    def sales_by_month(self, start: dt.date, end: dt.date) -> List[Dict]:
+        month_col = func.month(PurchaseTransaction.purchase_timestamp).label("month")
+        year_col = func.year(PurchaseTransaction.purchase_timestamp).label("year")
+        date_col = func.str_to_date(func.concat(year_col, '-', month_col, '-', '01'), '%Y-%m-%d').label("date")
+
+        query = (
+            db.session.query(
+                PurchaseTransaction.id,
+                func.sum(PurchaseTransaction.base_fare).label("sales"),
+                date_col,
+            )
+            .filter(date_col >= start)
+            .filter(date_col <= end)
+            .group_by("date")
+            .order_by("date")
+        )
+
+        return self._sales_from_query(query)
 
 
 class Admin(User):
@@ -556,6 +579,10 @@ class TripFlight:
     @property
     def arrival_datetime(self) -> dt.datetime:
         return self.departure_datetime + self.flight.flight_time
+
+    @property
+    def is_cancelled(self) -> bool:
+        return self.flight.is_cancelled(self.date)
 
     def to_dict(self, expand=False):
         data = self.flight.to_dict(expand)
