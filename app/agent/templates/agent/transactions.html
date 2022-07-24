@@ -119,11 +119,62 @@
 <script src="/static/scripts/apiform.js"></script>
 <script>
     let currentTransaction = null;
+    let $confirmationInput = null;
+    let $transactionRefundForm = null;
 
     function rowClicked(row) {
-        //const $checkbox = $(row).find('input:checkbox:enabled');
-        //$checkbox.prop('checked', !$checkbox.prop("checked"));
-        //updateTotals();
+        const $checkbox = $(row).find('input:checkbox:enabled');
+        $checkbox.prop('checked', !$checkbox.prop("checked"));
+        updateTotals();
+    }
+
+    function setTransaction(transaction) {
+        currentTransaction = transaction;
+
+        // Remove all the previous inputs
+        $transactionRefundForm.html('');
+        $transactionRefundForm.prop('action', `${transaction.self}/refund`);
+
+        $('#confirmationNumberCell').text(transaction.confirmation_number);
+        $('#emailCell').text(transaction.email);
+        $('#departingCell').text(transaction.departure_airport.code);
+        $('#destinationCell').text(transaction.destination_airport.code);
+        $('#agentCell').text(transaction.agent);
+        $('#purchasePriceCell').text('$' + transaction.purchase_price)
+
+        $('#ticketTableBody').html('')
+        for (let i in transaction.tickets) {
+            const ticket = transaction.tickets[i];
+            const template = document.querySelector('#ticketRowTemplate');
+            const row = template.content.cloneNode(true);
+            const $row = $(row);
+
+            let passengerName = ticket.first_name;
+            if (ticket.middle_name != null && ticket.middle_name != '') {
+                passengerName += ' ' + ticket.middle_name;
+            }
+            passengerName += ' ' + ticket.last_name;
+
+            $row.find('[name="flightNumberCell"]').text(ticket.flight.number);
+            $row.find('[name="departureCell"]').text(ticket.flight.departure_airport.code);
+            $row.find('[name="arrivalCell"]').text(ticket.flight.arrival_airport.code);
+            $row.find('[name="passengerCell"]').text(passengerName);
+            $row.find('[name="purchasePriceCell"]').text('$' + ticket.purchase_price);
+
+            const $checkbox = $row.find('input:checkbox');
+            if (ticket.refund_timestamp != null) {
+                $checkbox.prop('checked', true);
+                $checkbox.prop('disabled', true);
+            }
+
+            $checkbox.data('ticket', ticket);
+            $checkbox.click(function (event) {
+                event.stopPropagation();
+                updateTotals();
+            });
+
+            $('#ticketTableBody').append($row);
+        }
     }
 
     function updateTotals() {
@@ -143,8 +194,8 @@
     }
 
     $(document).ready(function () {
-        const $confirmationInput = $('#confirmationInput');
-        const $transactionRefundForm = $('#transaction_refund_form');
+        $confirmationInput = $('#confirmationInput');
+        $transactionRefundForm = $('#transaction_refund_form');
 
         const transaction_bloodhound = new Bloodhound({
             datumTokenizer: Bloodhound.tokenizers.whitespace,
@@ -180,63 +231,19 @@
         $confirmationInput.after($(`label[for="confirmationInput"]`));
 
         $confirmationInput.on('typeahead:selected', function (event, item, dataset) {
-            currentTransaction = item;
-
-            // Remove all the previous inputs
-            $transactionRefundForm.html('');
-            $transactionRefundForm.prop('action', `${item.self}/refund`);
-
-            $('#confirmationNumberCell').text(item.confirmation_number);
-            $('#emailCell').text(item.email);
-            $('#departingCell').text(item.departure_airport.code);
-            $('#destinationCell').text(item.destination_airport.code);
-            $('#agentCell').text(item.agent);
-            $('#purchasePriceCell').text('$' + item.purchase_price)
-
-            $('#ticketTableBody').html('')
-            for (let i in item.tickets) {
-                const ticket = item.tickets[i];
-                const template = document.querySelector('#ticketRowTemplate');
-                const row = template.content.cloneNode(true);
-                const $row = $(row);
-
-                let passengerName = ticket.first_name;
-                if (ticket.middle_name != null && ticket.middle_name != '') {
-                    passengerName += ' ' + ticket.middle_name;
-                }
-                passengerName += ' ' + ticket.last_name;
-
-                $row.find('[name="flightNumberCell"]').text(ticket.flight.number);
-                $row.find('[name="departureCell"]').text(ticket.flight.departure_airport.code);
-                $row.find('[name="arrivalCell"]').text(ticket.flight.arrival_airport.code);
-                $row.find('[name="passengerCell"]').text(passengerName);
-                $row.find('[name="purchasePriceCell"]').text('$' + ticket.purchase_price);
-
-                const $checkbox = $row.find('input:checkbox');
-                if (ticket.refund_timestamp != null) {
-                    $checkbox.prop('checked', true);
-                    $checkbox.prop('disabled', true);
-                }
-
-                $checkbox.data('ticket', ticket);
-                $checkbox.change(function (event) {
-                    updateTotals();
-                });
-
-                $('#ticketTableBody').append($row);
-            }
+            setTransaction(item);
         });
 
         $('#transaction_refund_form').apiform({
-            onSuccess: function(response) {
+            onSuccess: function (response) {
                 $transactionRefundForm.html();
                 $('#ticketTableBody').find('input:checked').prop('disabled', true);
                 updateTotals();
             }
         });
 
-        $('#confirmationModal').on('accepted.bs.modal', function(event) {
-            $('#ticketTableBody').find('input:checked:enabled').each(function(index) {
+        $('#confirmationModal').on('accepted.bs.modal', function (event) {
+            $('#ticketTableBody').find('input:checked:enabled').each(function (index) {
                 const ticket = $(this).data('ticket');
                 const parts = ticket.self.split('/');
                 const ticketId = parts[parts.length - 1];
