@@ -34,6 +34,10 @@
                         <a class="nav-link{% if endpoint == 'agent.flights' %} active {% endif %}" aria-current="page"
                             href="{{ url_for('agent.flights') }}">Flights</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link{% if endpoint == 'agent.transactions' %} active {% endif %}" aria-current="page"
+                            href="{{ url_for('agent.transactions') }}">Transactions</a>
+                    </li>
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
