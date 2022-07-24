@@ -79,6 +79,10 @@
                                         {% endif %}
                                         {% endfor %}
                                     </div>
+                                    <div class="hstack mt-3">
+                                        <h6 class="flex-grow-1 me-3">Confirmation</h6>
+                                        <h6>{{ purchase.confirmation_number }}</h6>
+                                    </div>
                                 </div>
                             </div>
                             <hr class="d-block d-md-none my-3">
@@ -180,6 +184,10 @@
                                             <h6 class="ms-auto">RE{{ flight.flight.number }}</h6>
                                         </div>
                                         {% endfor %}
+                                    </div>
+                                    <div class="hstack mt-3">
+                                        <h6 class="flex-grow-1 me-3">Confirmation</h6>
+                                        <h6>{{ purchase.confirmation_number }}</h6>
                                     </div>
                                 </div>
                             </div>
