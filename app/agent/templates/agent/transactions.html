@@ -129,12 +129,6 @@
         updateTotals();
     }
 
-    function flightNumberClicked(element) {
-        const flightNumber = element.textContent;
-        let href = `{{ url_for('agent.flights') }}?flight=${flightNumber}`;
-        window.location.href = href;
-    }
-
     function setTransaction(transaction) {
         currentTransaction = transaction;
 
