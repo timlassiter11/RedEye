@@ -125,8 +125,7 @@ def send_password_reset_email(user: "User"):
         'email/reset_password.html', user=user, token=token)
 
     return send_email(
-        '[Team Red] Reset Your Password',
-        sender=current_app.config['EMAIL_ADDR'],
+        'Reset Your Password',
         recipients=[user.email],
         text_body=text_body,
         html_body=html_body

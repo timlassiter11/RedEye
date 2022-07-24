@@ -1,35 +1,26 @@
 {% extends "email/base.html" %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="column">
-          <img src="/static/images/logo.png" style="width:100%">
-        </div>
 <br>
 <p>Dear {{ user.first_name }},</p>
 <br>
-<p>Thank you for booking your flight with Red Eye!</p>
+<p>Thank you for booking your trip with Red Eye!</p>
+<p>Your flight confirmation number is <b>{{ transaction.confirmation_number }}</b></p>
 <br>
-<p>Details</p>
-<p>Flight Number: {{ flight.flight.number }}</p>
-<p>Number of Passengers: {{ purchase.total_passengers }}</p>
-<p>Departure Airport: {{ flight.flight.departure_airport.code }}</p>
-<P>Departure Time: {{ trip.departure_datetime.strftime('%a, %b %d, %Y') }}</P>
-<p>Arival Airport: {{ flight.flight.arrival_airport.code }}</p>
-<p>Arrival City: {{ trip.arrival_airport.city }}</p>
-<p>Arrival State: {{ trip.arrival_airport.state }}</p>
+<h6>Trip Details</h6>
+<p>Departure Date: {{ itinerary.departure_datetime.strftime('%a, %b %d, %Y') }}</p>
+<p>Departing From: {{ itinerary.departure_airport.code }}</p>
+<P>Departure Time: {{ itinerary.departure_datetime.strftime('%I:%M %p') }}</P>
+<p>Arival Airport: {{ itinerary.arrival_airport.code }}</p>
+<P>Arival Time: {{ itinerary.arrival_datetime.strftime('%I:%M %p') }}</P>
 <br>
-<p>Total: {{ "$%.2f"|format(purchase.base_fare) }}</p>
-<p>Taxes: {{ "$%.2f"|format(purchase.taxes) }}</p>
+<p>Fare: {{ "$%.2f"|format(transaction.base_fare) }}</p>
+<p>Taxes: {{ "$%.2f"|format(transaction.taxes) }}</p>
+<p>Total: <b>{{ "$%.2f"|format(transaction.purchase_price) }}</b></p>
 <br>
 <p>
-    <a href="{{ url_for('main.mytrips', token=token, _external=True) }}">
+    <a href="{{ url_for('main.mytrips', _external=True) }}">
         Click here to view your trips.
     </a>.
 </p>
-<br>
-<p>Alternatively, you can paste the following link in your browser's address bar:</p>
-<p>{{ url_for('main.mytrips', token=token, _external=True) }}</p>
-
 {% endblock %}
