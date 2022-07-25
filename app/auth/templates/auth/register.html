@@ -35,9 +35,14 @@
 <script src="/static/scripts/apiform.js"></script>
 <script>
 $(document).ready(function () {
+    const urlParams = new URLSearchParams(window.location.search)
     $('.api-form').apiform({
         onSuccess: function(response) {
-            window.location = "{{ url_for('main.home') }}"
+            if (urlParams.has('next')) {
+                window.location = urlParams.get('next')
+            } else {
+                window.location = "{{ url_for('main.home') }}"
+            }
         }
     })
 })

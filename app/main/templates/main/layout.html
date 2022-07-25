@@ -41,17 +41,17 @@
                 </ul>
                 <ul class="navbar-nav">
                     {% if current_user.is_anonymous %}
+                    {% if args is defined %}
+                    {% set next = url_for(endpoint, **args) %}
+                    {% else %}
+                    {% set next = url_for(endpoint) %}
+                    {% endif %}
                     <li class="nav-item">
-                        <a class="nav-link p-2" href="{{ url_for('auth.register') }}">
+                        <a class="nav-link p-2" href="{{ url_for('auth.register', next=next) }}">
                             <i class="bi bi-person-fill mx-2"></i><i>Sign Up</i>
                         </a>
                     </li>
                     <li class="nav-item">
-                        {% if args is defined %}
-                        {% set next = url_for(endpoint, **args) %}
-                        {% else %}
-                        {% set next = url_for(endpoint) %}
-                        {% endif %}
                         <a class="nav-link p-2" href="{{ url_for('auth.login', next=next) }}">
                             <i class="bi bi-box-arrow-in-right mx-2"></i></i>Login</i>
                         </a>
