@@ -27,6 +27,7 @@ def search():
     departure_code = args.get("departure_code")
     arrival_code = args.get("arrival_code")
     departure_date = args.get("departure_date")
+    return_date = args.get("return_date")
     num_of_passengers = args.get("num_of_passengers", 1)
 
     args["expand"] = True
@@ -34,13 +35,18 @@ def search():
     try:
         departure = code_to_airport(departure_code, "Invalid departure airport.")
         arrival = code_to_airport(arrival_code, "Invalid destination airport.")
-        date = str_to_date(departure_date)
+        departure_date = str_to_date(departure_date)
 
         if departure.id == arrival.id:
             raise ValueError("Departure and arrival airports cannot be the same.")
 
-        if date < dt.datetime.utcnow().date():
+        if departure_date < dt.datetime.utcnow().date():
             raise ValueError("Departure date must be in the future.")
+
+        if return_date:
+            return_date = str_to_date(return_date)
+            if return_date < departure_date:
+                raise ValueError("Return date must be after departure date")
 
         try:
             num_of_passengers = int(num_of_passengers)
@@ -63,10 +69,6 @@ def search():
     return render_template(
         "main/searchresults.html",
         title="Search Flights",
-        departure=departure,
-        arrival=arrival,
-        date=date,
-        passengers=num_of_passengers,
         args=args,
     )
 

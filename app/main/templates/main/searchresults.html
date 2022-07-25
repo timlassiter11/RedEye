@@ -47,9 +47,9 @@
             </div>
         </div>
     </div>
-    <div id="contentContainer" class="container mt-3 d-none" style="max-width: 938px;">
-        <h2>{{ departure.code }}<i class="bi bi-arrow-right-short"></i>{{ arrival.code }}</h2>
-        <h5>{{ date.strftime("%a, %b %d, %Y") }}</h5>
+    <div id="contentContainer" class="container mt-3" style="max-width: 938px; display: none;">
+        <h2><span id="departureCode"></span><i class="bi bi-arrow-right-short"></i><span id="arrivalCode"></span></h2>
+        <h5 id="departureDate"></h5>
         <div id="noFlightsMessage" class="content-card p-3 d-none mt-3">
             <p class="fw-bold my-2">Unfortunately, no flights meet your search criteria.</p>
         </div>
@@ -109,13 +109,17 @@
         return luxon.Duration.fromObject(obj).shiftTo('hours', 'minutes');
     }
 
-    $(document).ready(function () {
+    function getSearchResults(url, onBook) {
+        $('#loadingScreen').show();
+        $('#loadingScreen').addClass('show');
+        $('#contentContainer').hide();
+        $('#resultContainer').html('');
         $.ajax({
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            url: "{{ url_for('api.flightsearch', **args)|safe }}",
+            url: url,
             type: 'GET',
             success: function (response, textStatus, jqXhr) {
                 if (response._meta.total_items === 0) {
@@ -204,9 +208,7 @@
                         $cost.text(`\$${cost}`);
 
                         $row.find('[name="book"]').click((event) => {
-                            window.sessionStorage.setItem("itinerary", JSON.stringify(item));
-                            window.sessionStorage.setItem("passengers", "{{ args.get('num_of_passengers') }}");
-                            window.location = "{{ url_for('main.checkout') }}";
+                            onBook(event, item);
                         });
 
                         $('#resultContainer').append(row);
@@ -218,13 +220,52 @@
                 const response = jqXHR.responseJSON
             },
             complete: function () {
-                $('#contentContainer').removeClass('d-none');
+                $('#contentContainer').show();
                 $('#loadingScreen').removeClass('show');
-                setTimeout(function() {
+                setTimeout(function () {
                     $('#loadingScreen').hide();
                 }, 150);
             }
         })
+    }
+
+    $(document).ready(function () {
+        let itineraries = [];
+        const baseUrl = "{{ url_for('api.flightsearch')|safe }}"
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set("expand", "true");
+
+        let departure_dt = luxon.DateTime.fromISO(urlParams.get('departure_date'));
+
+        $('#departureCode').text(urlParams.get('departure_code'));
+        $('#arrivalCode').text(urlParams.get('arrival_code'));
+        $('#departureDate').text(departure_dt.toLocaleString(luxon.DateTime.DATE_MED_WITH_WEEKDAY));
+
+        getSearchResults(`${baseUrl}?${urlParams.toString()}`, function (event, item) {
+            itineraries.push(item);
+            if (urlParams.has("return_date")) {
+                const returnParams = new URLSearchParams(urlParams.toString());
+                returnParams.set("departure_code", urlParams.get("arrival_code"));
+                returnParams.set("arrival_code", urlParams.get("departure_code"));
+                returnParams.set("departure_date", urlParams.get("return_date"));
+
+                departure_dt = luxon.DateTime.fromISO(returnParams.get('departure_date'));
+                $('#departureCode').text(returnParams.get('departure_code'));
+                $('#arrivalCode').text(returnParams.get('arrival_code'));
+                $('#departureDate').text(departure_dt.toLocaleString(luxon.DateTime.DATE_MED_WITH_WEEKDAY));
+                
+                getSearchResults(`${baseUrl}?${returnParams.toString()}`, function(event, item) {
+                    itineraries.push(item);
+                    window.sessionStorage.setItem("itineraries", JSON.stringify(itineraries));
+                    window.sessionStorage.setItem("passengers", "{{ args.get('num_of_passengers') }}");
+                    window.location = "{{ url_for('main.checkout') }}";
+                })
+            } else {
+                window.sessionStorage.setItem("itineraries", JSON.stringify(itineraries));
+                window.sessionStorage.setItem("passengers", "{{ args.get('num_of_passengers') }}");
+                window.location = "{{ url_for('main.checkout') }}";
+            }
+        });
     })
 </script>
 {% endblock %}

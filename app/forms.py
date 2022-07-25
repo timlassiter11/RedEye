@@ -142,7 +142,7 @@ class PassengerForm(FlaskForm):
     middle_name = StringField("Middle Name")
     last_name = StringField("Last Name", validators=[InputRequired()])
     date_of_birth = DateField("Date of Birth", validators=[InputRequired()])
-    gender = SelectField("Gender", choices=[("male", "Male"), ("female", "Female")])
+    gender = SelectField("Gender", choices=[("male", "Male"), ("female", "Female")], validators=[InputRequired()])
 
 
 class PurchaseTransactionForm(FlaskForm):
@@ -161,7 +161,7 @@ class PurchaseTransactionForm(FlaskForm):
     card_expiration = StringField("MM/YYYY", validators=[InputRequired()])
     card_cvc = StringField("CVC", validators=[InputRequired()])
     passengers = FieldList(FormField(PassengerForm), min_entries=1)
-    itinerary = HiddenField()
+    itineraries = FieldList(HiddenField(), min_entries=1)
 
 
 class TransactionRefundForm(FlaskForm):

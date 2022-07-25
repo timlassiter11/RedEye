@@ -14,8 +14,8 @@
 {{ super() }}
 <script>
     const numOfPassengers = parseInt(window.sessionStorage.getItem("passengers"));
-    const itineraryStr = window.sessionStorage.getItem("itinerary");
-    if (itineraryStr === null || numOfPassengers === NaN) {
+    const itinerariesStr = window.sessionStorage.getItem("itineraries");
+    if (itinerariesStr === null || numOfPassengers === NaN) {
         // If they navigated to this page from a previous session we need to send them back to the home page.
         window.location.replace("{{ url_for('main.home') }}");
     }
@@ -30,7 +30,7 @@
 <div id="contentContainer" class="flex-grow-1 content-background overlay-parent">
     <div id="successPage" class="overlay-content vstack justify-content-center fade px-3" style="display: none;">
         <div class="content-card mx-auto text-center">
-            <h1>Your purchase is complete!</h1> 
+            <h1>Your purchase is complete!</h1>
             <h1 class="text-success"><i class="bi bi-check-circle-fill"></i></h1>
             <h6 class="mb-5">Confirmation Number: <span id="confirmationNumber"></span></h6>
             <p>You will receive a confirmation email shortly with the details of your trip.</p>
@@ -53,13 +53,8 @@
             <h5>Purchase Details</h5>
             <hr>
             <div class="row px-md-3">
-                <div id="flightContainer" class="col pb-3">
-                    <div class="hstack">
-                        <h2 id="departureAirport"></h2>
-                        <h2><i class="bi bi-arrow-right-short"></i></h2>
-                        <h2 id="arrivalAirport"></h2>
-                        <h6 class="ms-auto" id="departureDate"></h6>
-                    </div>
+                <div id="itineraryContainer" class="col pb-3">
+
                 </div>
                 <div class="col-md">
 
@@ -195,7 +190,17 @@
         </div>
     </div>
 </div>
-<template id="flightRow">
+<template id="itineraryTemplate">
+    <div class="mb-3" name="flightContainer">
+        <div class="hstack">
+            <h2 name="departureAirport"></h2>
+            <h2><i class="bi bi-arrow-right-short"></i></h2>
+            <h2 name="arrivalAirport"></h2>
+            <h6 class="ms-auto" name="departureDate"></h6>
+        </div>
+    </div>
+</template>
+<template id="flightTemplate">
     <div class="hstack">
         <h6 name="departureCode"></h6>
         <h6><i class="bi bi-arrow-right-short"></i></h6>
@@ -247,44 +252,56 @@
         const $mastercardIcon = $('#mastercardIcon');
         const $amexIcon = $('#amexIcon');
 
-        // TODO: We need to pass this data back to the server and get accurate pricing.
-        // If the price is modified it will only affect the display, not what the user is "charged".
-        const itinerary = JSON.parse(itineraryStr);
+        let baseFare = 0
+        let taxes = 0
+        const itineraries = JSON.parse(itinerariesStr);
+        for (let i = 0; i < itineraries.length; ++i) {
+            const itinerary = itineraries[i];
+            const itineraryTemplate = document.querySelector('#itineraryTemplate');
+            const itineraryElement = itineraryTemplate.content.cloneNode(true);
+            const $itineraryElement = $(itineraryElement);
 
-        $('#purchase_transaction_form').find('#itinerary').val(itinerary.id);
+            $('#purchase_transaction_form').append(`<input type="hidden" name="itineraries-${i}" value="${itinerary.id}">`);
 
-        const departure_dt = luxon.DateTime.fromISO(itinerary.departure_datetime, { setZone: true });
-        const arrival_dt = luxon.DateTime.fromISO(itinerary.arrival_datetime, { setZone: true });
+            const departure_dt = luxon.DateTime.fromISO(itinerary.departure_datetime, { setZone: true });
+            const arrival_dt = luxon.DateTime.fromISO(itinerary.arrival_datetime, { setZone: true });
 
-        // Setup all of the purhcase info with the info from the itinerary object
-        $('#departureDate').text(departure_dt.toFormat("ccc, LLL d"));
-        $('#departureAirport').text(itinerary.departure_airport.code);
-        $('#arrivalAirport').text(itinerary.arrival_airport.code);
-        $('#baseFare').text(`\$${itinerary.base_fare.toFixed(2)}`);
-        $('#taxes').text(`\$${itinerary.taxes.toFixed(2)}`);
-        $('#priceNumOfPassengers').text(numOfPassengers);
-        const totalFare = itinerary.cost * numOfPassengers;
-        $('#totalFare').text(`\$${totalFare.toFixed(2)}`);
+            // Setup all of the purhcase info with the info from the itinerary object
+            $itineraryElement.find('[name="departureDate"]').text(departure_dt.toFormat("ccc, LLL d"));
+            $itineraryElement.find('[name="departureAirport"]').text(itinerary.departure_airport.code);
+            $itineraryElement.find('[name="arrivalAirport"]').text(itinerary.arrival_airport.code);
 
-        for (let i = 0; i < itinerary.flights.length; ++i) {
-            const flight = itinerary.flights[i];
+            baseFare += itinerary.base_fare
+            taxes += itinerary.taxes
+            
+            for (let i = 0; i < itinerary.flights.length; ++i) {
+                const flight = itinerary.flights[i];
 
-            // Create flight input fields for each flight they are purchasing and assign the flight number.
-            // This also gets sent to the API so it knows which flights to purchase.
-            //$('#purchase_transaction_form').append(`<input type="hidden" name="flights-${i}" id="flights-${i}" value="${flight.number}">`)
+                // Create flight input fields for each flight they are purchasing and assign the flight number.
+                // This also gets sent to the API so it knows which flights to purchase.
+                //$('#purchase_transaction_form').append(`<input type="hidden" name="flights-${i}" id="flights-${i}" value="${flight.number}">`)
 
-            // Create a flight row and populate the data.
-            // This is displayed under the "Purchase Info" header.
-            const template = document.querySelector('#flightRow');
-            const row = template.content.cloneNode(true);
-            const $row = $(row);
+                // Create a flight row and populate the data.
+                // This is displayed under the "Purchase Info" header.
+                const flightTemplate = document.querySelector('#flightTemplate');
+                const flightElement = flightTemplate.content.cloneNode(true);
+                const $flightElement = $(flightElement);
 
-            $row.find('[name="flightNumber"]').text(`RE${flight.number}`);
-            $row.find('[name="departureCode"]').text(flight.departure_airport.code);
-            $row.find('[name="arrivalCode"]').text(flight.arrival_airport.code);
+                $flightElement.find('[name="flightNumber"]').text(`RE${flight.number}`);
+                $flightElement.find('[name="departureCode"]').text(flight.departure_airport.code);
+                $flightElement.find('[name="arrivalCode"]').text(flight.arrival_airport.code);
 
-            $('#flightContainer').append(row);
+                $itineraryElement.find('[name="flightContainer"]').append(flightElement);
+            }
+
+            $('#itineraryContainer').append(itineraryElement);
         }
+
+        $('#baseFare').text(`\$${baseFare.toFixed(2)}`);
+        $('#taxes').text(`\$${taxes.toFixed(2)}`);
+        $('#priceNumOfPassengers').text(numOfPassengers);
+        const totalFare = (baseFare + taxes) * numOfPassengers;
+        $('#totalFare').text(`\$${totalFare.toFixed(2)}`);
 
         // Monitor changes on the card number and update
         // the card type on each change. This is used to
@@ -367,8 +384,8 @@
                 return success;
             },
             onSuccess: function (response) {
-                window.sessionStorage.removeItem('itinerary');
-                $('#confirmationNumber').text(response.confirmation_number);
+                window.sessionStorage.removeItem('itineraries');
+                $('#confirmationNumber').text(response[0].confirmation_number);
                 $('#checkoutPage').hide();
                 $('#successPage').show();
                 $('#successPage').addClass('show');

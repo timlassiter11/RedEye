@@ -9,6 +9,7 @@
 {% block styles %}
 {{ super() }}
 <link href="/static/content/typeahead.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 {% endblock %}
 
 {% block body %}
@@ -89,7 +90,7 @@
     {% block search %}
     <div class="collapse" id="searchCollapse">
         <form id="searchForm" class="needs-validation" method="get" action="{{ url_for('main.search') }}" novalidate>
-            <div class="container">
+            <div class="px-3">
                 <div class="d-flex flex-column flex-md-row justify-content-center">
                     <div class="form-floating">
                         <input class="form-control airport-typeahead" id="searchDepartureCode" name="departure_code" placeholder="From" type="text"
@@ -105,7 +106,14 @@
                         <p class="lead feedback" id="searchArrivalCode-feedback"></p>
                     </div>
                     <div class="form-floating mb-3 mb-md-0 mx-md-3">
-                        <input class="form-control" id="searchDepartureDate" name="departure_date" type="date">
+                        <select class="form-select" id="tripType">
+                            <option value="round-trip" selected>Round Trip</option>
+                            <option value="one-way">One Way</option>
+                        </select>
+                        <label for="tripType">Trip Type</label>
+                    </div>
+                    <div class="form-floating mb-3 mb-md-0 me-md-3">
+                        <input class="form-control" id="searchDepartureDate" type="text" placeholder="Date">
                         <label for="searchDepartureDate">Date</label>
                     </div>
                     <div class="form-floating mb-3 mb-md-0 me-md-3" style="min-width: 120px;">
@@ -121,6 +129,8 @@
                 </div>
             </div>
             <input type="hidden" name="max_layovers" value="2">
+            <input type="hidden" id="departure_date" name="departure_date" value="">
+            <input type="hidden" id="return_date" name="return_date" value="">
         </form>
     </div>
     {% endblock search %}
@@ -137,6 +147,9 @@
 
 {% block scripts %}
 {{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script src="/static/scripts/luxon.min.js"></script>
 <script src="/static/scripts/typeahead.bundle.min.js"></script>
 <script>
@@ -168,6 +181,29 @@
         }
     }
 
+    function initDateRangePicker($input, singleDate) {
+        function updateDateInputs(start, end, label) {
+            $('#departure_date').val(start.format('YYYY-MM-DD'));
+            if (!singleDate) {
+                $('#return_date').prop("disabled", false);
+                $('#return_date').val(end.format('YYYY-MM-DD'));
+            } else {
+                $('#return_date').prop("disabled", true);
+            }
+        }
+
+        $input.daterangepicker({
+            opens: 'right',
+            autoApply: true,
+            minDate: moment(),
+            maxDate: moment().add(1, 'years'),
+            singleDatePicker: singleDate
+        }, updateDateInputs);
+
+        const data = $input.data('daterangepicker');
+        updateDateInputs(data.startDate, data.endDate);
+    }
+
     $(document).ready(function () {
     
         const searchCollapseEl = document.getElementById('searchCollapse')
@@ -188,6 +224,7 @@
         const $departure_feedback = $('#searchDepartureCode-feedback');
         const $arrival_input = $('#searchArrivalCode');
         const $arrival_feedback = $('#searchArrivalCode-feedback');
+        const $type_input = $('#tripType');
         const $date_input = $('#searchDepartureDate');
         const $passengers_input = $('#searchNumOfPassengers');
 
@@ -241,6 +278,15 @@
             validateInput($arrival_input, $arrival_feedback);
         });
 
+        $type_input.on('change', function(event) {
+            window.sessionStorage.setItem('last_trip_type', $type_input.val());
+            if (this.value === 'round-trip') {
+                initDateRangePicker($date_input, false);
+            } else {
+                initDateRangePicker($date_input, true);
+            }
+        });
+
         $date_input.on('change', function (event) {
             window.sessionStorage.setItem('last_departure_date', $date_input.val());
         });
@@ -270,15 +316,24 @@
             $arrival_input.trigger('typeahead:change');
         }
 
+        const today = luxon.DateTime.now();
         const lastDepartureDate = window.sessionStorage.getItem("last_departure_date");
         if (typeof lastDepartureDate === "string") {
             $date_input.val(lastDepartureDate);
         } else {
-            const today = luxon.DateTime.now();
-            $date_input.attr("min", today.toISODate());
-            const max = today.plus({ months: 12 });
-            $date_input.attr("max", max.toISODate());
             $date_input.val(today.toISODate());
+        }
+
+        const lastTripType = window.sessionStorage.getItem("last_trip_type");
+        if (typeof lastTripType === "string") {
+            $type_input.val(lastTripType);
+            if (lastTripType === 'round-trip') {
+                initDateRangePicker($date_input, false);
+            } else {
+                initDateRangePicker($date_input, true);
+            }
+        } else {
+            initDateRangePicker($date_input, false);
         }
 
         const lastNumOfPassengers = window.sessionStorage.getItem("last_num_of_passengers");

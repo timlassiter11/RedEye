@@ -1,11 +1,12 @@
+import datetime as dt
 from distutils.util import strtobool
 from operator import attrgetter
 
-from flask import session
-
+import pytz
 from app import models
 from app.api import api
 from app.api.helpers import code_to_airport, str_to_date
+from flask import session
 from flask_restful import Resource, reqparse
 
 
@@ -52,25 +53,38 @@ class FlightSearch(Resource):
             min_layover_time=min_layover_time,
         )
         # Sort the itineraries by the number of layovers, departure time, and total time.
-        itineraries.sort(
-            key=attrgetter("departure_datetime", "total_time")
-        )
+        itineraries.sort(key=attrgetter("departure_datetime", "total_time"))
         # Slice the list to limit the results.
         # Always do this after sorting so we get the best results.
         itineraries = itineraries[:limit]
 
+        if "itineraries" not in session:
+            session["itineraries"] = dict()
+
+        session_itineraries = session["itineraries"]
+
         # Store the quotes in the session object so we can retrieve them at checkout
-        session["itineraries"] = {itinerary.id: {
-            'base_fare': itinerary.base_fare,
-            'total_price': itinerary.cost,
-            'departure_airport': itinerary.departure_airport.id,
-            'destination_airport': itinerary.arrival_airport.id,
-            'departure_date': itinerary.departure_datetime.date().isoformat(),
-            'flights': [flight.flight.id for flight in itinerary.flights],
-        } for itinerary in itineraries}
+        session_itineraries.update(
+            {
+                itinerary.id: {
+                    "base_fare": itinerary.base_fare,
+                    "total_price": itinerary.cost,
+                    "departure_airport": itinerary.departure_airport.id,
+                    "destination_airport": itinerary.arrival_airport.id,
+                    "departure_date": itinerary.departure_datetime.date().isoformat(),
+                    "flights": [flight.flight.id for flight in itinerary.flights],
+                }
+                for itinerary in itineraries
+            }
+        )
+
+        session["itineraries"] = session_itineraries
 
         return {
-            "items": [itinerary.to_dict(expand=expand, utc=use_utc) for itinerary in itineraries],
+            "items": [
+                itinerary.to_dict(expand=expand, utc=use_utc)
+                for itinerary in itineraries
+            ],
             "_meta": {
                 "total_items": len(itineraries),
             },
