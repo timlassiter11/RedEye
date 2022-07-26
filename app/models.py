@@ -4,12 +4,14 @@ import random
 import string
 import time
 import uuid
+from collections import OrderedDict
 from typing import Any, Dict, List
 from zoneinfo import ZoneInfo
 
 import geopy.distance
 import jwt
 import pytz
+from dateutil.relativedelta import relativedelta
 from flask import current_app, url_for
 from flask_login import UserMixin
 from sqlalchemy import UniqueConstraint, and_, desc, func, or_
@@ -145,13 +147,9 @@ class Agent(User):
         "polymorphic_identity": "agent",
     }
 
-    def _sales_from_query(self, query) -> List[Dict]:
-        return [
-            {"date": row["date"], "sales": round(row["sales"], 2)}
-            for row in query.all()
-        ]
-
     def sales_by_date(self, start: dt.date, end: dt.date) -> List[Dict]:
+        # Add an extra day to include results on that date
+        end += relativedelta(days=+1)
 
         date_col = func.date(PurchaseTransaction.purchase_timestamp).label("date")
 
@@ -162,34 +160,63 @@ class Agent(User):
                 date_col,
             )
             .filter(PurchaseTransaction.assisted_by == self.id)
-            .filter(date_col >= start)
-            .filter(date_col <= end)
-            .group_by("date")
-            .order_by("date")
+            .filter(PurchaseTransaction.purchase_timestamp >= start)
+            .filter(PurchaseTransaction.purchase_timestamp <= end)
+            .group_by(date_col)
+            .order_by(date_col)
         )
 
-        return self._sales_from_query(query)
+        data = {row["date"].isoformat(): round(row["sales"], 2) for row in query.all()}
+
+        while start < end:
+            if start.isoformat() not in data:
+                data[start.isoformat()] = 0.00
+            start += relativedelta(days=+1)
+
+        ordered_data = OrderedDict(
+            sorted(data.items(), key=lambda x: dt.date.fromisoformat(x[0]))
+        )
+        return ordered_data
 
     def sales_by_month(self, start: dt.date, end: dt.date) -> List[Dict]:
+        # Add an extra day to include results on that date
+        end += relativedelta(days=+1)
+
         month_col = func.month(PurchaseTransaction.purchase_timestamp).label("month")
         year_col = func.year(PurchaseTransaction.purchase_timestamp).label("year")
-        date_col = func.str_to_date(
-            func.concat(year_col, "-", month_col, "-", "01"), "%Y-%m-%d"
-        ).label("date")
 
         query = (
             db.session.query(
                 PurchaseTransaction.id,
                 func.sum(PurchaseTransaction.purchase_price).label("sales"),
-                date_col,
+                month_col,
+                year_col,
             )
-            .filter(date_col >= start)
-            .filter(date_col <= end)
-            .group_by("date")
-            .order_by("date")
+            .filter(PurchaseTransaction.assisted_by == self.id)
+            .filter(PurchaseTransaction.purchase_timestamp >= start)
+            .filter(PurchaseTransaction.purchase_timestamp <= end)
+            .group_by(year_col)
+            .group_by(month_col)
+            .order_by(year_col)
+            .order_by(month_col)
         )
 
-        return self._sales_from_query(query)
+        data = {
+            f"{row['year']}-{row['month']:0>2}-01": round(row["sales"], 2)
+            for row in query.all()
+        }
+
+        start = start.replace(day=1)
+        end = end.replace(day=1)
+        while start < end:
+            if start.isoformat() not in data:
+                data[start.isoformat()] = 0.00
+            start += relativedelta(months=+1)
+
+        ordered_data = OrderedDict(
+            sorted(data.items(), key=lambda x: dt.date.fromisoformat(x[0]))
+        )
+        return ordered_data
 
 
 class Admin(User):
@@ -336,7 +363,15 @@ class Flight(PaginatedAPIMixin, db.Model):
                     transaction.taxes / len(transaction.tickets)
                 )
                 emails.append(
-                    (email, {"transaction": transaction, "flight": self, "date": date, 'refund_amount': refund_amount})
+                    (
+                        email,
+                        {
+                            "transaction": transaction,
+                            "flight": self,
+                            "date": date,
+                            "refund_amount": refund_amount,
+                        },
+                    )
                 )
 
         send_bulk_email(

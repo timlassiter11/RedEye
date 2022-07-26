@@ -2,7 +2,7 @@ from distutils.util import strtobool
 
 from app import db, models
 from app.api import api
-from app.api.helpers import get_or_404, json_abort, owner_or_role_required
+from app.api.helpers import get_or_404, json_abort, owner_or_role_required, str_to_date
 from app.email import send_email
 from app.forms import TransactionRefundForm
 from flask import render_template
@@ -71,6 +71,32 @@ class UserPurchases(Resource):
         )
         return data
 
+
+@api.resource("/agent/<id>/sales")
+class AgentSales(Resource):
+    @owner_or_role_required(["admin"])
+    def get(self, id):
+        agent = get_or_404(models.Agent, id)
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("start", type=str_to_date, location="args")
+        parser.add_argument("end", type=str_to_date, location="args")
+        parser.add_argument("group", default="date", location="args")
+
+        args = parser.parse_args()
+        start = args["start"]
+        end = args["end"]
+        group = args["group"]
+
+        if group not in ("date", "month"):
+            json_abort(400, message="group must be either date or month")
+
+        if group == "date":
+            data = agent.sales_by_date(start, end)
+        elif group == "month":
+            data = agent.sales_by_month(start, end)
+        
+        return data
 
 def _test_owner(**kwargs):
     id = kwargs.get("id")

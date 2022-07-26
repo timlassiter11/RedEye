@@ -1,9 +1,21 @@
 {% extends "agent/layout.html" %}
 
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
 {% block content %}
 {{ super() }}
 <div class="content-background flex-grow-1">
-    <div class="content-card position-relaive flex-grow-1">
+    <div class="content-card flex-grow-1">
+        <div class="form-floating">
+            <select class="form-select" id="durationInput">
+                <option value="date" selected>Last Week</option>
+                <option value="month">Last year</option>
+            </select>
+            <label for="groupByInput">Duration</label>
+        </div>
         <canvas id="myChart"></canvas>
     </div>
 </div>
@@ -12,37 +24,102 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.8.0/dist/chart.min.js"></script>
-<script>
-    $(document).ready(function () {
-        const salesData = [
-            {% for data in sales -%}
-            {x: "{{ data['date'] }}", y: {{ data['sales'] }}},
-            {% endfor %}
-        ];
-
-        const canvas = document.getElementById('myChart');
-        const myChart = new Chart(canvas, {
-            type: 'line',
-            responsive: true,
-            responsiveAnimationDuration: 100,
-            data: {
-                datasets: [{
-                    label: 'Sales',
-                    data: salesData,
-                    borderWidth: 1,
-                    fill: false,
-                    borderColor: '#DB2B30',
-                    tension: 0.1
-                }]
+<script type="text/javascript" src="/static/scripts/luxon.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js@3.8.0/dist/chart.min.js"></script>
+<script type="text/javascript">
+    function getSales(start, end, group) {
+        $.ajax({
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
+            url: "{{ url_for('api.agentsales', id=current_user.id) }}",
+            type: 'get',
+            data: { start: start.toISODate(), end: end.toISODate(), group: group },
+            success: function (response, textStatus, jqXhr) {
+                const labels = [];
+                const sales = [];
+                for (let date in response) {
+                    const date_lx = luxon.DateTime.fromISO(date);
+                    if (group === 'month') {
+                        labels.push(date_lx.toFormat('LLLL'));
+                    } else {
+                        labels.push(date_lx.toLocaleString(luxon.DateTime.DATE_MED_WITH_WEEKDAY));
+                    }
+                    sales.push(response[date])
+                }
+                updateChart(sales, labels);
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                const response = jqXHR.responseJSON
+                if ('message' in response) {
+                    const message = response.message
+                    if (typeof message === "string") {
+                        const alertHtml = `<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        ${message}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>`;
+                        $('#messageContainer').append(alertHtml)
                     }
                 }
+            },
+            complete: function () {
             }
+        });
+    }
+
+    let salesChart = null;
+
+    function updateChart(data, labels) {
+        const canvas = document.getElementById('myChart');
+
+        if (salesChart === null) {
+            salesChart = new Chart(canvas, {
+                type: 'bar',
+                responsive: true,
+                responsiveAnimationDuration: 100,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Sales',
+                        data: data,
+                        borderWidth: 1,
+                        fill: false,
+                        borderColor: '#DB2B30',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        } else {
+            salesChart.data.labels = labels;
+            salesChart.data.datasets[0].data = data;
+            salesChart.update();
+        }
+    }
+
+    $(document).ready(function () {
+        const end = luxon.DateTime.now();
+        const start = end.minus({ weeks: 1 });
+        getSales(start, end, "date");
+
+        const $durationInput = $('#durationInput');
+
+        $durationInput.change(function (event) {
+            let start;
+            let end = luxon.DateTime.now();
+            if (this.value === 'date') {
+                start = end.minus({weeks: 1});
+            } else if (this.value === 'month') {
+                start = end.minus({years: 1});
+            }
+            getSales(start, end, this.value);
         });
     });
 </script>

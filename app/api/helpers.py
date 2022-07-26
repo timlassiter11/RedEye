@@ -1,5 +1,5 @@
 from datetime import date
-from typing import List, TypeVar, Union
+from typing import List, Type, TypeVar, Union
 from dateutil.parser import parse, ParserError
 from functools import wraps
 
@@ -59,7 +59,7 @@ def owner_or_role_required(roles: Union[str, List[str]], is_owner = _is_owner):
     return decorator
 
 T = TypeVar('T')
-def get_or_404(model: T, id, message: str = "Resource not found") -> T:
+def get_or_404(model: Type[T], id, message: str = "Resource not found") -> T:
     item = model.query.get(int(id))
     if item is None:
         json_abort(404, message=message)
