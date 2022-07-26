@@ -133,7 +133,7 @@
         currentTransaction = transaction;
 
         // Remove all the previous inputs
-        $transactionRefundForm.html('');
+        $transactionRefundForm.find('input[type="number"]').remove();
         $transactionRefundForm.prop('action', `${transaction.self}/refund`);
 
         $('#confirmationNumberCell').text(transaction.confirmation_number);
@@ -237,7 +237,7 @@
 
         $('#transaction_refund_form').apiform({
             onSuccess: function (response) {
-                $transactionRefundForm.html();
+                $transactionRefundForm.find('input[type="number"]').remove();
                 $('#ticketTableBody').find('input:checked').prop('disabled', true);
                 updateTotals();
             }

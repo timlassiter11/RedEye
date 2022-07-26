@@ -129,3 +129,5 @@ class PurchaseRefund(Resource):
             send_email("Purchase Refund", [purchase.email], text_body, html_body)
 
             return "", 204
+        
+        json_abort(400, message=form.errors)

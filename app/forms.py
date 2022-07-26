@@ -1,5 +1,6 @@
 import pytz
 from flask_wtf import FlaskForm
+from wtforms import Form as NoCsrfForm
 from wtforms import (
     BooleanField,
     DateField,
@@ -137,7 +138,7 @@ class FlightForm(FlaskForm):
             raise ValidationError("End date must come after start date")
 
 
-class PassengerForm(FlaskForm):
+class PassengerForm(NoCsrfForm):
     first_name = StringField("First Name", validators=[InputRequired()])
     middle_name = StringField("Middle Name")
     last_name = StringField("Last Name", validators=[InputRequired()])
