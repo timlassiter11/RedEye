@@ -158,9 +158,10 @@ class Agent(User):
         query = (
             db.session.query(
                 PurchaseTransaction.id,
-                func.sum(PurchaseTransaction.base_fare).label("sales"),
+                func.sum(PurchaseTransaction.purchase_price).label("sales"),
                 date_col,
             )
+            .filter(PurchaseTransaction.assisted_by == self.id)
             .filter(date_col >= start)
             .filter(date_col <= end)
             .group_by("date")
@@ -179,7 +180,7 @@ class Agent(User):
         query = (
             db.session.query(
                 PurchaseTransaction.id,
-                func.sum(PurchaseTransaction.base_fare).label("sales"),
+                func.sum(PurchaseTransaction.purchase_price).label("sales"),
                 date_col,
             )
             .filter(date_col >= start)
