@@ -38,7 +38,7 @@
             <div class="d-flex justify-content-center mt-2">
                 <p class="me-1">Don't have an account?</p><a href="{{ url_for('auth.register') }}">Sign Up</a>
             </div>
-            {% else if current_user.role != 'agent' %}
+            {% elif current_user.role != 'agent' %}
             <div class="d-flex flex-row justify-content-center mt-3">
                 <a class="btn btn-redeye flex-grow-1" href="{{ url_for('main.my_trips') }}">My Trips</a>
             </div>
