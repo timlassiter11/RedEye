@@ -49,6 +49,10 @@
             <h6 id="destinationCell">N/A</h6>
         </div>
         <div class="hstack">
+            <h6 class="flex-grow-1">Date</h6>
+            <h6 id="departureDateCell">N/A</h6>
+        </div>
+        <div class="hstack">
             <h6 class="flex-grow-1">Assisted By</h6>
             <h6 id="agentCell">N/A</h6>
         </div>
@@ -140,6 +144,7 @@
         $('#emailCell').text(transaction.email);
         $('#departingCell').text(transaction.departure_airport.code);
         $('#destinationCell').text(transaction.destination_airport.code);
+        $('#departureDateCell').text(transaction.departure_date);
         $('#agentCell').text(transaction.agent);
         $('#purchasePriceCell').text('$' + transaction.purchase_price);
 
