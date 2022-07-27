@@ -155,3 +155,6 @@ msearch*/
 
 # test results
 results.xml
+
+# flask session data
+flask_session/

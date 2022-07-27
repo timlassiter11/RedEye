@@ -2,7 +2,6 @@ import datetime as dt
 from distutils.util import strtobool
 from operator import attrgetter
 
-import pytz
 from app import models
 from app.api import api
 from app.api.helpers import code_to_airport, json_abort, str_to_datetime
