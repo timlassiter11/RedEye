@@ -1,5 +1,6 @@
 import datetime as dt
 from typing import List
+from zoneinfo import ZoneInfo
 
 import pytz
 
@@ -36,11 +37,12 @@ def search():
         departure = code_to_airport(departure_code, "Invalid departure airport.")
         arrival = code_to_airport(arrival_code, "Invalid destination airport.")
         departure_date = str_to_date(departure_date)
+        departure_dt = dt.datetime.combine(departure_date, dt.time(23, 59), ZoneInfo(departure.timezone))
 
         if departure.id == arrival.id:
             raise ValueError("Departure and arrival airports cannot be the same.")
 
-        if departure_date < dt.datetime.utcnow().date():
+        if departure_dt < dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc):
             raise ValueError("Departure date must be in the future.")
 
         if return_date:
@@ -99,7 +101,7 @@ def my_trips():
     purchase_history = []
 
     now = dt.datetime.utcnow()
-    now = now.replace(tzinfo=pytz.utc)
+    now = now.replace(tzinfo=dt.timezone.utc)
 
     purchases: List[PurchaseTransaction] = current_user.purchases(dt.date.today())
     for trip in purchases:

@@ -10,11 +10,10 @@ from zoneinfo import ZoneInfo
 
 import geopy.distance
 import jwt
-import pytz
 from dateutil.relativedelta import relativedelta
 from flask import current_app, url_for
 from flask_login import UserMixin
-from sqlalchemy import UniqueConstraint, and_, desc, func, or_
+from sqlalchemy import UniqueConstraint, and_, desc, func, or_, sql
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, login
@@ -310,7 +309,7 @@ class Flight(PaginatedAPIMixin, db.Model):
         if self.departure_airport is None or self.arrival_airport is None:
             return None
 
-        return self.departure_airport.time_to(self.arrival_airport)
+        return self.departure_airport.time_to(self.arrival_airport) + dt.timedelta(minutes=45)
 
     @property
     def arrival_time(self) -> dt.time:
@@ -622,7 +621,7 @@ class TripFlight:
 
     @property
     def departure_datetime(self) -> dt.datetime:
-        return dt.datetime.combine(self.date, self.flight.departure_time, pytz.utc)
+        return dt.datetime.combine(self.date, self.flight.departure_time, dt.timezone.utc)
 
     @property
     def arrival_datetime(self) -> dt.datetime:
@@ -687,15 +686,16 @@ class TripItinerary:
             return None
 
         departure_flight = self._flights[0]
-        return dt.datetime.combine(
-            departure_flight.date, departure_flight.flight.departure_time, pytz.utc
-        )
+        tz = ZoneInfo(departure_flight.flight.departure_airport.timezone)
+        departure_dt = departure_flight.departure_datetime.astimezone(tz)
+        return departure_dt.replace(year=self._date.year, month=self._date.month, day=self._date.day)
 
     @property
     def arrival_datetime(self) -> dt.datetime:
         if not self._flights:
             return None
-        return self.departure_datetime + self.total_time
+        arrival_dt = self.departure_datetime + self.total_time
+        return arrival_dt.astimezone(ZoneInfo(self.arrival_airport.timezone))
 
     @property
     def distance(self) -> float:
@@ -733,9 +733,10 @@ class TripItinerary:
         # If last_arrival is not None it means this isn't
         # the first flight and we need to add time for the layover.
         if last_arrival:
+            last_arrival = last_arrival.astimezone(dt.timezone.utc)
             # Base it on the date of the last arrival
             departure_dt = dt.datetime.combine(
-                last_arrival.date(), flight.departure_time, pytz.utc
+                last_arrival.date(), flight.departure_time, dt.timezone.utc
             )
 
             # Handle cases where the layover spans
@@ -747,7 +748,7 @@ class TripItinerary:
             self._total_time += departure_dt - last_arrival
         else:
             departure_dt = dt.datetime.combine(
-                self._date, flight.departure_time, pytz.utc
+                self._date, flight.departure_time, dt.timezone.utc
             )
 
         # Add the flight time
@@ -763,13 +764,13 @@ class TripItinerary:
         if self._flights:
             # This should still be the time the flight
             # being removed would have arrived at the final destination.
-            last_arrival = self.arrival_datetime
+            last_arrival = self.arrival_datetime.astimezone(dt.timezone.utc)
             # This brings us back to right after the layover
             last_arrival -= flight.flight_time
             # This will be the new last flight.
             last_flight = self._flights[-1].flight
             new_arrival = dt.datetime.combine(
-                last_arrival.date(), last_flight.arrival_time, pytz.utc
+                last_arrival.date(), last_flight.arrival_time, dt.timezone.utc
             )
             # Handle layover spanning past midnight
             if last_arrival < new_arrival:
@@ -788,16 +789,7 @@ class TripItinerary:
         itinerary._total_time = self._total_time
         return itinerary
 
-    def to_dict(self, expand: bool = False, utc: bool = False):
-        departure_dt = self.departure_datetime
-        arrival_dt = self.arrival_datetime
-
-        if not utc:
-            departure_dt = departure_dt.astimezone(
-                ZoneInfo(self.departure_airport.timezone)
-            )
-            arrival_dt = arrival_dt.astimezone(ZoneInfo(self.arrival_airport.timezone))
-
+    def to_dict(self, expand: bool = False):
         return {
             "id": self.id,
             "cost": self.cost,
@@ -805,8 +797,8 @@ class TripItinerary:
             "taxes": self.taxes,
             "departure_airport": self._flights[0].flight.departure_airport.to_dict(),
             "arrival_airport": self._flights[-1].flight.arrival_airport.to_dict(),
-            "departure_datetime": departure_dt.isoformat(),
-            "arrival_datetime": arrival_dt.isoformat(),
+            "departure_datetime": self.departure_datetime.isoformat(),
+            "arrival_datetime": self.arrival_datetime.isoformat(),
             "total_time": str(self.total_time),
             "layovers": self.layovers,
             "flights": [flight.to_dict(expand=expand) for flight in self._flights],
@@ -816,7 +808,7 @@ class TripItinerary:
     def search(
         departing_airport: int,
         final_airport: int,
-        departure_date: dt.date,
+        departure_dt: dt.datetime,
         num_of_passengers: int = 1,
         max_layovers: int = 2,
         limit: int = 10,
@@ -832,7 +824,7 @@ class TripItinerary:
         # If this is the first call to this function
         # we need to initialize the lists.
         if current_itinerary is None:
-            current_itinerary = TripItinerary(departure_date)
+            current_itinerary = TripItinerary(departure_dt.date())
 
         if trip_itinerarys is None:
             trip_itinerarys = []
@@ -849,20 +841,27 @@ class TripItinerary:
                 current_itinerary.pop_flight()
                 return
 
-            departure_dt = current_itinerary.arrival_datetime + min_layover_time
+            departure_dt = current_itinerary.arrival_datetime.astimezone(dt.timezone.utc)
+            departure_dt += min_layover_time
 
-            departure_date = departure_dt.date()
-            departure_time = departure_dt.time()
-            # Filter out flights that depart before our departure_time
+        departure_date = departure_dt.date()
+        departure_time = departure_dt.time()
+        # Filter out flights that depart before our departure_time
+        if previous_flight:
+            # Not our first time calling the function so use the normal departure time
             query = query.filter(Flight.departure_time >= departure_time)
         else:
-            # Filter out flights that have already taken off
-            # if they are looking for same day flights.
-            if departure_date == dt.date.today():
-                # Add 45 minutes to filter out flights that are already boarding.
-                now = dt.datetime.utcnow() + dt.timedelta(minutes=45)
-                query = query.filter(Flight.departure_time > now.time())
-
+            # First time calling our function so we need to handle situations where the timezone wraps
+            # around past midnight in the airports timezone. Fixes issues where some flights aren't retrieved
+            # because they are "before" the departure time.
+            airport = Airport.query.get(departing_airport)
+            tz = ZoneInfo(airport.timezone)
+            midnight = dt.datetime.combine(departure_date, dt.time(0, 0, 0, tzinfo=tz)).astimezone(dt.timezone.utc)
+            if departure_time > dt.time(0,0,0,0) and departure_time < midnight.time():
+                query = query.filter(and_(Flight.departure_time >= departure_time, Flight.departure_time < midnight.time()))
+            else:
+                query = query.filter(or_(Flight.departure_time >= departure_time, Flight.departure_time < midnight.time()))
+                
         # Find flights departing from our current airport.
         query = query.filter_by(departure_id=departing_airport)
         # Make sure flights fall within the departure date.
@@ -932,12 +931,14 @@ class TripItinerary:
             TripItinerary.search(
                 departing_airport=flight.arrival_id,
                 final_airport=final_airport,
-                departure_date=departure_date,
+                departure_dt=departure_dt,
+                min_layover_time=min_layover_time,
                 num_of_passengers=num_of_passengers,
                 max_layovers=max_layovers,
                 previous_flight=flight,
                 current_itinerary=current_itinerary,
                 trip_itinerarys=trip_itinerarys,
+                limit=limit
             )
 
             if len(trip_itinerarys) >= limit:

@@ -28,6 +28,26 @@
 {% endblock %}
 
 {% block content %}
+<div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">Select Trip</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to select this trip? The flight lands after your desired return date.</p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="$(this).trigger('rejected.bs.modal')" type="button" class="btn btn-secondary"
+                    data-bs-dismiss="modal">No</button>
+                <button onclick="$(this).trigger('accepted.bs.modal')" type="button" class="btn btn-redeye"
+                    data-bs-dismiss="modal">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="overlay-parent flex-grow-1 content-background">
     <div id="loadingScreen" class="overlay-content vstack justify-content-center fade show bg-white">
         <div class="my-auto">
@@ -90,6 +110,10 @@
 {{ super() }}
 <script src="/static/scripts/luxon.min.js"></script>
 <script>
+    const itineraries = [];
+    const baseUrl = "{{ url_for('api.flightsearch')|safe }}"
+    const originalParams = new URLSearchParams(window.location.search);
+
     function strToDuration(str) {
         // Format = 1 days, 1:23:45
         const obj = {}
@@ -109,17 +133,32 @@
         return luxon.Duration.fromObject(obj).shiftTo('hours', 'minutes');
     }
 
-    function getSearchResults(url, onBook) {
+    function initToolTips() {
+        let tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        let tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            const tooltip = new bootstrap.Tooltip(tooltipTriggerEl, {
+                container: 'body'
+            });
+
+            $(tooltipTriggerEl).data('tooltip', tooltip);
+        });
+    }
+
+    function getSearchResults(urlParams, departure_dt, onBook) {
         $('#loadingScreen').show();
         $('#loadingScreen').addClass('show');
         $('#contentContainer').hide();
         $('#resultContainer').html('');
+
+        $('#departureCode').text(urlParams.get('departure_code'));
+        $('#arrivalCode').text(urlParams.get('arrival_code'));
+        $('#departureDate').text(departure_dt.toLocaleString(luxon.DateTime.DATE_MED_WITH_WEEKDAY));
         $.ajax({
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            url: url,
+            url: `${baseUrl}?${urlParams.toString()}`,
             type: 'GET',
             success: function (response, textStatus, jqXhr) {
                 if (response._meta.total_items === 0) {
@@ -185,13 +224,13 @@
                             flightNumbers += `RE${flight.number} / `;
 
                             $markerContainer.append('<div class="pathMarker"></div>');
-                            $airportContainer.append(`<p>${flight.departure_airport.code}</p>`)
+                            $airportContainer.append(`<p data-bs-toggle="tooltip" data-bs-placement="top" title="${flight.departure_airport.name}">${flight.departure_airport.code}</p>`);
                         }
 
                         // Add the final stop
                         $layoverContainer.append('<div class="pathText"></div>');
                         $markerContainer.append('<div class="pathMarker"></div>');
-                        $airportContainer.append(`<p>${flight.arrival_airport.code}</p>`)
+                        $airportContainer.append(`<p data-bs-toggle="tooltip" data-bs-placement="top" title="${flight.arrival_airport.name}">${flight.arrival_airport.code}</p>`)
 
                         // Remove the extra "/ " from the end.
                         flightNumbers = flightNumbers.slice(0, flightNumbers.length - 2);
@@ -212,6 +251,7 @@
                         });
 
                         $('#resultContainer').append(row);
+                        initToolTips();
                     }
                 }
             },
@@ -229,37 +269,56 @@
         })
     }
 
-    $(document).ready(function () {
-        let itineraries = [];
-        const baseUrl = "{{ url_for('api.flightsearch')|safe }}"
-        const urlParams = new URLSearchParams(window.location.search);
-        urlParams.set("expand", "true");
+    function getReturnTrips(departureParams, departure_dt) {
+        const returnParams = new URLSearchParams(departureParams.toString());
+        returnParams.set("departure_code", departureParams.get("arrival_code"));
+        returnParams.set("arrival_code", departureParams.get("departure_code"));
+        returnParams.set("departure_datetime", departure_dt.setZone('utc').toISO());
 
-        let departure_dt = luxon.DateTime.fromISO(urlParams.get('departure_date'));
-
-        $('#departureCode').text(urlParams.get('departure_code'));
-        $('#arrivalCode').text(urlParams.get('arrival_code'));
-        $('#departureDate').text(departure_dt.toLocaleString(luxon.DateTime.DATE_MED_WITH_WEEKDAY));
-
-        getSearchResults(`${baseUrl}?${urlParams.toString()}`, function (event, item) {
+        getSearchResults(returnParams, departure_dt, function (event, item) {
             itineraries.push(item);
-            if (urlParams.has("return_date")) {
-                const returnParams = new URLSearchParams(urlParams.toString());
-                returnParams.set("departure_code", urlParams.get("arrival_code"));
-                returnParams.set("arrival_code", urlParams.get("departure_code"));
-                returnParams.set("departure_date", urlParams.get("return_date"));
+            window.sessionStorage.setItem("itineraries", JSON.stringify(itineraries));
+            window.sessionStorage.setItem("passengers", "{{ args.get('num_of_passengers') }}");
+            window.location = "{{ url_for('main.checkout') }}";
+        });
+    }
 
-                departure_dt = luxon.DateTime.fromISO(returnParams.get('departure_date'));
-                $('#departureCode').text(returnParams.get('departure_code'));
-                $('#arrivalCode').text(returnParams.get('arrival_code'));
-                $('#departureDate').text(departure_dt.toLocaleString(luxon.DateTime.DATE_MED_WITH_WEEKDAY));
-                
-                getSearchResults(`${baseUrl}?${returnParams.toString()}`, function(event, item) {
+    $(document).ready(function () {
+        const $confirmationModal = $('#confirmationModal');
+        const confirmationModal = bootstrap.Modal.getOrCreateInstance($confirmationModal[0]);
+
+        const departureParams = new URLSearchParams(originalParams.toString());
+        departureParams.set("expand", "true");
+
+        const departure_date = departureParams.get("departure_date");
+        departureParams.delete("departure_date");
+
+        let departure_dt = luxon.DateTime.fromISO(departure_date, { zone: "utc" });
+        let now = luxon.DateTime.utc();
+
+        if (departure_dt.startOf("day").equals(now.startOf("day"))) {
+            departure_dt = departure_dt.set({ hour: now.hour, minute: now.minute });
+        }
+
+        departureParams.set("departure_datetime", departure_dt.toISO());
+
+        getSearchResults(departureParams, departure_dt, function (event, item) {
+            if (originalParams.has("return_date")) {
+                const return_date = originalParams.get("return_date");
+
+                let arrival_dt = luxon.DateTime.fromISO(item.arrival_datetime)//.plus({minute: 45});
+                let return_dt = luxon.DateTime.fromISO(return_date + 'T23:59:59', { zone: item.arrival_airport.timezone });
+
+                if (arrival_dt.startOf("day") > return_dt.startOf("day")) {
+                    confirmationModal.show();
+                    $confirmationModal.on('accepted.bs.modal', function (event) {
+                        itineraries.push(item);
+                        getReturnTrips(departureParams, arrival_dt);
+                    })
+                } else {
                     itineraries.push(item);
-                    window.sessionStorage.setItem("itineraries", JSON.stringify(itineraries));
-                    window.sessionStorage.setItem("passengers", "{{ args.get('num_of_passengers') }}");
-                    window.location = "{{ url_for('main.checkout') }}";
-                })
+                    getReturnTrips(departureParams, arrival_dt);
+                }
             } else {
                 window.sessionStorage.setItem("itineraries", JSON.stringify(itineraries));
                 window.sessionStorage.setItem("passengers", "{{ args.get('num_of_passengers') }}");

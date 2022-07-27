@@ -221,7 +221,7 @@ class TestTripItinerary(FlaskTestCase):
         self.assertEquals(dt.timedelta(), itinerary.total_time)
 
         flight1_departure = dt.datetime.combine(
-            today, dt.time(hour=5, minute=30), pytz.utc
+            today, dt.time(hour=5, minute=30), dt.timezone.utc
         )
         # Choose a time that's close to midnight to test rollover into the next day
         # TODO: Figure out a way to have the layover rollover as that's a more problematic scenario
@@ -254,7 +254,7 @@ class TestTripItinerary(FlaskTestCase):
         flight1_arrival = flight1_departure + flight1.flight_time
         # Create flight2's departure time with the correct date
         flight2_departure = dt.datetime.combine(
-            flight1_arrival.date(), flight2_departure, pytz.utc
+            flight1_arrival.date(), flight2_departure, dt.timezone.utc
         )
         # Calculate flight2's arrival time
         flight2_arrival = flight2_departure + flight2.flight_time
