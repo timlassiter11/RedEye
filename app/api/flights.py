@@ -1,5 +1,6 @@
 import datetime as dt
 from distutils.util import strtobool
+import smtplib
 
 from werkzeug.exceptions import HTTPException
 from flask_login import current_user
@@ -143,5 +144,8 @@ class FlightCancellation(Resource):
         flight: models.Flight = get_or_404(models.Flight, id)
         form = FlightCancellationForm(data=request.json)
         if form.validate():
-            flight.cancel(form.date.data, current_user.id)
+            try:
+                flight.cancel(form.date.data, current_user.id)
+            except smtplib.SMTPServerDisconnected:
+                json_abort(500, message="Failed to send cancellation emails")
             return "", 204

@@ -373,6 +373,9 @@ class Flight(PaginatedAPIMixin, db.Model):
                     )
                 )
 
+        db.session.commit()
+        db.session.refresh(cancellation)
+
         send_bulk_email(
             "Flight Cancellation",
             emails,
@@ -380,8 +383,6 @@ class Flight(PaginatedAPIMixin, db.Model):
             "email/flight_cancellation.html",
         )
 
-        db.session.commit()
-        db.session.refresh(cancellation)
         return cancellation
 
     def available_seats(self, date: dt.date) -> int:
