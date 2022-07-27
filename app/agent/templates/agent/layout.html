@@ -46,7 +46,7 @@
                             {{ current_user.first_name }}
                         </a>
                         <div class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu">
-                            <a class="dropdown-item" href="#" onclick="logout()"><i class="bi bi-box-arrow-left"></i>
+                            <a class="dropdown-item" href="#" onclick="logout(`{{ url_for('main.home') }}`)"><i class="bi bi-box-arrow-left"></i>
                                 Logout</a>
                         </div>
                     </li>
