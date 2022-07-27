@@ -26,5 +26,5 @@ class Config(object):
     REMEMBER_COOKIE_DOMAIN = None
     # Fix for MySQL connection timeout  
     SQLALCHEMY_POOL_RECYCLE = 280
-    SESSION_TYPE = 'filesystem'
+    SESSION_TYPE = 'sqlalchemy'
     

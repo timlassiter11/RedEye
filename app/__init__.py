@@ -5,7 +5,7 @@ from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_msearch import Search
-from flask_session import Session
+from flask_session import Session, SqlAlchemySessionInterface
 from werkzeug.exceptions import HTTPException
 
 db = SQLAlchemy()
@@ -28,6 +28,7 @@ def create_app(config_class=Config) -> "Flask":
 
     if app.config.get('USE_SESSION', True) != False:
         Session(app)
+        SqlAlchemySessionInterface(app, db, "sessions", "sess_")
 
     from app.auth import bp as auth_bp
     app.register_blueprint(auth_bp)
