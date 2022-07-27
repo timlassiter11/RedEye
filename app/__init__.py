@@ -25,7 +25,9 @@ def create_app(config_class=Config) -> "Flask":
     login.init_app(app)
     mail.init_app(app)
     search.init_app(app)
-    Session(app)
+
+    if app.config.get('USE_SESSION', True) != False:
+        Session(app)
 
     from app.auth import bp as auth_bp
     app.register_blueprint(auth_bp)

@@ -21,6 +21,7 @@ class TestConfig:
     MSEARCH_BACKEND = "whoosh"
     MSEARCH_INDEX_NAME = "msearch_test"
     EMAIL_ADDR = "no-reply@workoutbuddy.app"
+    USE_SESSION = False
 
 
 class FlaskTestCase(unittest.TestCase):
