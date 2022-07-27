@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import List, Type, TypeVar, Union
 from dateutil.parser import parse, ParserError
 from functools import wraps
@@ -80,3 +80,9 @@ def str_to_date(value: str) -> date:
         return parse(value).date()
     except ParserError:
         raise ValueError("Invalid date format")
+
+def str_to_datetime(value: str) -> datetime:
+    try:
+        return parse(value)
+    except ParserError:
+        raise ValueError("Invalid datetime format")
