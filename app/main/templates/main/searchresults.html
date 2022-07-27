@@ -305,10 +305,14 @@
         getSearchResults(departureParams, departure_dt, function (event, item) {
             if (originalParams.has("return_date")) {
                 const return_date = originalParams.get("return_date");
+                let arrival_dt;
+                if (return_date === departure_date) {
+                    arrival_dt = luxon.DateTime.fromISO(item.arrival_datetime);
+                } else {
+                    arrival_dt = luxon.DateTime.fromISO(return_date, { zone: "utc" });
+                }
 
-                let arrival_dt = luxon.DateTime.fromISO(item.arrival_datetime)//.plus({minute: 45});
                 let return_dt = luxon.DateTime.fromISO(return_date + 'T23:59:59', { zone: item.arrival_airport.timezone });
-
                 if (arrival_dt.startOf("day") > return_dt.startOf("day")) {
                     confirmationModal.show();
                     $confirmationModal.on('accepted.bs.modal', function (event) {
