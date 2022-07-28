@@ -16,7 +16,18 @@
     .pathMarker {
         height: 8px;
         width: 8px;
+        position: absolute;
+        top: calc(50% - 4px);
+        left: calc(50% - 4px);
         background-color: black;
+    }
+
+    .pathMarker.start {
+        left: 0;
+    }
+
+    .pathMarker.end {
+        left: calc(100% - 8px);
     }
 
     .pathText {
@@ -24,6 +35,15 @@
         margin-bottom: 0;
         text-align: center;
     }
+
+    .pathText.start {
+        text-align: left;
+    }
+
+    .pathText.end {
+        text-align: right;
+    }
+
 </style>
 {% endblock %}
 
@@ -137,11 +157,25 @@
         let tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         let tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             const tooltip = new bootstrap.Tooltip(tooltipTriggerEl, {
-                container: 'body'
+                container: 'body',
             });
 
             $(tooltipTriggerEl).data('tooltip', tooltip);
         });
+    }
+
+    function createMarker(airport, layover, extraClasses='') {
+        return $(`
+            <div class="d-flex flex-column position-relative justify-content-between" 
+                data-bs-toggle="tooltip" 
+                data-bs-placement="top" 
+                data-bs-html="true"
+                title="${airport.city}, ${airport.state}">
+                <div class="pathText mb-3 ${extraClasses}">${layover}</div>
+                <div class="pathMarker ${extraClasses}"></div>
+                <p class="pathText ${extraClasses}">${airport.code}</p>
+            </div>
+        `);
     }
 
     function getSearchResults(urlParams, departure_dt, onBook) {
@@ -193,10 +227,12 @@
                         let flight = null;
                         let previousFlight = null;
                         let current_dt = departure_dt.setZone('utc');
-                        for (const j in item.flights) {
+
+                        for (let j = 0; j < item.flights.length; ++j) {
 
                             flight = item.flights[j];
 
+                            let layoverText = '';
                             if (previousFlight !== null) {
                                 const parts = flight.departure_time.split(':');
 
@@ -212,10 +248,14 @@
 
                                 const layover = nextDeparture.diff(current_dt, ['hours', 'minutes']);
                                 current_dt = current_dt.plus(layover);
-                                $layoverContainer.append(`<p class="pathText"><small>${layover.toFormat("h'h'm'm'")}<small></p>`);
-                            } else {
-                                $layoverContainer.append('<div class="pathText"></div>');
+                                layoverText = layover.toFormat("h'h'm'm'")
                             }
+
+                            let extraClasses = ''
+                            if (j === 0) {
+                                extraClasses = 'start';
+                            }
+                            $marker = createMarker(flight.departure_airport, layoverText, extraClasses);
 
                             previousFlight = flight;
                             const flightTime = strToDuration(flight.flight_time);
@@ -223,14 +263,16 @@
 
                             flightNumbers += `RE${flight.number} / `;
 
-                            $markerContainer.append('<div class="pathMarker"></div>');
-                            $airportContainer.append(`<p data-bs-toggle="tooltip" data-bs-placement="top" title="${flight.departure_airport.name}">${flight.departure_airport.code}</p>`);
+                            $markerContainer.append($marker);
+                            //$airportContainer.append(`<p data-bs-toggle="tooltip" data-bs-placement="top" title="${flight.departure_airport.name}">${flight.departure_airport.code}</p>`);
                         }
 
                         // Add the final stop
-                        $layoverContainer.append('<div class="pathText"></div>');
-                        $markerContainer.append('<div class="pathMarker"></div>');
-                        $airportContainer.append(`<p data-bs-toggle="tooltip" data-bs-placement="top" title="${flight.arrival_airport.name}">${flight.arrival_airport.code}</p>`)
+                        $marker = createMarker(flight.arrival_airport, '', 'end');
+                        $markerContainer.append($marker);
+                        //$layoverContainer.append('<div class="pathText"></div>');
+                        //$markerContainer.append('<div class="pathMarker"></div>');
+                        //$airportContainer.append(`<p data-bs-toggle="tooltip" data-bs-placement="top" title="${flight.arrival_airport.name}">${flight.arrival_airport.code}</p>`)
 
                         // Remove the extra "/ " from the end.
                         flightNumbers = flightNumbers.slice(0, flightNumbers.length - 2);
