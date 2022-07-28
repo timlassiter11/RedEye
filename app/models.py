@@ -814,10 +814,11 @@ class TripItinerary:
         max_layovers: int = 2,
         limit: int = 10,
         min_layover_time: dt.timedelta = dt.timedelta(minutes=45),
-        max_layover_time: dt.timedelta = dt.timedelta(hours=5),
+        max_layover_time: dt.timedelta = dt.timedelta(hours=12),
+        max_trip_time: dt.timedelta = dt.timedelta(days=1),
         previous_flight: "Flight" = None,
         current_itinerary: "TripItinerary" = None,
-        trip_itinerarys: List[List["Flight"]] = None,
+        trip_itinerarys: List["TripItinerary"] = None,
     ) -> List["TripItinerary"]:
         """Recursive function to create TripItineraries from departing_airport to final_airport.
         Final return value is a list of TripItineraries.
@@ -835,6 +836,8 @@ class TripItinerary:
         if previous_flight:
             # If a previous flight was given, add it to the current path.
             current_itinerary.add_flight(previous_flight)
+            if current_itinerary.total_time > max_trip_time:
+                return
             # If the previous flight ended at our destination
             # that's the end of this path. Add it to the paths.
             if previous_flight.arrival_id == final_airport:
@@ -933,13 +936,16 @@ class TripItinerary:
                 departing_airport=flight.arrival_id,
                 final_airport=final_airport,
                 departure_dt=departure_dt,
-                min_layover_time=min_layover_time,
                 num_of_passengers=num_of_passengers,
                 max_layovers=max_layovers,
+                limit=limit,
+                min_layover_time=min_layover_time,
+                max_layover_time=max_layover_time,
+                max_trip_time=max_trip_time,
                 previous_flight=flight,
                 current_itinerary=current_itinerary,
                 trip_itinerarys=trip_itinerarys,
-                limit=limit
+                
             )
 
             if len(trip_itinerarys) >= limit:
